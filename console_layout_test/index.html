@@ -6,26 +6,25 @@
 		<link href="styles/main.css" rel="stylesheet" type="text/css" />
 	</head>
 	
+	<script>
+	function inputEntered() {
+		let input = document.getElementsByName("input").item(0).value;
+		var console = document.getElementById("console_output");
+		console.innerHTML = console.innerHTML + "<br>" + input;
+	}
+	</script>
+	
 	<body>
-		<p class="console">
-			Console output<br>
-			Console output<br>
-			Console output<br>
-			Console output<br>
-			Console output<br>
-			Console output<br>
-			Console output<br>
-			Console output<br>
-			Console output<br>
-			Console output<br>
-			Console output<br>
-			Console output<br>
-			Console output<br>
-			Console output<br>
-			Console output<br>
+		<p class="console" id="console_output">
 			Console output<br>
 		</p>
-		<p class="console">Console input</p>
+		
+		<hr>
+		
+		<form onsubmit="event.preventDefault(); inputEntered();">
+			<input type="text" name="input">
+		</form>
+		
 	</body>
 	
 </html>
