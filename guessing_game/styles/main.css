@@ -7,7 +7,7 @@ body {
 	color: white;
 	padding: 0px 10px 40px 10px;
 	font-family: Monospace;
-	font-size: 20px;
+	font-size: 16px;
 }
 
 input {
@@ -23,5 +23,5 @@ input {
 	
 	position: fixed;
 	bottom: 0px;
-	font-size: 20px;
+	font-size: 16px;
 }
