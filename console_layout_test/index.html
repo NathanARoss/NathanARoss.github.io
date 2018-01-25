@@ -2,27 +2,38 @@
 <html lang=en-US>
 
 	<head>
-		<title>CSS test </title>
+		<title>Console Layout</title>
 		<link href="styles/main.css" rel="stylesheet" type="text/css" />
+		 <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
 	</head>
 	
 	<script>
 	function inputEntered() {
-		let input = document.getElementsByName("input").item(0).value;
+		var inputField = document.getElementsByName("input").item(0);
+		let input = inputField.value;
+		inputField.value = "";
+		
 		var console = document.getElementById("console_output");
-		console.innerHTML = console.innerHTML + "<br>" + input;
+		console.innerHTML = console.innerHTML + input + "<br>";
+		
 	}
 	</script>
 	
 	<body>
-		<p class="console" id="console_output">
-			Console output<br>
+		<p id="console_output">
+			Console layout test v3 &copy; 1996-2018 RossCorp&trade;<br>
 		</p>
 		
-		<hr>
-		
-		<form onsubmit="event.preventDefault(); inputEntered();">
-			<input type="text" name="input">
+		<form
+		onsubmit="event.preventDefault(); inputEntered();"
+		autocomplete="off"
+		>
+			<input
+			id="console_input"
+			type="text"
+			name="input"
+			autofocus
+			>
 		</form>
 		
 	</body>
