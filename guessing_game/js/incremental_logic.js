@@ -12,7 +12,7 @@ function processInput(input) {
 		sendOutput(guess + " is too low");
 	} else if (guess > answer) {
 		sendOutput(guess + " is too high");
-	} else {
+	} else if (guess == answer) {
 		sendOutput("ding ding ding! The answer is " + answer + "<br>");
 		startNewGame();
 	}
