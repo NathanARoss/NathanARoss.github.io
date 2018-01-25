@@ -4,20 +4,8 @@
 	<head>
 		<title>Console Layout</title>
 		<link href="styles/main.css" rel="stylesheet" type="text/css" />
-		 <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
 	</head>
-	
-	<script>
-	function inputEntered() {
-		var inputField = document.getElementsByName("input").item(0);
-		let input = inputField.value;
-		inputField.value = "";
-		
-		var console = document.getElementById("console_output");
-		console.innerHTML = console.innerHTML + input + "<br>";
-		
-	}
-	</script>
 	
 	<body>
 		<p id="console_output">
@@ -37,5 +25,26 @@
 		</form>
 		
 	</body>
+	
+	<!-- I'm told placing the script at the bottom helps with performance -->
+	<script src="js/incremental_logic.js"></script>
+	
+	<script>
+	function inputEntered() {
+		var inputField = document.getElementsByName("input").item(0);
+		let input = inputField.value;
+		inputField.value = "";
+		
+		processInput(input);
+	}
+	
+	function sendOutput(text) {
+		var console = document.getElementById("console_output");
+		console.innerHTML = console.innerHTML + text + "<br>";
+	}
+	
+	entryPoint();
+	
+	</script>
 	
 </html>
