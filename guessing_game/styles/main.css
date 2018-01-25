@@ -7,8 +7,7 @@ body {
 	color: white;
 	padding: 0px 10px 40px 10px;
 	font-family: Monospace;
-	width: 100px;
-	background-color: gray
+	font-size: 20px;
 }
 
 input {
@@ -16,7 +15,7 @@ input {
 	color: white;
 	font-family: Monospace;
 	
-	width: 100px;
+	width: 100%;
 	border: none;
 	padding: 10px;
 	box-sizing: border-box;
@@ -24,4 +23,5 @@ input {
 	
 	position: fixed;
 	bottom: 0px;
+	font-size: 20px;
 }
