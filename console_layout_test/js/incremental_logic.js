@@ -5,14 +5,15 @@ function entryPoint() {
 }
 
 function processInput(input) {
+	
 	let guess = parseInt(input);
 	
 	if (guess < answer) {
-		sendOutput("try higher");
+		sendOutput(guess + " is too low");
 	} else if (guess > answer) {
-		sendOutput("try lower");
+		sendOutput(guess + " is too high");
 	} else {
-		sendOutput("ding ding ding!<br>");
+		sendOutput("ding ding ding! The answer is " + answer + "<br>");
 		startNewGame();
 	}
 }
