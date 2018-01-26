@@ -2,15 +2,14 @@
 <html lang=en-US>
 
 	<head>
-		<title>Console Layout</title>
+		<title>Guessing Game</title>
+		<meta charset="UTF-8"> 
 		<link href="styles/main.css" rel="stylesheet" type="text/css" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
 	</head>
 	
 	<body>
-		<p id="console_output">
-			CLTv3 &copy; 1996-2018 RossCorp&trade;<br>
-		</p>
+		<p id="console_output"></p>
 		
 		<form
 		onsubmit="event.preventDefault(); inputEntered();"
@@ -36,10 +35,15 @@
 		inputField.value = "";
 		
 		processInput(input);
+		window.scrollTo(0,document.body.scrollHeight);
 	}
 	
 	function sendOutput(text) {
 		var console = document.getElementById("console_output");
+		
+		//remove < and > from the string
+		
+		
 		console.innerHTML = console.innerHTML + text + "<br>";
 	}
 	
