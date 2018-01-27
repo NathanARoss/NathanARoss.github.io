@@ -25,28 +25,28 @@
 			>
 		</form>
 		
-	</body>
-	
-	<!-- I'm told placing the script at the bottom helps with performance -->
-	<script src="js/incremental_logic.js"></script>
-	
-	<script>
-	function inputEntered() {
-		var inputField = document.getElementsByName("input").item(0);
-		let input = inputField.value;
-		inputField.value = "";
+		<!-- I'm told placing the script at the bottom helps with performance -->
+		<script src="js/incremental_logic.js"></script>
 		
-		processInput(input);
-		window.scrollTo(0,document.body.scrollHeight);
-	}
+		<script>
+		function inputEntered() {
+			var inputField = document.getElementsByName("input").item(0);
+			let input = inputField.value;
+			inputField.value = "";
+			
+			processInput(input);
+			window.scrollTo(0,document.body.scrollHeight);
+		}
+		
+		function sendOutput(text) {
+			var console = document.getElementById("console_output");
+			console.innerHTML = console.innerHTML + text + "<br>";
+		}
+		
+		entryPoint();
+		
+		</script>
 	
-	function sendOutput(text) {
-		var console = document.getElementById("console_output");
-		console.innerHTML = console.innerHTML + text + "<br>";
-	}
-	
-	entryPoint();
-	
-	</script>
+	</body>
 	
 </html>
