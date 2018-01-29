@@ -13,7 +13,7 @@ function resize_canvas() {
 	
 	context.clearRect(0, 0, canvas.width, canvas.height);
 	context.font = "30px Arial";
-	context.fillText("" + canvas.width + "x" + canvas.height,30,30); 
+	context.fillText("" + canvas.width + "x" + canvas.height,100,100); 
 }
 
 function draw() {
