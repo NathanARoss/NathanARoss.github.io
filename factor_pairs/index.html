@@ -32,9 +32,10 @@
 			inputField.value = "";
 			
 			let integer = parseInt(input);
+			let root = floor(sqrt(integer));
 			var output = "";
 			
-			for (var i=1; i<integer/2; ++i) {
+			for (var i=1; i<=root; ++i) {
 				if (integer % i == 0) {
 					let other = integer / i;
 					output += i + " * " + other + "<br>";
