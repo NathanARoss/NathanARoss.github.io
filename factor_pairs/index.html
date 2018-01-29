@@ -41,12 +41,12 @@
 				}
 			}
 			
-			sendOutput(output);
+			setOutput(output);
 		}
 
-		function sendOutput(text) {
+		function setOutput(text) {
 			var console = document.getElementById("console_output");
-			console.innerHTML = console.innerHTML + text + "<br>";
+			console.innerHTML = text;
 		}
 
 		</script>
