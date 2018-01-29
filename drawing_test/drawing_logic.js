@@ -10,6 +10,10 @@ function resize_canvas() {
 	context.canvas.height = window.innerHeight;
 	centerX = canvas.width / 2.0;
 	centerY = canvas.height / 2.0;
+	
+	context.clearRect(0, 0, canvas.width, canvas.height);
+	context.font = "30px Arial";
+	context.fillText("" + canvas.width + "x" + canvas.height,30,30); 
 }
 
 function draw() {
