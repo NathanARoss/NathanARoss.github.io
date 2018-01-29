@@ -1,32 +1,29 @@
 <!DOCTYPE html>
-<html lang=en-US>
-
+<html>
 	<head>
-		<title>Guessing Game</title>
-		<link href="styles/main.css" rel="stylesheet" type="text/css" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+		<title>Factor pair</title>
+		<meta charset="UTF-8"> 
 	</head>
 	
+	
+	
 	<body>
-		<p id="console_output">
-			Guessing Game &copy; 1996-2018 RossCorp&trade;<br>
-		</p>
-		
-		
+		<p>Enter an integer to factor</p>
+	
 		<form
 		onsubmit="event.preventDefault(); inputEntered();"
 		autocomplete="off"
 		>
 			<input
 			id="console_input"
-			type="number" min="1" max="100"
+			type="text"
 			name="input"
 			autofocus
 			>
 		</form>
 		
-		<!-- I'm told placing the script at the bottom helps with performance -->
-		<script src="js/incremental_logic.js"></script>
+		<p id="console_output"></p>
+		
 		
 		<script>
 		function inputEntered() {
@@ -34,19 +31,24 @@
 			let input = inputField.value;
 			inputField.value = "";
 			
-			processInput(input);
-			window.scrollTo(0,document.body.scrollHeight);
+			let integer = parseInt(input);
+			var output = "";
+			
+			for (var i=1; i<integer/2; ++i) {
+				if (integer % i == 0) {
+					let other = integer / i;
+					output += i + " * " + other + "<br>";
+				}
+			}
+			
+			sendOutput(output);
 		}
-		
+
 		function sendOutput(text) {
 			var console = document.getElementById("console_output");
 			console.innerHTML = console.innerHTML + text + "<br>";
 		}
-		
-		entryPoint();
-		
+
 		</script>
-	
 	</body>
-	
 </html>
