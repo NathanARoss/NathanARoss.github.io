@@ -19,6 +19,8 @@ function resize_canvas() {
 	context.fillText("" + canvas.width + "x" + canvas.height,100,100);
 	
 	context.lineWidth = canvas.width / 100.0;
+	
+	generateObjects();
 }
 
 function draw() {
@@ -55,21 +57,24 @@ function getRandomColor() {
 	return color;
 }
 
-resize_canvas();
-
-for (var i = 0; i < 100; ++i) {
-	var ball = new Object();
-	ball.x = Math.random() * canvas.width;
-	ball.y = Math.random() * canvas.height;
+function generateObjects() {
+	objects = [];
 	
-	let radius = ((ball.x - centerX) ** 2 + (ball.y - centerY) ** 2) ** 0.55;
-	
-	ball.px = ball.x;
-	ball.py = ball.y;
-	ball.vx = (ball.y - centerY) / radius;
-	ball.vy = -(ball.x - centerX) / radius;
-	ball.color = getRandomColor();
-	objects.push(ball);
+	for (var i = 0; i < 200; ++i) {
+		var ball = new Object();
+		ball.x = Math.random() * canvas.width;
+		ball.y = Math.random() * canvas.height;
+		
+		let radius = ((ball.x - centerX) ** 2 + (ball.y - centerY) ** 2) ** 0.55;
+		
+		ball.px = ball.x;
+		ball.py = ball.y;
+		ball.vx = (ball.y - centerY) / radius;
+		ball.vy = -(ball.x - centerX) / radius;
+		ball.color = getRandomColor();
+		objects.push(ball);
+	}
 }
 
+resize_canvas();
 setInterval(draw, callInterval);
