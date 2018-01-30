@@ -1,11 +1,14 @@
 var canvas = document.getElementById("myCanvas");
 var context = canvas.getContext("2d");
+let callInterval = 16;
 
 var theta = 0.0;
 var centerX, centerY;
 var time = 0.0;
 
-function resize_canvas() {
+var objects = [];
+
+function resize_canvas() {	
 	context.canvas.width = window.innerWidth;
 	context.canvas.height = window.innerHeight;
 	centerX = canvas.width / 2.0;
@@ -13,7 +16,9 @@ function resize_canvas() {
 	
 	context.clearRect(0, 0, canvas.width, canvas.height);
 	context.font = "30px Arial";
-	context.fillText("" + canvas.width + "x" + canvas.height,100,100); 
+	context.fillText("" + canvas.width + "x" + canvas.height,100,100);
+	
+	context.lineWidth = canvas.width / 100.0;
 }
 
 function draw() {
@@ -21,20 +26,50 @@ function draw() {
 	//context.beginPath();
 	//context.clearRect(0, 0, canvas.width, canvas.height);
 	
-	let radius = Math.sin(time * 0.0201) * (canvas.width / 3.0);
-	var x = Math.floor(Math.cos(theta) * radius + centerX);
-	var y = Math.floor(Math.sin(theta) * radius + centerY);
-	context.moveTo(x,y);
-	
-	theta += 0.1;
-	time += 1.0;
-	
-	radius = Math.sin(time * 0.0201) * (canvas.width / 3.0);
-	x = Math.floor(Math.cos(theta) * radius + centerX);
-	y = Math.floor(Math.sin(theta) * radius + centerY);
-	context.lineTo(x,y);
-	context.stroke();
+	for (var i = 0; i < objects.length; ++i) {
+		var ball = objects[i];
+		ball.x += ball.vx;
+		ball.y += ball.vy;
+		
+		let radius2 = (ball.x - centerX) ** 2 + (ball.y - centerY) ** 2;
+		ball.vx -= (ball.x - centerX) / radius2;
+		ball.vy -= (ball.y - centerY) / radius2;
+		
+		context.beginPath();
+		context.moveTo(ball.px, ball.py);
+		context.lineTo(ball.x, ball.y);
+		context.strokeStyle = ball.color;
+		context.stroke();
+		
+		ball.px = ball.x;
+		ball.py = ball.y;
+	}
+}
+
+function getRandomColor() {
+	var letters = '0123456789ABCDEF';
+	var color = '#';
+	for (var i = 0; i < 6; i++) {
+		color += letters[Math.floor(Math.random() * 16)];
+	}
+	return color;
 }
 
 resize_canvas();
-setInterval(draw, 33);
+
+for (var i = 0; i < 100; ++i) {
+	var ball = new Object();
+	ball.x = Math.random() * canvas.width;
+	ball.y = Math.random() * canvas.height;
+	
+	let radius = ((ball.x - centerX) ** 2 + (ball.y - centerY) ** 2) ** 0.55;
+	
+	ball.px = ball.x;
+	ball.py = ball.y;
+	ball.vx = (ball.y - centerY) / radius;
+	ball.vy = -(ball.x - centerX) / radius;
+	ball.color = getRandomColor();
+	objects.push(ball);
+}
+
+setInterval(draw, callInterval);
