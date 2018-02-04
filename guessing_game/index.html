@@ -20,10 +20,17 @@
 		>
 			<input
 			id="console_input"
-			type="number" min="1" max="100" pattern="\d*" placeholder="Enter a number"
 			name="input"
+			type="number" min="1" max="100" pattern="\d*"
+			placeholder="Enter a number"
 			autofocus
 			>
+			
+			<input
+			id="console_submit"
+			type="submit"
+			value="Submit"
+			/>
 		</form>
 		
 		<!-- I'm told placing the script at the bottom helps with performance -->
@@ -42,6 +49,12 @@
 		function sendOutput(text) {
 			var console = document.getElementById("console_output");
 			console.innerHTML = console.innerHTML + text + "<br>";
+		}
+	
+		{
+			var input = document.getElementById("console_input");
+			var submit = document.getElementById("console_submit");
+			input.style.width = (window.innerWidth - submit.offsetWidth) + "px";
 		}
 		
 		entryPoint();
