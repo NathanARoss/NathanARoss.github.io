@@ -18,8 +18,6 @@ function resizeListener() {
 	var diff = newitemPoolSize - itemPoolSize;
 	itemPoolSize = newitemPoolSize;
 	
-	//console.log("screenHeight " + screenHeight);
-	
 	if (diff > 0) {
 		for(var i = 0; i < diff; ++i) {
 			var p = document.createElement("p");
@@ -71,40 +69,14 @@ window.onscroll = function() {
 		spacer.style.height = firstLoadedItemIndex * itemHeight + "px";
 	}
 	
-	
-	
 	var debugText = "scrollY: " + window.scrollY + "<br>"
 					+ "loaded items: [" + firstLoadedItemIndex + ", " + (firstLoadedItemIndex + itemPoolSize - 1) + "]<br>"
 					+ "visible items: [" + firstVisibleItemIndex + ", " + (firstVisibleItemIndex + visibleItemCount - 1) + "]";
 	debug.innerHTML = debugText;
-	
-	/*
-	var topIndex = Math.floor(window.scrollY / itemHeight);
-	if (topIndex > maxIndex) {
-		topIndex = maxIndex;
-	}
-	
-	spacer.style.height = topIndex * itemHeight + "px";
-	
-	while (topIndex > oldTopIndex) {
-		var firstChild = list.firstChild;
-		firstChild.innerHTML = oldTopIndex;
-		list.removeChild(firstChild);
-		list.appendChild(firstChild);
-		++oldTopIndex;
-	}
-	
-	while (topIndex < oldTopIndex) {
-		var lastChild = list.childNodes[list.childNodes.length - 1];
-		firstChild.innerHTML = oldTopIndex;
-		list.removeChild(lastChild);
-		list.insertBefore(lastChild, list.firstChild);
-		--oldTopIndex;
-	}
-	/**/
 }
 
 //this div element is given a text element child by default, so I get rid of it
 list.removeChild(list.firstChild);
 
 resizeListener();
+onscroll();
