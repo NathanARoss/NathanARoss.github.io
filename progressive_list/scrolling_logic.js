@@ -3,7 +3,7 @@ var itemPoolSize = 0;
 var visibleItemCount = 0;
 let itemHeight = 60;
 var firstLoadedItemIndex = 0;
-let itemCount = 100000;
+let itemCount = 10000;
 
 var list = document.getElementById("list"); //a div containing all elements
 var spacer = document.getElementById("spacer"); //a div that changes size to offset elements
