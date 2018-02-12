@@ -29,7 +29,7 @@
 	<!-- I'm told placing the script at the bottom helps with performance -->
 	<script src="js/incremental_logic.js"></script>
 	
-	<script>
+	<script>	
 	function inputEntered() {
 		var inputField = document.getElementsByName("input").item(0);
 		let input = inputField.value;
@@ -41,11 +41,8 @@
 	
 	function sendOutput(text) {
 		var console = document.getElementById("console_output");
-		
-		//remove < and > from the string
-		
-		
-		console.innerHTML = console.innerHTML + text + "<br>";
+		console.appendChild(document.createTextNode(text));
+		console.appendChild(document.createElement("br"));
 	}
 	
 	entryPoint();
