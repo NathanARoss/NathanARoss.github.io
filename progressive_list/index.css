@@ -18,7 +18,7 @@ p.item {
 div.item {
 	display: flex;
 	align-items: center;
-	height: 60px;
+	height: 30px;
 	margin: 0px;
 	padding-left: 10px;
 	/* background-color: lightgray; */ /* Used when testing item loading */ 
