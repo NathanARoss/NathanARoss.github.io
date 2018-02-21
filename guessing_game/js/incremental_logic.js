@@ -13,7 +13,8 @@ function processInput(input) {
 	} else if (guess > answer) {
 		sendOutput(guess + " is too high");
 	} else if (guess == answer) {
-		sendOutput("ding ding ding! The answer is " + answer + "<br>");
+		sendOutput("ding ding ding! The answer is " + answer);
+		sendOutput("");
 		startNewGame();
 	}
 }
