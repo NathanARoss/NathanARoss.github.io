@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang=en-US>
+
+	<head>
+		<title>Javascript test</title>
+		<meta charset="UTF-8"> 
+		<link href="main.css" rel="stylesheet" type="text/css" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+	</head>
+	
+	<body>
+		<div style="width:100%;height:200px;background-color:gray"
+			onclick="sendOutput('clicked');"
+			oncontextmenu="sendOutput('context click')"
+			ondblclick="sendOutput('double click')"
+			onmousedown="sendOutput('mouse down')"
+			onmouseenter="sendOutput('mouse enter')"
+			onmouseleave="sendOutput('mouse leave')"
+			onmousemove="sendOutput('mouse move')"
+			onmouseover="sendOutput('mouse over')"
+			onmouseout="sendOutput('mouse out')"
+			onmouseup="sendOutput('mouse up')"
+
+			ontouchcancel="sendOutput('touch cancel');"
+			ontouchend="sendOutput('touch end');"
+			ontouchmove="sendOutput('touch move');"
+			ontouchstart="sendOutput('touch start')"
+			>
+			touch me
+		</div>
+		
+		<p id="console_output">
+			
+		</p>
+		
+		
+		<script>	
+			let console = document.getElementById("console_output");
+		
+			function sendOutput(text) {
+				console.insertBefore(document.createElement("br"), console.firstChild);
+				console.insertBefore(document.createTextNode(text), console.firstChild);
+			}
+		</script>
+	
+	</body>
+	
+</html>
