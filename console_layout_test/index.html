@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang=en-US>
+
+	<head>
+		<title>Guessing Game</title>
+		<meta charset="UTF-8"> 
+		<link href="styles/main.css" rel="stylesheet" type="text/css" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+	</head>
+	
+	<body>
+		<p id="console_output"></p>
+		
+		<form
+		onsubmit="event.preventDefault(); inputEntered();"
+		autocomplete="off"
+		>
+			<input
+			id="console_input"
+			type="text"
+			name="input"
+			autofocus
+			placeholder="Type input here"
+			>
+		</form>
+		
+	</body>
+	
+	<!-- I'm told placing the script at the bottom helps with performance -->
+	<script src="js/incremental_logic.js"></script>
+	
+	<script>	
+	function inputEntered() {
+		var inputField = document.getElementsByName("input").item(0);
+		let input = inputField.value;
+		inputField.value = "";
+		
+		processInput(input);
+		window.scrollTo(0,document.body.scrollHeight);
+	}
+	
+	function sendOutput(text) {
+		var console = document.getElementById("console_output");
+		console.appendChild(document.createTextNode(text));
+		console.appendChild(document.createElement("br"));
+	}
+	
+	entryPoint();
+	
+	</script>
+	
+</html>

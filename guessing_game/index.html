@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang=en-US>
+
+	<head>
+		<title>Guessing Game</title>
+		<meta charset="UTF-8"> 
+		<link href="styles/main.css" rel="stylesheet" type="text/css" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+	</head>
+	
+	<body onresize="adjustInputWidth()">
+		<p id="console_output">
+			Guessing Game &copy; 1996-2018 RossCorp&trade;<br>
+		</p>
+		
+		
+		<form
+		onsubmit="event.preventDefault(); inputEntered();"
+		autocomplete="off"
+		>
+			<input
+			id="console_input"
+			name="input"
+			type="number" min="1" max="100" pattern="\d*"
+			placeholder="Enter a number"
+			autofocus
+			>
+			
+			<input
+			id="console_submit"
+			type="submit"
+			value="Submit"
+			/>
+		</form>
+		
+		<!-- I'm told placing the script at the bottom helps with performance -->
+		<script src="js/incremental_logic.js"></script>
+		
+		<script>		
+		function inputEntered() {
+			var inputField = document.getElementsByName("input").item(0);
+			let input = inputField.value;
+			inputField.value = "";
+			
+			processInput(input);
+			window.scrollTo(0,document.body.scrollHeight);
+		}
+		
+		function sendOutput(text) {
+			var console = document.getElementById("console_output");
+			console.appendChild(document.createTextNode(text));
+			console.appendChild(document.createElement("br"));
+		}
+	
+		function adjustInputWidth() {
+			var input = document.getElementById("console_input");
+			var submit = document.getElementById("console_submit");
+			input.style.width = (window.innerWidth - submit.offsetWidth) + "px";
+		}
+		
+		adjustInputWidth();
+		entryPoint();
+		
+		</script>
+	
+	</body>
+	
+</html>

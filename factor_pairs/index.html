@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Factor pair</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	</head>
+	
+	
+	
+	<body>
+		<p>Enter an integer to factor</p>
+	
+		<form
+		onsubmit="event.preventDefault(); inputEntered();"
+		autocomplete="off"
+		>
+			<input
+			id="console_input"
+			type="number" pattern="\d*"
+			name="input"
+			autofocus
+			>
+			
+			<input
+			type="submit"
+			value="Submit"
+			/>
+		</form>
+		
+		<p id="console_output"></p>
+		
+		
+		<script>
+		function inputEntered() {
+			var inputField = document.getElementsByName("input").item(0);
+			let input = inputField.value;
+			inputField.value = "";
+			
+			let integer = parseInt(input);
+			let root = Math.floor(Math.sqrt(integer));
+			var output = "";
+			
+			for (var i=1; i<=root; ++i) {
+				if (integer % i == 0) {
+					let other = integer / i;
+					output += i + " * " + other + "<br>";
+				}
+			}
+			
+			setOutput(output);
+		}
+
+		function setOutput(text) {
+			var console = document.getElementById("console_output");
+			console.innerHTML = text;
+		}
+
+		</script>
+	</body>
+</html>
