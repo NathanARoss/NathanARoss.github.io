@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang=en-US>
+
+	<head>
+		<title>Drawing Demo</title>
+		<meta charset="UTF-8">
+		<!--meta name="viewport" content="width=device-width, initial-scale=1.0"-->
+		
+		<style>
+			html {
+				overflow: hidden;
+			}
+			
+			body {
+				margin: 0px;
+			}
+			
+			#script {
+			  width: 100vw;
+			  height: 100vh;
+			  font-family: monospace;
+			  resize: none;
+			  box-sizing: border-box;
+			}
+			
+			#run_button {
+      	background-color: #AAAAAA;
+      	font-family: Monospace;
+      	font-size: 16px;
+      	
+      	border: none;
+      	padding: 10px;
+      	box-sizing: border-box;
+      	
+      	position: fixed;
+      	bottom: 0px;
+      	right: 0px;
+      }
+			
+		</style>
+	</head>
+	
+	<body onresize="resizeListener()" onhashchange="hashListener()">
+	  
+	  <div id="editor_div">
+  	  <form>
+	      <textarea id="script" autofocus="true" spellcheck="false"></textarea>
+	    </form>
+	  
+	    <a id="run_button" href="#run">Run</a>
+	  </div>
+	  
+		<canvas id="myCanvas"></canvas>
+		
+		<!-- I'm told placing the script at the bottom helps with performance -->
+		<script src="drawing_logic.js"></script>
+	</body>
+	
+</html>
