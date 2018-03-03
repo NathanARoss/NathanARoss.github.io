@@ -20,10 +20,21 @@ if (time - state.previousUpdate > 10) {
     state.previousUpdate += 10;
     let theta = Math.random() * 2 * Math.PI;
 
-    state.gravity.x = Math.cos(theta) * 0.001;
-    state.gravity.y = Math.sin(theta) * 0.001;
+    state.gravity.x = Math.cos(theta) * 0.1;
+    state.gravity.y = Math.sin(theta) * 0.1;
 
     console.log("gravity: " + state.gravity.x + ", " + state.gravity.y);
+}
+
+
+//hit horizontal edge
+if (state.pos.x + state.size > width || state.pos.x - state.size < 0) {
+    state.vel.x = -state.vel.x / 2;
+}
+
+//hits vertical edge
+if (state.pos.y + state.size > height || state.pos.y - state.size < 0) {
+    state.vel.y = -state.vel.y;
 }
 
 state.vel.x += state.gravity.x;
@@ -31,9 +42,5 @@ state.vel.y += state.gravity.y;
 
 state.pos.x += state.vel.x;
 state.pos.y += state.vel.y;
-
-//hit left edge
-if (state.pos.x + state.size > width) {
-}
 
 drawCircle(state.pos.x, state.pos.y, state.size);
