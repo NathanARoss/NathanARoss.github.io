@@ -29,11 +29,13 @@ if (time - state.previousUpdate > 10) {
 
 //hit horizontal edge
 if (state.pos.x + state.size > width || state.pos.x - state.size < 0) {
+    state.pos.x -= state.vel.x;
     state.vel.x = -state.vel.x / 2;
 }
 
 //hits vertical edge
 if (state.pos.y + state.size > height || state.pos.y - state.size < 0) {
+    state.pos.y -= state.vel.y;
     state.vel.y = -state.vel.y;
 }
 

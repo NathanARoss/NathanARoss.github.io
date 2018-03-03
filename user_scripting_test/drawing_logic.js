@@ -116,16 +116,20 @@ if (time - state.previousUpdate > 10) {
 
     state.gravity.x = Math.cos(theta) * 0.1;
     state.gravity.y = Math.sin(theta) * 0.1;
+
+    console.log("gravity: " + state.gravity.x + ", " + state.gravity.y);
 }
 
 
 //hit horizontal edge
 if (state.pos.x + state.size > width || state.pos.x - state.size < 0) {
+    state.pos.x -= state.vel.x;
     state.vel.x = -state.vel.x / 2;
 }
 
 //hits vertical edge
 if (state.pos.y + state.size > height || state.pos.y - state.size < 0) {
+    state.pos.y -= state.vel.y;
     state.vel.y = -state.vel.y;
 }
 
