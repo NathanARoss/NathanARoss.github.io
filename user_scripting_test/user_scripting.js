@@ -22,8 +22,6 @@ if (time - state.previousUpdate > 10) {
 
     state.gravity.x = Math.cos(theta) * 0.1;
     state.gravity.y = Math.sin(theta) * 0.1;
-
-    console.log("gravity: " + state.gravity.x + ", " + state.gravity.y);
 }
 
 

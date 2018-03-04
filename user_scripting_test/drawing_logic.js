@@ -1,7 +1,7 @@
 const canvas = document.getElementById("myCanvas");
 const editor = document.getElementById("editor_div");
 const context = canvas.getContext("2d");
-const callInterval = 16;
+const callInterval = 1000 / 60;
 
 let renderLoop = null;
 let time = 0.0;
@@ -21,11 +21,15 @@ function resizeListener() {
 	console.log("canvas resolution: " + canvas.width + "x" + canvas.height);
 }
 
+
+
+
 function hashListener() {
   let hash = window.location.hash;
 
   //console.log("hash is " + hash); //chop off the first char of the hash
 
+  //returning to editor
   if (hash === "") {
     editor.style.display = "block";
     canvas.style.display = "none";
@@ -37,11 +41,15 @@ function hashListener() {
       //console.log("stopping render loop");
     }
 
+    //report any errors
     if (error !== null) {
       alert(error);
       error = null;
     }
-  } else {
+  }
+  
+  //returning to canvas
+  else {
     editor.style.display = "none";
     canvas.style.display = "block";
 
@@ -54,6 +62,9 @@ function hashListener() {
     }
   }
 }
+
+
+
 
 function drawCircle(x, y, r) {
   if (typeof x !== "number") {
@@ -73,6 +84,9 @@ function drawCircle(x, y, r) {
   context.stroke();
 }
 
+
+
+
 function draw() {
 	//clear canvas
 	context.beginPath();
@@ -81,12 +95,16 @@ function draw() {
 	try {
 	  eval(script.value);
 	} catch (err) {
-	  error = err.message;
+	  //I save it for later so the browser can return to the editor screen before displaying the error
+	  error = err;
 	  location.hash = ""; //break out of render loop
 	}
 
 	time += 1 / callInterval;
 }
+
+
+
 
 resizeListener();
 hashListener();
@@ -116,8 +134,6 @@ if (time - state.previousUpdate > 10) {
 
     state.gravity.x = Math.cos(theta) * 0.1;
     state.gravity.y = Math.sin(theta) * 0.1;
-
-    console.log("gravity: " + state.gravity.x + ", " + state.gravity.y);
 }
 
 
@@ -141,3 +157,7 @@ state.pos.y += state.vel.y;
 
 drawCircle(state.pos.x, state.pos.y, state.size);
 `
+
+
+
+
