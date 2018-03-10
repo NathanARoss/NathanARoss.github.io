@@ -2,27 +2,28 @@
 <html lang=en-US>
 
 	<head>
-		<title>Drawing Demo</title>
-		<meta charset="UTF-8">
+		<title>Progressive List Demo</title>
+		<meta charset="UTF-8"> 
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		
 		<link rel="stylesheet" type="text/css" href="main.css">
 	</head>
 	
 	<body onresize="resizeListener()" onhashchange="hashListener()">
-	  
-	  <div id="editor_div">
-  	  <form>
-	      <textarea id="script" autofocus="true" spellcheck="false"></textarea>
-	    </form>
-	  
-	    <a id="run_button" href="#run">&gt</a>
-	  </div>
-	  
-		<canvas id="myCanvas"></canvas>
+	
+		<canvas id="canvas"></canvas>
+		
+		<div id="editor_div">
+			<p id="debug"></p>
+			<a id="run_button" href="#run">&gt</a>
+			
+			<div id="spacer"></div>
+			<div id="list"> </div>
+			
+		</div>
 		
 		<!-- I'm told placing the script at the bottom helps with performance -->
-		<script src="drawing_logic.js"></script>
+		<script src="logic.js"></script>
 	</body>
 	
 </html>

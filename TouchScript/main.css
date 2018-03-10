@@ -1,0 +1,59 @@
+body {
+	margin: 0px;
+}
+
+div.item {
+	display: flex;
+	align-items: center;
+	height: 60px;
+	margin: 0px;
+	padding-left: 10px;
+	/* background-color: lightgray; */ /* Used when testing item loading */ 
+}
+
+#debug {
+	position: fixed;
+	right: 0px;
+	top: 0px;
+}
+
+#script {
+	width: 100vw;
+	height: 100vh;
+	font-family: monospace;
+	resize: none;
+	box-sizing: border-box;
+}
+
+#run_button {
+	background-color: #AAAAAA;
+	font-family: Monospace;
+	font-size: 32px;
+	text-decoration: none;
+
+	border: none;
+	padding: 10px 20px 10px 20px;
+	box-sizing: border-box;
+
+	position: fixed;
+	bottom: 10px;
+	right: 10px;
+}
+
+#run_button:link, #run_button:visited {
+	
+}
+
+#run_button:hover, #run_button:active {
+	background-color: #888888;
+}
+
+/* I set this so the Canvas does not cause scroll bars to appear*/
+/* I still manually modify the resolution on onresize() */
+canvas {
+	position: fixed;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+}
