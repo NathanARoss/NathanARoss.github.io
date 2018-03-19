@@ -43,7 +43,7 @@ function resizeListener() {
 			let position = list.childNodes.length + firstLoadedItemIndex;
 			
 			//if the user is scrolled all the way to the bottom, prepend instead of appending
-			if (position <= itemCount) {
+			if (position < itemCount) {
 				list.insertBefore(div, list.firstChild);
 				appendItem(position);
 			} else {
@@ -175,7 +175,7 @@ function loadRow(position, rowDiv) {
 
 
 function updateDebug() {
-	let debugText = "scrollY: " + Math.foor(window.scrollY) + "<br>"
+	let debugText = "scrollY: " + Math.floor(window.scrollY) + "<br>"
 			+ "loaded items: [" + firstLoadedItemIndex + ", " + (firstLoadedItemIndex + itemPoolSize - 1) + "]<br>"
 			+ "visible items: [" + firstVisibleItemIndex + ", " + (firstVisibleItemIndex + visibleItemCount - 1) + "]";
 	debug.innerHTML = debugText;
