@@ -4,7 +4,7 @@ var visibleItemCount = 0;
 let itemHeight = 30;
 var firstLoadedItemIndex = 0;
 var firstVisibleItemIndex = 0;
-let itemCount = Math.floor(2**24 / itemHeight);
+let itemCount = 50000;
 
 var list = document.getElementById("list"); //a div containing all elements
 var spacer = document.getElementById("spacer"); //a div that changes size to offset elements
@@ -12,12 +12,14 @@ var debug = document.getElementById("debug");
 
 function resizeListener() {
 	screenHeight = window.innerHeight;
-	document.body.style.height = itemCount * itemHeight + "px";
 	
 	visibleItemCount = Math.ceil(screenHeight / itemHeight);
 	var newitemPoolSize = visibleItemCount + 6;
 	var diff = newitemPoolSize - itemPoolSize;
 	itemPoolSize = newitemPoolSize;
+	
+	//allow the viewport to scroll past the end of the list
+	document.body.style.height = (itemCount + visibleItemCount - 2) * itemHeight + "px";
 	
 	if (diff > 0) {
 		for(var i = 0; i < diff; ++i) {

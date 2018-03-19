@@ -1,14 +1,17 @@
-var screenHeight;
-var itemPoolSize = 0;
-var visibleItemCount = 0;
-let itemHeight = 60;
-var firstLoadedItemIndex = 0;
-var firstVisibleItemIndex = 0;
-let itemCount = 30;
+"use strict";
 
-var list = document.getElementById("list"); //a div containing all elements
-var spacer = document.getElementById("spacer"); //a div that changes size to offset elements
-var debug = document.getElementById("debug");
+let itemPoolSize = 0;
+let visibleItemCount = 0;
+let itemHeight = 60;
+let firstLoadedItemIndex = 0;
+let firstVisibleItemIndex = 0;
+let itemCount = 1000;
+
+let pPool = [];
+
+let list = document.getElementById("list"); //a div containing all elements
+let spacer = document.getElementById("spacer"); //an empty div that changes height to offset elements
+let debug = document.getElementById("debug");
 
 const canvas = document.getElementById("canvas");
 const editor = document.getElementById("editor_div");
@@ -23,19 +26,19 @@ let error = null;
 
 
 function resizeListener() {
-	screenHeight = window.innerHeight;
-	document.body.style.height = itemCount * itemHeight + "px";
-	
-	visibleItemCount = Math.ceil(screenHeight / itemHeight);
-	var newItemPoolSize = visibleItemCount + 6;
+	visibleItemCount = Math.ceil(window.innerHeight / itemHeight);
+	let newItemPoolSize = visibleItemCount + 6;
 	newItemPoolSize = Math.min(newItemPoolSize, itemCount);
-	var diff = newItemPoolSize - itemPoolSize;
+	let diff = newItemPoolSize - itemPoolSize;
 	itemPoolSize = newItemPoolSize;
 	
+	//allow the viewport to scroll past the end of the list
+	document.body.style.height = (itemCount + visibleItemCount - 2) * itemHeight + "px";
+	
 	if (diff > 0) {
-		for(var i = 0; i < diff; ++i) {
-			var div = document.createElement("div");
-			div.classList.add("item");
+		for(let i = 0; i < diff; ++i) {
+			let div = document.createElement("div");
+			div.classList.add("row");
 			
 			let position = list.childNodes.length + firstLoadedItemIndex;
 			
@@ -52,7 +55,7 @@ function resizeListener() {
 		}
 	} else if (diff < 0) {
 		diff = -diff;
-		for (var i = 0; i < diff; ++i) {
+		for (let i = 0; i < diff; ++i) {
 			let lastChild = list.childNodes[list.childNodes.length - 1];
 			list.removeChild(lastChild);
 		}
@@ -74,7 +77,7 @@ function resizeListener() {
 
 
 
-
+//detect when items need to be loaded in the direction of scroll, take nodes from the back to add to the front
 window.onscroll = function() {
 	firstVisibleItemIndex = Math.floor(window.scrollY / itemHeight);
 	
@@ -82,18 +85,12 @@ window.onscroll = function() {
 	if (firstVisibleItemIndex >= firstLoadedItemIndex + itemPoolSize) {
 		//set the first loaded item far above the viewport so the following loop refills the screen
 		firstLoadedItemIndex = firstVisibleItemIndex - itemPoolSize - 2;
-		
-		let position = firstLoadedItemIndex + itemPoolSize;
-		list.childNodes[list.childNodes.length - 1].innerHTML = position;
 	}
 	
 	//user scrolled so far up all items are off screen
 	if (firstVisibleItemIndex <= firstLoadedItemIndex - itemPoolSize) {
 		//set the first loaded item far below the viewport so the following loop refills the screen
 		firstLoadedItemIndex = firstVisibleItemIndex + itemPoolSize;
-		
-		let position = firstLoadedItemIndex;
-		list.firstChild.innerHTML = position;
 	}
 	
 	//keep a buffer of 2 unseen elements in either direction
@@ -117,38 +114,68 @@ window.onscroll = function() {
 function appendItem(position) {
 	position = position|0;
 	
-	var firstChild = list.firstChild;
-	firstChild.innerHTML = fancyElementFunction(position);
+	let firstChild = list.firstChild;
 	list.removeChild(firstChild);
+	
+	loadRow(position, firstChild);
 	list.appendChild(firstChild);
+	
 }
-
-
-
 
 function prependItem(position) {
 	position = position|0;
 	
-	var lastChild = list.childNodes[list.childNodes.length - 1];
-	lastChild.innerHTML = fancyElementFunction(position);
+	let lastChild = list.childNodes[list.childNodes.length - 1];
 	list.removeChild(lastChild);
+	
+	loadRow(position, lastChild);
 	list.insertBefore(lastChild, list.firstChild);
 }
 
 
 
 
-function fancyElementFunction(position) {
+function loadRow(position, rowDiv) {
 	position = position|0;
 	
-	return position;
+	let hash = Math.floor(Math.cos(position * 1234) * 20 + 20) + 1;
+	
+	//remove the paragraphs of the div beyond the ones it will need
+	let toRemove =  rowDiv.childNodes.length - hash;
+	for (let i = 0; i < toRemove; ++i) {
+	  let node = rowDiv.childNodes[rowDiv.childNodes.length - 1];
+	  rowDiv.removeChild(node);
+	  pPool.push(node);
+	}
+	
+	//add paragraphs to the div until it has enough
+	let toAdd = -toRemove;
+	for (let i = 0; i < toAdd; ++i) {
+	  let node = pPool.pop();
+	  if (node === undefined) {
+	    node = document.createElement("p");
+			node.classList.add("item");
+	  }
+	  rowDiv.appendChild(node);
+	}
+	
+	//configure each paragraph within the div with the correct text
+	for (let i = 0; i < hash; ++i) {
+	  let node = rowDiv.childNodes[i];
+	  if (position & 1 == 1)
+	    node.innerHTML = "( " + position + ", " + i + ")<br/>odd row";
+	  else
+	    node.innerHTML = "( " + position + ", " + i + ")";
+	}
+	
+	//console.log("pool size " + pPool.length);
 }
 
 
 
 
 function updateDebug() {
-	var debugText = "scrollY: " + window.scrollY + "<br>"
+	let debugText = "scrollY: " + window.scrollY + "<br>"
 			+ "loaded items: [" + firstLoadedItemIndex + ", " + (firstLoadedItemIndex + itemPoolSize - 1) + "]<br>"
 			+ "visible items: [" + firstVisibleItemIndex + ", " + (firstVisibleItemIndex + visibleItemCount - 1) + "]";
 	debug.innerHTML = debugText;
@@ -156,15 +183,13 @@ function updateDebug() {
 
 
 
+
 function hashListener() {
   let hash = window.location.hash;
 
-  //console.log("hash is " + hash); //chop off the first char of the hash
-
   //returning to editor
   if (hash === "") {
-    editor.style.display = "block";
-    canvas.style.display = "none";
+    setView(editor);
 
     //stop render loop
     if (renderLoop !== null) {
@@ -182,17 +207,23 @@ function hashListener() {
   
   //returning to canvas
   else {
-    editor.style.display = "none";
-    canvas.style.display = "block";
+    setView(canvas);
 
     //start render loop
     if (renderLoop === null) {
       time = 0;
-      state = null;
       renderLoop = setInterval(draw, callInterval);
       //console.log("starting render loop");
     }
   }
+}
+hashListener();
+
+
+function setView(view) {
+  document.body.removeChild(editor);
+  document.body.removeChild(canvas);
+  document.body.appendChild(view);
 }
 
 
@@ -248,4 +279,3 @@ function draw() {
 list.removeChild(list.firstChild);
 
 resizeListener();
-onscroll();

@@ -1,20 +1,44 @@
 body {
 	margin: 0px;
+	font-size: 16px;
+	background-color: #2B2B2B;
+	color: white;
 }
 
-div.item {
-	display: flex;
-	align-items: center;
+.row {
+	display: block;
 	height: 60px;
-	margin: 0px;
-	padding-left: 10px;
-	/* background-color: lightgray; */ /* Used when testing item loading */ 
+	padding: 0 60px 0 10px;
+	
+	/* Draw a big "+" at the end of row */
+	background: url(ic_add_white_36px.svg) no-repeat right center;
+	
+	box-sizing: border-box;
+	overflow: scroll;
+	white-space: nowrap;
+}
+
+.item {
+  display: inline-block;
+  height: 100%;
+  min-width: 60px;
+  padding: 0 12px;
+  border: thin solid black;
+  margin: 0px;
+  text-align: center; /* horizontal centering */
+  vertical-align: middle;
+  background-color: #323232;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 #debug {
 	position: fixed;
 	right: 0px;
 	top: 0px;
+	background-color: gray;
+	padding: 4px;
+	margin: 0px;
 }
 
 #script {
@@ -33,6 +57,7 @@ div.item {
 
 	border: none;
 	padding: 10px 20px 10px 20px;
+	border-radius: 20px;
 	box-sizing: border-box;
 
 	position: fixed;
