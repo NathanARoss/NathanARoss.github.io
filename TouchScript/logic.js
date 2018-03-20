@@ -2,12 +2,10 @@
 
 let itemPoolSize = 0;
 let visibleItemCount = 0;
-let itemHeight = 60;
+let itemHeight = 50;
 let firstLoadedItemIndex = 0;
 let firstVisibleItemIndex = 0;
 let itemCount = 1000;
-
-let pPool = [];
 
 let list = document.getElementById("list"); //a div containing all elements
 let spacer = document.getElementById("spacer"); //an empty div that changes height to offset elements
@@ -40,12 +38,21 @@ function resizeListener() {
 			let div = document.createElement("div");
 			div.classList.add("row");
 			
-			let position = list.childNodes.length + firstLoadedItemIndex;
+			let table = document.createElement("table");
+			let tr = document.createElement("tr");
+			table.append(tr);
+			div.append(table);
+			
+			let lastItem = document.createElement("p");
+			lastItem.classList.add("append-button");
+			div.append(lastItem);
+			
+			let row = list.childNodes.length + firstLoadedItemIndex;
 			
 			//if the user is scrolled all the way to the bottom, prepend instead of appending
-			if (position < itemCount) {
+			if (row < itemCount) {
 				list.insertBefore(div, list.firstChild);
-				appendItem(position);
+				appendItem(row);
 			} else {
 				list.append(div);
 				prependItem(firstLoadedItemIndex - 1);
@@ -111,64 +118,57 @@ window.onscroll = function() {
 
 
 
-function appendItem(position) {
-	position = position|0;
+function appendItem(row) {
+	row = row|0;
 	
 	let firstChild = list.firstChild;
 	list.removeChild(firstChild);
 	
-	loadRow(position, firstChild);
+	loadRow(row, firstChild);
 	list.appendChild(firstChild);
 	
 }
 
-function prependItem(position) {
-	position = position|0;
+function prependItem(row) {
+	row = row|0;
 	
 	let lastChild = list.childNodes[list.childNodes.length - 1];
 	list.removeChild(lastChild);
 	
-	loadRow(position, lastChild);
+	loadRow(row, lastChild);
 	list.insertBefore(lastChild, list.firstChild);
 }
 
 
 
 
-function loadRow(position, rowDiv) {
-	position = position|0;
+function loadRow(row, rowDiv) {
+	row = row|0;
 	
-	let hash = Math.floor(Math.cos(position * 1234) * 20 + 20) + 1;
+	let hash = Math.floor(Math.cos(row * 1234) * 20 + 20) + 1;
 	
-	//remove the paragraphs of the div beyond the ones it will need
-	let toRemove =  rowDiv.childNodes.length - hash;
+	let tableRow = rowDiv.firstChild.rows[0];
+	
+	//remove the items of the table beyond the ones it will need
+	let toRemove =  tableRow.cells.length - hash;
 	for (let i = 0; i < toRemove; ++i) {
-	  let node = rowDiv.childNodes[rowDiv.childNodes.length - 1];
-	  rowDiv.removeChild(node);
-	  pPool.push(node);
+	  tableRow.deleteCell(-1)
 	}
 	
-	//add paragraphs to the div until it has enough
+	//add items to the table until it has enough
 	let toAdd = -toRemove;
 	for (let i = 0; i < toAdd; ++i) {
-	  let node = pPool.pop();
-	  if (node === undefined) {
-	    node = document.createElement("p");
-			node.classList.add("item");
-	  }
-	  rowDiv.appendChild(node);
+	  tableRow.insertCell(-1);
 	}
 	
-	//configure each paragraph within the div with the correct text
+	// configure each td within the table with the correct text
 	for (let i = 0; i < hash; ++i) {
-	  let node = rowDiv.childNodes[i];
-	  if (position & 1 == 1)
-	    node.innerHTML = "( " + position + ", " + i + ")<br/>odd row";
+	  let node = tableRow.cells[i];
+	  if (row & 1 == 1)
+	    node.innerHTML = "( " + row + ", " + i + ")<br/>odd row";
 	  else
-	    node.innerHTML = "( " + position + ", " + i + ")";
+	    node.innerHTML = "( " + row + ", " + i + ")";
 	}
-	
-	//console.log("pool size " + pPool.length);
 }
 
 
