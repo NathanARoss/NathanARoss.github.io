@@ -5,7 +5,6 @@ let visibleItemCount = 0;
 let itemHeight = 50;
 let firstLoadedItemIndex = 0;
 let firstVisibleItemIndex = 0;
-let itemCount = 1000;
 
 let list = document.getElementById("list"); //a div containing all elements
 let spacer = document.getElementById("spacer"); //an empty div that changes height to offset elements
@@ -24,14 +23,16 @@ let error = null;
 
 
 function resizeListener() {
+  let rowCount = getRowCount();
+  
 	visibleItemCount = Math.ceil(window.innerHeight / itemHeight);
 	let newItemPoolSize = visibleItemCount + 6;
-	newItemPoolSize = Math.min(newItemPoolSize, itemCount);
+	newItemPoolSize = Math.min(newItemPoolSize, rowCount);
 	let diff = newItemPoolSize - itemPoolSize;
 	itemPoolSize = newItemPoolSize;
 	
 	//allow the viewport to scroll past the end of the list
-	document.body.style.height = (itemCount + visibleItemCount - 2) * itemHeight + "px";
+	document.body.style.height = (rowCount + visibleItemCount - 2) * itemHeight + "px";
 	
 	if (diff > 0) {
 		for(let i = 0; i < diff; ++i) {
@@ -50,7 +51,7 @@ function resizeListener() {
 			let row = list.childNodes.length + firstLoadedItemIndex;
 			
 			//if the user is scrolled all the way to the bottom, prepend instead of appending
-			if (row < itemCount) {
+			if (row < rowCount) {
 				list.insertBefore(div, list.firstChild);
 				appendItem(row);
 			} else {
@@ -101,7 +102,7 @@ window.onscroll = function() {
 	}
 	
 	//keep a buffer of 2 unseen elements in either direction
-	while ((firstVisibleItemIndex - 4 > firstLoadedItemIndex) && (firstLoadedItemIndex < itemCount - itemPoolSize)) {
+	while ((firstVisibleItemIndex - 4 > firstLoadedItemIndex) && (firstLoadedItemIndex < getRowCount() - itemPoolSize)) {
 		appendItem(itemPoolSize + firstLoadedItemIndex);
 		++firstLoadedItemIndex;
 	}
@@ -145,29 +146,24 @@ function prependItem(row) {
 function loadRow(row, rowDiv) {
 	row = row|0;
 	
-	let hash = Math.floor(Math.cos(row * 1234) * 20 + 20) + 1;
-	
+	let itemCount = getItemCount(row);
 	let tableRow = rowDiv.firstChild.rows[0];
 	
 	//remove the items of the table beyond the ones it will need
-	let toRemove =  tableRow.cells.length - hash;
-	for (let i = 0; i < toRemove; ++i) {
-	  tableRow.deleteCell(-1)
-	}
+	let toRemove =  tableRow.cells.length - itemCount;
+	for (let i = 0; i < toRemove; ++i)
+	  tableRow.deleteCell(-1);
 	
 	//add items to the table until it has enough
 	let toAdd = -toRemove;
-	for (let i = 0; i < toAdd; ++i) {
+	for (let i = 0; i < toAdd; ++i)
 	  tableRow.insertCell(-1);
-	}
 	
-	// configure each td within the table with the correct text
-	for (let i = 0; i < hash; ++i) {
-	  let node = tableRow.cells[i];
-	  if (row & 1 == 1)
-	    node.innerHTML = "( " + row + ", " + i + ")<br/>odd row";
-	  else
-	    node.innerHTML = "( " + row + ", " + i + ")";
+	
+	// configure each item within the table with the correct text
+	for (let i = 0; i < itemCount; ++i) {
+    let node = tableRow.cells[i];
+    node.innerHTML = getItem(row, i);
 	}
 }
 
@@ -175,9 +171,9 @@ function loadRow(row, rowDiv) {
 
 
 function updateDebug() {
-	let debugText = "scrollY: " + Math.floor(window.scrollY) + "<br>"
-			+ "loaded items: [" + firstLoadedItemIndex + ", " + (firstLoadedItemIndex + itemPoolSize - 1) + "]<br>"
-			+ "visible items: [" + firstVisibleItemIndex + ", " + (firstVisibleItemIndex + visibleItemCount - 1) + "]";
+	let debugText = ""//"scrollY: " + Math.floor(window.scrollY) + "<br>"
+			+ "loaded: [" + firstLoadedItemIndex + ", " + (firstLoadedItemIndex + itemPoolSize - 1) + "]<br>"
+			+ "visible: [" + firstVisibleItemIndex + ", " + (firstVisibleItemIndex + visibleItemCount - 1) + "]";
 	debug.innerHTML = debugText;
 }
 

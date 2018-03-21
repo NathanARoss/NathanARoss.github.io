@@ -35,6 +35,28 @@ td {
   box-sizing: border-box;
 }
 
+.keyword {
+  color: #CC7832;
+}
+
+.number {
+  color: #6897BB;
+}
+
+.string {
+  color: #A5C25C;
+}
+
+.comment {
+  color: #808080;
+}
+
+.method-declaration {
+  color: #FFC66D;
+}
+
+
+
 /* This class is applied to the last item in a row.  This item simply exposes the background of the div */
 .append-button {
   display: table-cell;
@@ -52,8 +74,8 @@ td {
 
 #debug {
 	position: fixed;
-	right: 0px;
-	top: 0px;
+	left: 0px;
+	bottom: 0px;
 	background-color: gray;
 	padding: 4px;
 	margin: 0px;
