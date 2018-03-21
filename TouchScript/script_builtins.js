@@ -2,11 +2,11 @@ const VARIABLE_REFERENCE = 0;
 const FUNCTION_DEFINITION = 1;
 const FUNCTION_CALL = 2;
 const ARGUMENT_HINT = 3;
-const CONSTANT_STRING = 4;
+const MAPPED_STRING = 4;
 
 const KEYWORD = 0;
 const SYMBOL = 1;
-const NUMERIC_LIERAL = 2;
+const NUMERIC_LITERAL = 2;
 const STRING_LITERAL = 3;
 const COMMENT = 4;
 
@@ -26,8 +26,7 @@ let CLASSES = [
   {name: "Double", size: 8},
   {name: "System", size: 0},
   {name: "Math", size: 0},
-  
-  {name: "MyClass", size: 0},
+  {name: "Canvas", size: 0},
 ];
 
 let CLASS_TABLE = {};
@@ -41,36 +40,38 @@ for (let i = 1; i < CLASSES.length; ++i) {
 
 
 let FUNCTIONS = [
-  {name: "Int8", scope: CLASS_TABLE.Int8, returnType: CLASS_TABLE.Int8,
+  {name: "Int8", scope: CLASS_TABLE.Int8, returnType: CLASS_TABLE.Int8, js: "Number",
     parameters: [CLASS_TABLE.Any, "toConvert"]
   },
-  {name: "Uint8", scope: CLASS_TABLE.UInt8, returnType: CLASS_TABLE.Uint8,
+  {name: "Uint8", scope: CLASS_TABLE.UInt8, returnType: CLASS_TABLE.Uint8, js: "Number",
     parameters: [CLASS_TABLE.Any, "toConvert"]
   },
-  {name: "Int16", scope: CLASS_TABLE.Int16, returnType: CLASS_TABLE.Int16,
+  {name: "Int16", scope: CLASS_TABLE.Int16, returnType: CLASS_TABLE.Int16, js: "Number",
     parameters: [CLASS_TABLE.Any, "toConvert"]
   },
-  {name: "Uint16", scope: CLASS_TABLE.UInt16, returnType: CLASS_TABLE.Uint16,
+  {name: "Uint16", scope: CLASS_TABLE.UInt16, returnType: CLASS_TABLE.Uint16, js: "Number",
     parameters: [CLASS_TABLE.Any, "toConvert"]
   },
-  {name: "Int32", scope: CLASS_TABLE.Int32, returnType: CLASS_TABLE.Int32,
+  {name: "Int32", scope: CLASS_TABLE.Int32, returnType: CLASS_TABLE.Int32, js: "Number",
     parameters: [CLASS_TABLE.Any, "toConvert"]
   },
-  {name: "Uint32", scope: CLASS_TABLE.UInt32, returnType: CLASS_TABLE.Uint32,
+  {name: "Uint32", scope: CLASS_TABLE.UInt32, returnType: CLASS_TABLE.Uint32, js: "Number",
     parameters: [CLASS_TABLE.Any, "toConvert"]
   },
-  {name: "Int64", scope: CLASS_TABLE.Int64, returnType: CLASS_TABLE.Int64,
+  {name: "Int64", scope: CLASS_TABLE.Int64, returnType: CLASS_TABLE.Int64, js: "Number",
     parameters: [CLASS_TABLE.Any, "toConvert"]
   },
-  {name: "Uint64", scope: CLASS_TABLE.UInt64, returnType: CLASS_TABLE.Uint64,
+  {name: "Uint64", scope: CLASS_TABLE.UInt64, returnType: CLASS_TABLE.Uint64, js: "Number",
     parameters: [CLASS_TABLE.Any, "toConvert"]
   },
-  {name: "print", scope: CLASS_TABLE.System, returnType: CLASS_TABLE.HIDDEN,
+  {name: "print", scope: CLASS_TABLE.System, returnType: CLASS_TABLE.Hidden, js: "console.log",
     parameters: [CLASS_TABLE.Any, "item"]
   },
-  
-  {name: "doStuffs", scope: CLASS_TABLE.MyClass, returnType: CLASS_TABLE.Int32,
+  {name: "onDraw", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "onDraw",
     parameters: []
+  },
+  {name: "drawCircle", scope: CLASS_TABLE.Canvas, returnType: CLASS_TABLE.Hidden, js: "drawCircle",
+    parameters: [CLASS_TABLE.Double, "x", CLASS_TABLE.Double, "y"]
   }
 ]
 
@@ -105,6 +106,7 @@ const SYMBOLS = [
   "[",
   "]",
   ".",
+  ","
 ];
 
 const SYMBOL_TABLE = {};
@@ -117,6 +119,15 @@ for (let i = 0; i < SYMBOLS.length; ++i) {
 
 const KEYWORDS = [
   "func",
+  "let",
+  "for",
+  "in",
+  "while",
+  "until",
+]
+
+const JS_KEYWORDS = [
+  "",
   "let",
   "for",
   "in",

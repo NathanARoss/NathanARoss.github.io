@@ -19,7 +19,9 @@ let renderLoop = null;
 let time = 0.0;
 let error = null;
 
-
+let onDraw = new function() {
+  
+};
 
 
 function resizeListener() {
@@ -38,6 +40,10 @@ function resizeListener() {
 		for(let i = 0; i < diff; ++i) {
 			let div = document.createElement("div");
 			div.classList.add("row");
+			
+			let indentation = document.createElement("p");
+			indentation.classList.add("indentation");
+			div.append(indentation);
 			
 			let table = document.createElement("table");
 			let tr = document.createElement("tr");
@@ -147,7 +153,7 @@ function loadRow(row, rowDiv) {
 	row = row|0;
 	
 	let itemCount = getItemCount(row);
-	let tableRow = rowDiv.firstChild.rows[0];
+	let tableRow = rowDiv.childNodes[1].rows[0];
 	
 	//remove the items of the table beyond the ones it will need
 	let toRemove =  tableRow.cells.length - itemCount;
@@ -165,6 +171,8 @@ function loadRow(row, rowDiv) {
     let node = tableRow.cells[i];
     node.innerHTML = getItem(row, i);
 	}
+	
+	rowDiv.firstChild.style.width = 10 * getIndentation(row) + "px";
 }
 
 
@@ -203,6 +211,10 @@ function hashListener() {
   
   //returning to canvas
   else {
+    let js = getJavaScript();
+    alert(js);
+    eval(js);
+    
     setView(canvas);
 
     //start render loop
@@ -217,8 +229,12 @@ hashListener();
 
 
 function setView(view) {
-  document.body.removeChild(editor);
-  document.body.removeChild(canvas);
+  if (editor.parentNode === document.body)
+    document.body.removeChild(editor);
+  
+  if (canvas.parentNode === document.body)
+    document.body.removeChild(canvas);
+  
   document.body.appendChild(view);
 }
 
@@ -239,6 +255,7 @@ function drawCircle(x, y, r) {
   }
 
   context.beginPath();
+  context.strokeStyle="#FFFFFFFF";
   context.arc(x,y,r, 0,2*Math.PI);
   context.stroke();
 }
@@ -247,9 +264,12 @@ function drawCircle(x, y, r) {
 
 
 function draw() {
-	//clear canvas
-	context.beginPath();
-	context.clearRect(0, 0, canvas.width, canvas.height);
+	if (onDraw) {
+	  onDraw();
+	} else {
+	  console.log("onDraw() is not defined");
+	  location.hash = "";
+	}
 
 	/*
 	try {
@@ -260,10 +280,6 @@ function draw() {
 	  location.hash = ""; //break out of render loop
 	}
 	/**/
-	
-	let x = Math.random() * canvas.width;
-	let y = Math.random() * canvas.height;
-	drawCircle(x, y, 10.0);
 
 	time += 1 / callInterval;
 }

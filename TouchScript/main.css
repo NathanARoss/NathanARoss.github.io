@@ -12,7 +12,6 @@ body {
 .row {
 	display: flex;
 	height: var(--line-height);
-	padding-left: 10px;
 	
 	box-sizing: border-box;
 	overflow: scroll;
@@ -28,7 +27,7 @@ td {
   flex: 0 0 var(--line-height);
   height: var(--line-height);
   text-align: center; /* horizontal centering */
-  padding: 0 12px;
+  padding: 0 6px;
   margin: 0px;
   border: thin solid black;
   white-space: nowrap;
@@ -70,6 +69,12 @@ td {
   
 	/* Draw a big "+" at the end of row */
 	background: url(ic_add_white_36px.svg) no-repeat right center;
+}
+
+.indentation {
+  height: var(--line-height);
+  margin: 0px;
+  background-color: #333333;
 }
 
 #debug {
