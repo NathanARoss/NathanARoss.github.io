@@ -40,88 +40,71 @@ script.push( [
 ] );
 
 let timeVar = makeVariable("time");
+let widthVar = makeVariable("width");
+let heightVar = makeVariable("height");
 script.push( [
   makeIndentation(0, 1, 1),
   getKeyword("func"),
   makeItem(FUNCTION_DEFINITION, FUNCTIONS[FUNCTION_TABLE.onDraw].returnType, FUNCTION_TABLE.onDraw),
   getSymbol("("),
   timeVar,
+  getSymbol(","),
+  widthVar,
+  getSymbol(","),
+  heightVar,
   getSymbol(")")
 ] );
+
+let xVar = makeVariable("x");
+script.push( [
+  makeIndentation(1, 0, 1),
+  getKeyword("let"),
+  xVar,
+  getSymbol("="),
+  getSymbol("("),
+  makeItem(FUNCTION_CALL, FUNCTIONS[FUNCTION_TABLE.cos].scope, FUNCTION_TABLE.cos),
+  getSymbol("("),
+  timeVar,
+  getSymbol(")"),
+  getSymbol("*"),
+  makeNumericLiteral("0.5"),
+  getSymbol("+"),
+  makeNumericLiteral("0.5"),
+  getSymbol(")"),
+  getSymbol("*"),
+  widthVar,
+] )
+
+let yVar = makeVariable("y");
+script.push( [
+  makeIndentation(1, 0, 1),
+  getKeyword("let"),
+  yVar,
+  getSymbol("="),
+  getSymbol("("),
+  makeItem(FUNCTION_CALL, FUNCTIONS[FUNCTION_TABLE.sin].scope, FUNCTION_TABLE.sin),
+  getSymbol("("),
+  timeVar,
+  getSymbol(")"),
+  getSymbol("*"),
+  makeNumericLiteral("0.5"),
+  getSymbol("+"),
+  makeNumericLiteral("0.5"),
+  getSymbol(")"),
+  getSymbol("*"),
+  heightVar,
+] )
 
 script.push( [
   makeIndentation(1, 0, 1),
   makeItem(FUNCTION_CALL, FUNCTIONS[FUNCTION_TABLE.drawCircle].scope, FUNCTION_TABLE.drawCircle),
   getSymbol("("),
-  makeNumericLiteral("100"),
-  getSymbol("*"),
-  makeItem(FUNCTION_CALL, FUNCTIONS[FUNCTION_TABLE.cos].scope, FUNCTION_TABLE.cos),
-  getSymbol("("),
-  timeVar,
-  getSymbol(")"),
+  xVar,
   getSymbol(","),
-  makeNumericLiteral("200"),
-  getSymbol("*"),
-  makeItem(FUNCTION_CALL, FUNCTIONS[FUNCTION_TABLE.sin].scope, FUNCTION_TABLE.sin),
-  getSymbol("("),
-  timeVar,
-  getSymbol(")"),
+  yVar,
   getSymbol(","),
   timeVar,
   getSymbol(")"),
-] );
-
-script.push( [
-  makeIndentation(0, 0, 1)
-] );
-
-script.push( [
-  makeIndentation(0, 0, 1),
-  makeItem(FUNCTION_CALL, FUNCTIONS[FUNCTION_TABLE.print].scope, FUNCTION_TABLE.print),
-  getSymbol("("),
-  makeStringLiteral("I love Temmie"),
-  getSymbol(")")
-] );
-
-script.push( [
-  makeIndentation(0, 0, 1)
-] );
-
-script.push( [
-  makeIndentation(0, 1, 1),
-  getKeyword("func"),
-  makeItem(FUNCTION_DEFINITION, FUNCTIONS[FUNCTION_TABLE.testFunc].returnType, FUNCTION_TABLE.testFunc),
-  getSymbol("("),
-  getSymbol(")")
-] );
-
-let temp = makeVariable("temp");
-script.push( [
-  makeIndentation(1, 0, 1),
-  getKeyword("let"),
-  makeItem(VARIABLE_REFERENCE, CLASS_TABLE.Hidden, temp),
-  getSymbol("="),
-  makeNumericLiteral("100"),
-  getSymbol("*"),
-  makeNumericLiteral("200"),
-] );
-
-script.push( [
-  makeIndentation(1, 0, 1),
-  getKeyword("return"),
-  temp
-] );
-
-script.push( [
-  makeIndentation(0, 0, 1)
-] );
-
-script.push( [
-  makeIndentation(0, 0, 1),
-  getKeyword("let"),
-  makeItem(VARIABLE_REFERENCE, CLASS_TABLE.Hidden, makeVariable("size")),
-  getSymbol("="),
-  makeNumericLiteral("0"),
 ] );
 
 

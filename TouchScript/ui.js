@@ -254,7 +254,7 @@ function drawCircle(x, y, r) {
   }
 
   context.beginPath();
-  context.strokeStyle="#FFFFFFFF";
+  context.strokeStyle="#FFFFFF";
   context.arc(x,y,r, 0,2*Math.PI);
   context.stroke();
 }
@@ -264,7 +264,7 @@ function drawCircle(x, y, r) {
 
 function draw() {
 	if (state.onDraw) {
-	  state.onDraw(time);
+	  state.onDraw(time, window.innerWidth, window.innerHeight);
 	} else {
 	  console.log("state.onDraw() is not defined");
 	  window.location.hash = "";

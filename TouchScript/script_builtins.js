@@ -82,9 +82,6 @@ let FUNCTIONS = [
   {name: "onDraw", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "state.onDraw",
     parameters: []
   },
-  {name: "testFunc", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Int32, js: null,
-    parameters: []
-  },
 ]
 
 let FUNCTION_TABLE = {};
