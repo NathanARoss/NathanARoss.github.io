@@ -211,6 +211,9 @@ function hashListener() {
   //returning to canvas
   else {
     setView(canvas);
+    
+    //clear the canvas
+    context.clearRect(0, 0, canvas.width, canvas.height);
 
     //start render loop
     if (renderLoop === null) {
@@ -270,16 +273,6 @@ function draw() {
 	  window.location.hash = "";
 	}
 
-	/*
-	try {
-	  eval(script.value);
-	} catch (err) {
-	  //I save it for later so the browser can return to the editor screen before displaying the error
-	  error = err;
-	  location.hash = ""; //break out of render loop
-	}
-	/**/
-
 	time += 1 / callInterval;
 }
 
@@ -290,26 +283,3 @@ function draw() {
 list.removeChild(list.firstChild);
 
 resizeListener();
-
-
-
-
-/*
-let state = {};
-
-let test = Function("state", `
-count = 0;
-state.func = function() {
-  console.log("count: " + count);
-  ++count;
-}
-`);
-
-test(state);
-
-console.log(state.func);
-
-state.func();
-state.func();
-state.func();
-*/
