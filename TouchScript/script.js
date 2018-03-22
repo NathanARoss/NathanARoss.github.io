@@ -39,11 +39,13 @@ script.push( [
   makeIndentation(0, 0, 1)
 ] );
 
+let timeVar = makeVariable("time");
 script.push( [
   makeIndentation(0, 1, 1),
   getKeyword("func"),
-  makeItem(FUNCTION_DEFINITION, FUNCTIONS[FUNCTION_TABLE.onDraw].scope, FUNCTION_TABLE.onDraw),
+  makeItem(FUNCTION_DEFINITION, FUNCTIONS[FUNCTION_TABLE.onDraw].returnType, FUNCTION_TABLE.onDraw),
   getSymbol("("),
+  timeVar,
   getSymbol(")")
 ] );
 
@@ -52,13 +54,75 @@ script.push( [
   makeItem(FUNCTION_CALL, FUNCTIONS[FUNCTION_TABLE.drawCircle].scope, FUNCTION_TABLE.drawCircle),
   getSymbol("("),
   makeNumericLiteral("100"),
+  getSymbol("*"),
+  makeItem(FUNCTION_CALL, FUNCTIONS[FUNCTION_TABLE.cos].scope, FUNCTION_TABLE.cos),
+  getSymbol("("),
+  timeVar,
+  getSymbol(")"),
   getSymbol(","),
   makeNumericLiteral("200"),
+  getSymbol("*"),
+  makeItem(FUNCTION_CALL, FUNCTIONS[FUNCTION_TABLE.sin].scope, FUNCTION_TABLE.sin),
+  getSymbol("("),
+  timeVar,
+  getSymbol(")"),
   getSymbol(","),
-  makeVariable("time"),
+  timeVar,
   getSymbol(")"),
 ] );
 
+script.push( [
+  makeIndentation(0, 0, 1)
+] );
+
+script.push( [
+  makeIndentation(0, 0, 1),
+  makeItem(FUNCTION_CALL, FUNCTIONS[FUNCTION_TABLE.print].scope, FUNCTION_TABLE.print),
+  getSymbol("("),
+  makeStringLiteral("I love Temmie"),
+  getSymbol(")")
+] );
+
+script.push( [
+  makeIndentation(0, 0, 1)
+] );
+
+script.push( [
+  makeIndentation(0, 1, 1),
+  getKeyword("func"),
+  makeItem(FUNCTION_DEFINITION, FUNCTIONS[FUNCTION_TABLE.testFunc].returnType, FUNCTION_TABLE.testFunc),
+  getSymbol("("),
+  getSymbol(")")
+] );
+
+let temp = makeVariable("temp");
+script.push( [
+  makeIndentation(1, 0, 1),
+  getKeyword("let"),
+  makeItem(VARIABLE_REFERENCE, CLASS_TABLE.Hidden, temp),
+  getSymbol("="),
+  makeNumericLiteral("100"),
+  getSymbol("*"),
+  makeNumericLiteral("200"),
+] );
+
+script.push( [
+  makeIndentation(1, 0, 1),
+  getKeyword("return"),
+  temp
+] );
+
+script.push( [
+  makeIndentation(0, 0, 1)
+] );
+
+script.push( [
+  makeIndentation(0, 0, 1),
+  getKeyword("let"),
+  makeItem(VARIABLE_REFERENCE, CLASS_TABLE.Hidden, makeVariable("size")),
+  getSymbol("="),
+  makeNumericLiteral("0"),
+] );
 
 
 function makeItem(format, meta, value) {
@@ -222,8 +286,8 @@ function isStartingScope(row) {
 
 
 /*
-Temporary function.  Generates a javascript string from the script
-and returns it for use in eval()
+Temporary function.  Generates an array of javascript strings from the script
+containing each defined function and returns it for use in Function()
 */
 function getJavaScript() {
   let js = "";
@@ -241,12 +305,7 @@ function getJavaScript() {
         switch (format) {
           case VARIABLE_REFERENCE:
           {
-            let name = variableNames[value];
-            if (name === undefined) {
-              name = "var" + value;
-            }
-            
-            js += name + " ";
+            js += "var" + value + " ";
             break;
           }
           
@@ -254,7 +313,15 @@ function getJavaScript() {
           {
             let func = FUNCTIONS[value];
             
-            js += func.js + " = new function ";
+            //if a script function call interacts with outside JS, write it verbatim
+            let funcName;
+            if (func.js !== null) {
+              funcName = func.js;
+            } else {
+              funcName = "func" + value;
+            }
+            
+            js += funcName + " = function ";
             break;
           }
           
@@ -262,7 +329,15 @@ function getJavaScript() {
           {
             let func = FUNCTIONS[value];
             
-            js += func.js + " ";
+            //if a script function call interacts with outside JS, write it verbatim
+            let funcName;
+            if (func.js !== null) {
+              funcName = func.js;
+            } else {
+              funcName = "func" + value;
+            }
+            
+            js += funcName + " ";
             break;
           }
           
@@ -288,7 +363,7 @@ function getJavaScript() {
                 break;
               
               case COMMENT:
-                js += comments[value] + " ";
+                //js += comments[value] + " ";
                 break;
       
               default:
@@ -299,10 +374,11 @@ function getJavaScript() {
             break;
           
           default:
-            return "format " + firstImpression;
+            js += "format " + firstImpression;
         }
     }
     
+    //handle opening and closing scopes
     if (isStartingScope(row)) {
       js += "{ ";
     }
@@ -322,5 +398,7 @@ function getJavaScript() {
     js += "\n";
   }
   
-  return js;
+  console.log(js);
+  
+  return Function(js);
 }

@@ -38,7 +38,9 @@ for (let i = 1; i < CLASSES.length; ++i) {
 
 
 
-
+/* The .js property prepresents the equivalent javascript function to use when translating.
+   A value of null means that the function exists only within the script.
+*/
 let FUNCTIONS = [
   {name: "Int8", scope: CLASS_TABLE.Int8, returnType: CLASS_TABLE.Int8, js: "Number",
     parameters: [CLASS_TABLE.Any, "toConvert"]
@@ -67,12 +69,22 @@ let FUNCTIONS = [
   {name: "print", scope: CLASS_TABLE.System, returnType: CLASS_TABLE.Hidden, js: "console.log",
     parameters: [CLASS_TABLE.Any, "item"]
   },
-  {name: "onDraw", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "onDraw",
-    parameters: []
-  },
   {name: "drawCircle", scope: CLASS_TABLE.Canvas, returnType: CLASS_TABLE.Hidden, js: "drawCircle",
     parameters: [CLASS_TABLE.Double, "x", CLASS_TABLE.Double, "y"]
-  }
+  },
+  {name: "cos", scope: CLASS_TABLE.Math, returnType: CLASS_TABLE.Double, js: "Math.cos",
+    parameters: [CLASS_TABLE.Double, "theta"]
+  },
+  {name: "sin", scope: CLASS_TABLE.Math, returnType: CLASS_TABLE.Double, js: "Math.sin",
+    parameters: [CLASS_TABLE.Double, "theta"]
+  },
+  
+  {name: "onDraw", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "state.onDraw",
+    parameters: []
+  },
+  {name: "testFunc", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Int32, js: null,
+    parameters: []
+  },
 ]
 
 let FUNCTION_TABLE = {};
@@ -124,6 +136,12 @@ const KEYWORDS = [
   "in",
   "while",
   "until",
+  "switch",
+  "case",
+  "default",
+  "return",
+  "break",
+  "continue",
 ]
 
 const JS_KEYWORDS = [
@@ -133,6 +151,12 @@ const JS_KEYWORDS = [
   "in",
   "while",
   "until",
+  "switch",
+  "case",
+  "default",
+  "return",
+  "break",
+  "continue",
 ]
 
 const KEYWORD_TABLE = {};

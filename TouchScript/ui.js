@@ -18,10 +18,7 @@ const callInterval = 1000 / 60;
 let renderLoop = null;
 let time = 0.0;
 let error = null;
-
-let onDraw = new function() {
-  
-};
+let state = {}; //holds the js version of the script
 
 
 function resizeListener() {
@@ -207,14 +204,12 @@ function hashListener() {
       alert(error);
       error = null;
     }
+    
+    state = null;
   }
   
   //returning to canvas
   else {
-    let js = getJavaScript();
-    alert(js);
-    eval(js);
-    
     setView(canvas);
 
     //start render loop
@@ -223,6 +218,10 @@ function hashListener() {
       renderLoop = setInterval(draw, callInterval);
       //console.log("starting render loop");
     }
+    
+    let scriptJS = getJavaScript();
+    state = {};
+    scriptJS(state);
   }
 }
 hashListener();
@@ -264,11 +263,11 @@ function drawCircle(x, y, r) {
 
 
 function draw() {
-	if (onDraw) {
-	  onDraw();
+	if (state.onDraw) {
+	  state.onDraw(time);
 	} else {
-	  console.log("onDraw() is not defined");
-	  location.hash = "";
+	  console.log("state.onDraw() is not defined");
+	  window.location.hash = "";
 	}
 
 	/*
@@ -291,3 +290,26 @@ function draw() {
 list.removeChild(list.firstChild);
 
 resizeListener();
+
+
+
+
+/*
+let state = {};
+
+let test = Function("state", `
+count = 0;
+state.func = function() {
+  console.log("count: " + count);
+  ++count;
+}
+`);
+
+test(state);
+
+console.log(state.func);
+
+state.func();
+state.func();
+state.func();
+*/

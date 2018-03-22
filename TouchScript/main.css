@@ -27,7 +27,7 @@ td {
   flex: 0 0 var(--line-height);
   height: var(--line-height);
   text-align: center; /* horizontal centering */
-  padding: 0 6px;
+  padding: 0 4px;
   margin: 0px;
   border: thin solid black;
   white-space: nowrap;
