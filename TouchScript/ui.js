@@ -12,6 +12,9 @@ let debug = document.getElementById("debug");
 
 const canvas = document.getElementById("canvas");
 const editor = document.getElementById("editor_div");
+
+let itemPool = [];
+
 const context = canvas.getContext("2d");
 const callInterval = 1000 / 60;
 
@@ -38,18 +41,14 @@ function resizeListener() {
 			let div = document.createElement("div");
 			div.classList.add("row");
 			
-			let indentation = document.createElement("p");
+			let appendButton = document.createElement("button");
+			appendButton.classList.add("append-button");
+			div.append(appendButton);
+			
+			let indentation = document.createElement("button");
 			indentation.classList.add("indentation");
 			div.append(indentation);
-			
-			let table = document.createElement("table");
-			let tr = document.createElement("tr");
-			table.append(tr);
-			div.append(table);
-			
-			let lastItem = document.createElement("p");
-			lastItem.classList.add("append-button");
-			div.append(lastItem);
+
 			
 			let row = list.childNodes.length + firstLoadedItemIndex;
 			
@@ -150,26 +149,36 @@ function loadRow(row, rowDiv) {
 	row = row|0;
 	
 	let itemCount = getItemCount(row);
-	let tableRow = rowDiv.childNodes[1].rows[0];
 	
 	//remove the items of the table beyond the ones it will need
-	let toRemove =  tableRow.cells.length - itemCount;
-	for (let i = 0; i < toRemove; ++i)
-	  tableRow.deleteCell(-1);
+	// the first node is the + button, the second node is the indentation
+	let toRemove =  rowDiv.childNodes.length - 2 - itemCount;
+	for (let i = 0; i < toRemove; ++i) {
+	  let lastChild = rowDiv.childNodes[rowDiv.childNodes.length - 1];
+	  rowDiv.removeChild(lastChild);
+	  itemPool.push(lastChild);
+	}
 	
-	//add items to the table until it has enough
+	//add items until it has enough
 	let toAdd = -toRemove;
-	for (let i = 0; i < toAdd; ++i)
-	  tableRow.insertCell(-1);
+	for (let i = 0; i < toAdd; ++i) {
+	  let newButton;
+	  if (itemPool.length === 0) {
+  	  newButton = document.createElement("button");
+  	  newButton.classList.add("item");
+	  } else {
+	    newButton = itemPool.pop();
+	  }
+	  rowDiv.append(newButton)
+	}
 	
-	
-	// configure each item within the table with the correct text
+	// configure each item with the correct text
 	for (let i = 0; i < itemCount; ++i) {
-    let node = tableRow.cells[i];
+    let node = rowDiv.childNodes[i + 2];
     node.innerHTML = getItem(row, i);
 	}
 	
-	rowDiv.firstChild.style.width = 10 * getIndentation(row) + "px";
+	rowDiv.childNodes[1].style.width = 10 * getIndentation(row) + "px";
 }
 
 
@@ -211,20 +220,23 @@ function hashListener() {
   //returning to canvas
   else {
     setView(canvas);
-    
-    //clear the canvas
-    context.clearRect(0, 0, canvas.width, canvas.height);
 
     //start render loop
     if (renderLoop === null) {
-      time = 0;
       renderLoop = setInterval(draw, callInterval);
       //console.log("starting render loop");
     }
     
+    time = 0;
+    
     let scriptJS = getJavaScript();
     state = {};
     scriptJS(state);
+    
+  	if (!state.onDraw) {
+  	  console.log("state.onDraw() is not defined");
+  	  window.location.hash = "";
+  	}
   }
 }
 hashListener();
@@ -266,20 +278,12 @@ function drawCircle(x, y, r) {
 
 
 function draw() {
-	if (state.onDraw) {
-	  state.onDraw(time, window.innerWidth, window.innerHeight);
-	} else {
-	  console.log("state.onDraw() is not defined");
-	  window.location.hash = "";
-	}
+  //clear the canvas
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  
+  state.onDraw(window.innerWidth, window.innerHeight, time);
 
 	time += 1 / callInterval;
 }
-
-
-
-
-//this div element is given a text element child by default, so I get rid of it
-list.removeChild(list.firstChild);
 
 resizeListener();

@@ -18,20 +18,38 @@ body {
 	white-space: nowrap;
 }
 
-table, th, td {
-    border-spacing: 0;
-}
-
-td {
-  display: table-cell;
-  flex: 0 0 var(--line-height);
-  height: var(--line-height);
-  text-align: center; /* horizontal centering */
+.item {
   padding: 0 4px;
   margin: 0px;
-  border: thin solid black;
-  white-space: nowrap;
   box-sizing: border-box;
+  background: Transparent no-repeat;
+  border: none;
+  /* outline:none; */ /* Disables the outline around the items */
+  
+  color: white;
+  white-space: nowrap;
+}
+
+/* This class is applied to the last item in a row.  This item simply exposes the background of the div */
+.append-button {
+  flex: 1 0 var(--line-height);
+  height: var(--line-height);
+  margin: 0px;
+  border: none;
+  box-sizing: border-box;
+  
+  order: 999;
+  
+	/* Draw a big "+" at the end of row */
+	background: url(ic_add_white_36px.svg) no-repeat right center;
+}
+
+.indentation {
+  height: var(--line-height);
+  margin: 0px;
+  padding: 0;
+  border: none;
+  background-color: #333333;
 }
 
 .keyword {
@@ -54,27 +72,8 @@ td {
   color: #FFC66D;
 }
 
-
-
-/* This class is applied to the last item in a row.  This item simply exposes the background of the div */
-.append-button {
-  display: table-cell;
-  flex: 1 0 var(--line-height);
-  height: var(--line-height);
-  margin: 0px;
-  border: thin solid red;
-  box-sizing: border-box;
-  
-  order: 999;
-  
-	/* Draw a big "+" at the end of row */
-	background: url(ic_add_white_36px.svg) no-repeat right center;
-}
-
-.indentation {
-  height: var(--line-height);
-  margin: 0px;
-  background-color: #333333;
+.method-call {
+  color: #A9B7C6;
 }
 
 #debug {
@@ -84,14 +83,6 @@ td {
 	background-color: gray;
 	padding: 4px;
 	margin: 0px;
-}
-
-#script {
-	width: 100vw;
-	height: 100vh;
-	font-family: monospace;
-	resize: none;
-	box-sizing: border-box;
 }
 
 #run_button {

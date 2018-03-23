@@ -15,11 +15,11 @@ let CLASSES = [
   {name: null, size: 0},
   {name: "Any", size: 0},
   {name: "Int8", size: 1},
-  {name: "Uint8", size: 1},
+  {name: "UInt8", size: 1},
   {name: "Int16", size: 2},
-  {name: "Uint16", size: 2},
+  {name: "UInt16", size: 2},
   {name: "Int32", size: 4},
-  {name: "Uint32", size: 4},
+  {name: "UInt32", size: 4},
   {name: "Int64", size: 8},
   {name: "UInt64", size: 8},
   {name: "Float", size: 4},
@@ -43,51 +43,71 @@ for (let i = 1; i < CLASSES.length; ++i) {
 */
 let FUNCTIONS = [
   {name: "Int8", scope: CLASS_TABLE.Int8, returnType: CLASS_TABLE.Int8, js: "Number",
-    parameters: [CLASS_TABLE.Any, "toConvert"]
+    parameters: makeParameterObject("Any", "toConvert")
   },
   {name: "Uint8", scope: CLASS_TABLE.UInt8, returnType: CLASS_TABLE.Uint8, js: "Number",
-    parameters: [CLASS_TABLE.Any, "toConvert"]
+    parameters: makeParameterObject("Any", "toConvert")
   },
   {name: "Int16", scope: CLASS_TABLE.Int16, returnType: CLASS_TABLE.Int16, js: "Number",
-    parameters: [CLASS_TABLE.Any, "toConvert"]
+    parameters: makeParameterObject("Any", "toConvert")
   },
   {name: "Uint16", scope: CLASS_TABLE.UInt16, returnType: CLASS_TABLE.Uint16, js: "Number",
-    parameters: [CLASS_TABLE.Any, "toConvert"]
+    parameters: makeParameterObject("Any", "toConvert")
   },
   {name: "Int32", scope: CLASS_TABLE.Int32, returnType: CLASS_TABLE.Int32, js: "Number",
-    parameters: [CLASS_TABLE.Any, "toConvert"]
+    parameters: makeParameterObject("Any", "toConvert")
   },
   {name: "Uint32", scope: CLASS_TABLE.UInt32, returnType: CLASS_TABLE.Uint32, js: "Number",
-    parameters: [CLASS_TABLE.Any, "toConvert"]
+    parameters: makeParameterObject("Any", "toConvert")
   },
   {name: "Int64", scope: CLASS_TABLE.Int64, returnType: CLASS_TABLE.Int64, js: "Number",
-    parameters: [CLASS_TABLE.Any, "toConvert"]
+    parameters: makeParameterObject("Any", "toConvert")
   },
   {name: "Uint64", scope: CLASS_TABLE.UInt64, returnType: CLASS_TABLE.Uint64, js: "Number",
-    parameters: [CLASS_TABLE.Any, "toConvert"]
+    parameters: makeParameterObject("Any", "toConvert")
   },
   {name: "print", scope: CLASS_TABLE.System, returnType: CLASS_TABLE.Hidden, js: "console.log",
-    parameters: [CLASS_TABLE.Any, "item"]
+    parameters: makeParameterObject("Any", "item")
   },
   {name: "drawCircle", scope: CLASS_TABLE.Canvas, returnType: CLASS_TABLE.Hidden, js: "drawCircle",
-    parameters: [CLASS_TABLE.Double, "x", CLASS_TABLE.Double, "y"]
+    parameters: makeParameterObject("Double", "x", "Double", "y", "Double", "r")
   },
   {name: "cos", scope: CLASS_TABLE.Math, returnType: CLASS_TABLE.Double, js: "Math.cos",
-    parameters: [CLASS_TABLE.Double, "theta"]
+    parameters: makeParameterObject("Double", "theta")
   },
   {name: "sin", scope: CLASS_TABLE.Math, returnType: CLASS_TABLE.Double, js: "Math.sin",
-    parameters: [CLASS_TABLE.Double, "theta"]
+    parameters: makeParameterObject("Double", "theta")
   },
   
+  {name: "initalize", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "state.initialize",
+    parameters: makeParameterObject("Double", "width", "Double", "height")
+  },
   {name: "onDraw", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "state.onDraw",
-    parameters: []
+    parameters: makeParameterObject("Double", "width", "Double", "height", "Double", "time")
   },
 ]
 
 let FUNCTION_TABLE = {};
 for (let i = 0; i < FUNCTIONS.length; ++i) {
-  let key = FUNCTIONS[i].name;
+  let scope = CLASSES[FUNCTIONS[i].scope].name;
+  scope = scope || "Hidden";
+  let key = scope + "." + FUNCTIONS[i].name;
   FUNCTION_TABLE[key] = i;
+}
+
+function makeParameterObject() {
+  if (arguments.length & 1 !== 0)
+    console.log("Warning.  makeParameterObject() called with an odd number of arguments");
+  
+  let parameters = [];
+  
+  for (let i = 0; i < arguments.length; i += 2) {
+    let type = CLASS_TABLE[arguments[i]];
+    let name = arguments[i + 1];
+    parameters.push({"type": type, "name": name});
+  }
+  
+  return parameters;
 }
 
 
@@ -129,6 +149,7 @@ for (let i = 0; i < SYMBOLS.length; ++i) {
 const KEYWORDS = [
   "func",
   "let",
+  "if",
   "for",
   "in",
   "while",
@@ -145,6 +166,7 @@ const JS_KEYWORDS = [
   "",
   "let",
   "for",
+  "if",
   "in",
   "while",
   "until",
