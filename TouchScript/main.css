@@ -1,5 +1,5 @@
 :root {
-  --line-height: 50px;
+  --line-height: 40px;
 }
 
 body {
@@ -41,10 +41,11 @@ body {
   order: 999;
   
 	/* Draw a big "+" at the end of row */
-	background: url(ic_add_white_36px.svg) no-repeat right center;
+	background: url(ic_add_white_24px.svg) no-repeat right center;
 }
 
 .indentation {
+  flex-shrink: 0;
   height: var(--line-height);
   margin: 0px;
   padding: 0;

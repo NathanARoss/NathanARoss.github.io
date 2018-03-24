@@ -2,7 +2,7 @@
 
 let itemPoolSize = 0;
 let visibleItemCount = 0;
-let itemHeight = 50;
+let itemHeight = 40;
 let firstLoadedItemIndex = 0;
 let firstVisibleItemIndex = 0;
 
@@ -80,7 +80,7 @@ function resizeListener() {
 
 	context.clearRect(0, 0, canvas.width, canvas.height);
 
-	console.log("canvas resolution: " + canvas.width + "x" + canvas.height);
+	//console.log("canvas resolution: " + canvas.width + "x" + canvas.height);
 }
 
 
@@ -237,6 +237,10 @@ function hashListener() {
   	  console.log("state.onDraw() is not defined");
   	  window.location.hash = "";
   	}
+  	
+  	//initialize function is optional
+  	if (state.initialize)
+  	  state.initialize(window.innerWidth, window.innerHeight);
   }
 }
 hashListener();

@@ -1,26 +1,45 @@
 let nextVariable = 0;
-let variableNames = [];
+let variableNames = {};
 
 let nextNumericLiteral = 0;
-let numericLiterals = [];
+let numericLiterals = {};
 
 let nextStringLiteral = 0;
-let stringLiterals = [];
+let stringLiterals = {};
 
 let nextComment = 0;
-let comments = [];
+let comments = {};
 
 let script = parseScript(
-`System.print ( "hello world" )
+`var x , y , vX , vY
 
+func initalize ( _width , _height ) {
+ x = _width / 2
+ y = _height / 2
+ vX = _width / 40
+ vY = _height / 25
+}
 func onDraw ( width , height , time ) {
- let x = ( Math.cos ( time ) * 0.5 + 0.5 ) * width
- let y = ( Math.sin ( time ) * 0.5 + 0.5 ) * height
- drawCircle ( x , y , time )
+ let radius = Math.min ( width , height ) / 16
  
- if ( false ) {
-  /*unreachable_statement*/
+ vY += 1
+ x += vX
+ y += vY
+ 
+ if ( x < radius ) {
+  vX = vX * -0.99
+  x = radius
+ } if ( y < radius ) {
+  vY = vY * -0.99
+  y = radius
+ } if ( x > width - radius ) {
+  vX = vX * -0.99
+  x = width - radius
+ } if ( y > height - radius ) {
+  vY = vY * -0.99
+  y = height - radius
  }
+ Canvas.drawCircle ( x , y , radius )
 }`)
 
 
@@ -29,14 +48,13 @@ function parseScript(script) {
   let data = [];
   let lines = script.split('\n');
   
-  line_loop:
   for (let row = 0; row < lines.length; ++row) {
-    let tokens = lines[row].match(/(?:[^\s"]+|"[^"]*")+/g);
+    let tokens = lines[row].match(/(?:\/\*(?:[^*]|(?:\*+(?:[^*\/])))*\*+\/)|(?:\/\/.*)|(?:[^\s"]+|"[^"]*")+/g);
     
     let isStartingScope = 0;
     if (tokens) {
-      if (tokens.length === 1 && tokens[0] === "}")
-        continue;
+      if (tokens[0] === "}")
+        tokens.shift();
       
       if (tokens[tokens.length - 1] === "{") {
         isStartingScope = 1;
@@ -45,7 +63,7 @@ function parseScript(script) {
     }
     
     let indentation = lines[row].search(/\S|$/); //count leading spaces
-    data[row] = [mIndentation(indentation, isStartingScope, 1)];
+    data[row] = [indentation | isStartingScope << 31];
     
     if (tokens !== null) {
       for (let i = 0; i < tokens.length; ++i) {
@@ -53,10 +71,12 @@ function parseScript(script) {
         
         //figure out what this token refers to
         if(token.charAt(0) === '"') {
-          data[row].push( mStrLit(token.substring(1, token.length - 1)) );
+          stringLiterals[nextStringLiteral] = token.substring(1, token.length - 1);
+          data[row].push( makeItem(MAPPED_STRING, STRING_LITERAL, nextStringLiteral++) );
         }
         else if(!isNaN(token)) {
-          data[row].push( mNumLit(token) );
+          numericLiterals[nextNumericLiteral] = token;
+          data[row].push( makeItem(MAPPED_STRING, NUMERIC_LITERAL, nextNumericLiteral++) );
         }
         else if (SYMBOL_TABLE[token] !== undefined) {
           data[row].push( makeItem(MAPPED_STRING, SYMBOL, SYMBOL_TABLE[token]) );
@@ -64,23 +84,45 @@ function parseScript(script) {
         else if (KEYWORD_TABLE[token] !== undefined) {
           data[row].push( makeItem(MAPPED_STRING, KEYWORD, KEYWORD_TABLE[token]) );
         }
-        else if (getFuncId(token) !== undefined) {
-          let funcId = getFuncId(token);
-          if (i > 0 && tokens[i - 1] === "func") {
-            data[row].push( makeItem(FUNCTION_DEFINITION, FUNCTIONS[funcId].returnType, funcId) );
-          } else {
-            data[row].push( makeItem(FUNCTION_CALL, FUNCTIONS[funcId].scope, funcId) );
-          }
-        }
         else if (token.charAt(0) === "/" && token.charAt(1) === "*") {
-          //dump the remaining tokens into a comment
           comments[nextComment] = token.substring(2, token.length - 2);
           data[row].push( makeItem(MAPPED_STRING, COMMENT, nextComment++));
-          continue line_loop;
+        }
+        else if (token.charAt(0) === "/" && token.charAt(1) === "/") {
+          comments[nextComment] = token.substring(2, token.length);
+          data[row].push( makeItem(MAPPED_STRING, COMMENT, nextComment++));
         }
         else {
-          //must be a variabe reference
-          data[row].push( mVariable(token) );
+          let identifier = token.includes(".") ? token : "Hidden." + token;
+          let funcId = FUNCTION_TABLE[identifier];
+  
+          if (funcId !== undefined) {
+            if (i > 0 && tokens[i - 1] === "func") {
+              data[row].push( makeItem(FUNCTION_DEFINITION, FUNCTIONS[funcId].returnType, funcId) );
+            } else {
+              data[row].push( makeItem(FUNCTION_CALL, FUNCTIONS[funcId].scope, funcId) );
+            }
+          } else {
+            let indexOf = token.indexOf(":");
+            let variableName = (indexOf === -1) ? token : token.substring(0, indexOf);
+            
+            let id = -1;
+            Object.keys(variableNames).some(function(key) {
+              if (variableNames[key] === variableName) {
+                id = key;
+                return true;
+              }
+            });
+            
+            if (id === -1) {
+              variableNames[nextVariable] = variableName;
+              id = nextVariable++;
+            }
+            
+            let type = (indexOf === -1) ? CLASS_TABLE.Hidden : CLASS_TABLE[token.substring(indexOf + 1)];
+            
+            data[row].push( makeItem(VARIABLE_REFERENCE, type, id) );
+          }
         }
       }
     }
@@ -95,59 +137,6 @@ function makeItem(format, meta, value) {
   value |= 0;
   
   return format << 29 | meta << 16 | value;
-}
-
-function mIndentation(level, isStartingScope, isAppendable) {
-  level = level & 0xFFFF;
-  isStartingScope = isStartingScope & 1;
-  isAppendable = isAppendable & 1;
-  
-  return level | isStartingScope << 31 | isAppendable << 30;
-}
-
-function mVariable(name, type = CLASS_TABLE.Hidden) {
-  //look to see if that variable has already been declared
-  let id = -1;
-  
-  for (let i = 0; i < variableNames.length; ++i) {
-    if (name === variableNames[i]) {
-      id = i;
-      break;
-    }
-  }
-  
-  if (id === -1) {
-    variableNames[nextVariable] = name;
-    id = nextVariable;
-    ++nextVariable;
-  }
-  return makeItem(VARIABLE_REFERENCE, type, id);
-}
-
-function mNumLit(literal) {
-  numericLiterals[nextNumericLiteral] = literal;
-  return makeItem(MAPPED_STRING, NUMERIC_LITERAL, nextNumericLiteral++);
-}
-
-function mStrLit(literal) {
-  stringLiterals[nextStringLiteral] = literal;
-  return makeItem(MAPPED_STRING, STRING_LITERAL, nextStringLiteral++);
-}
-
-function getFuncId(token) {
-  let scope, name;
-  
-  let parts = token.split(".");
-  if (parts.length === 2) {
-    scope = parts[0];
-    name = parts[1];
-  } else {
-    scope = "Hidden";
-    name = parts[0];
-  }
-  
-  let identifier = scope + "." + name;
-  return FUNCTION_TABLE[identifier];
 }
 
 
@@ -378,8 +367,8 @@ function getJavaScript() {
       }
     }
     
-    if (row == script.length - 1 && indentation !== 0) {
-      js += " }";
+    if (row == script.length - 1 && indentation > 0) {
+      js += " }".repeat(indentation);
     }
     
     js += "\n";

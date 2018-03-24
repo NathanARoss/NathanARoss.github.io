@@ -78,6 +78,12 @@ let FUNCTIONS = [
   {name: "sin", scope: CLASS_TABLE.Math, returnType: CLASS_TABLE.Double, js: "Math.sin",
     parameters: makeParameterObject("Double", "theta")
   },
+  {name: "min", scope: CLASS_TABLE.Math, returnType: CLASS_TABLE.Double, js: "Math.min",
+    parameters: makeParameterObject("Double", "a", "Double", "b")
+  },
+  {name: "max", scope: CLASS_TABLE.Math, returnType: CLASS_TABLE.Double, js: "Math.max",
+    parameters: makeParameterObject("Double", "a", "Double", "b")
+  },
   
   {name: "initalize", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "state.initialize",
     parameters: makeParameterObject("Double", "width", "Double", "height")
@@ -119,17 +125,30 @@ const SYMBOLS = [
   "!=",
   "===",
   "!==",
+  ">",
+  ">=",
+  "<",
+  "<=",
   "+",
   "-",
   "*",
   "/",
+  "%",
+  "^",
+  "&",
+  "|",
+  "+=",
+  "-=",
+  "*=",
+  "/=",
+  "%=",
+  "^=",
+  "&=",
+  "|=",
   "!",
   "&&",
   "||",
   "~",
-  "^",
-  "&",
-  "|",
   "(",
   ")",
   "[",
@@ -149,6 +168,7 @@ for (let i = 0; i < SYMBOLS.length; ++i) {
 const KEYWORDS = [
   "func",
   "let",
+  "var",
   "if",
   "for",
   "in",
@@ -160,13 +180,16 @@ const KEYWORDS = [
   "return",
   "break",
   "continue",
+  "true",
+  "false",
 ]
 
 const JS_KEYWORDS = [
   "",
+  "const",
   "let",
-  "for",
   "if",
+  "for",
   "in",
   "while",
   "until",
@@ -176,6 +199,8 @@ const JS_KEYWORDS = [
   "return",
   "break",
   "continue",
+  "true",
+  "false",
 ]
 
 const KEYWORD_TABLE = {};
