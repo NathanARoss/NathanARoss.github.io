@@ -92,15 +92,11 @@ window.onscroll = function() {
 	firstVisibleItemIndex = Math.floor(window.scrollY / itemHeight);
 	
 	/*
-	//user scrolled so far down all items are off screen
 	if (firstVisibleItemIndex >= firstLoadedItemIndex + itemPoolSize) {
-		//set the first loaded item far above the viewport so the following loop refills the screen
 		firstLoadedItemIndex = firstVisibleItemIndex - itemPoolSize - 2;
 	}
 	
-	//user scrolled so far up all items are off screen
 	if (firstVisibleItemIndex <= firstLoadedItemIndex - itemPoolSize) {
-		//set the first loaded item far below the viewport so the following loop refills the screen
 		firstLoadedItemIndex = firstVisibleItemIndex + itemPoolSize;
 	}
 	/**/
@@ -168,9 +164,11 @@ function loadRow(row, rowDiv) {
 	  if (itemPool.length === 0) {
   	  newButton = document.createElement("button");
   	  newButton.classList.add("item");
+  	  newButton.addEventListener('click', itemClicked, true);
 	  } else {
 	    newButton = itemPool.pop();
 	  }
+	  newButton.col = rowDiv.childNodes.length - 2;
 	  rowDiv.append(newButton)
 	}
 	
@@ -178,9 +176,20 @@ function loadRow(row, rowDiv) {
 	for (let i = 0; i < itemCount; ++i) {
     let node = rowDiv.childNodes[i + 2];
     node.innerHTML = getItem(row, i);
+	  node.row = row;
 	}
 	
 	rowDiv.childNodes[1].style.width = 10 * getIndentation(row) + "px";
+}
+
+
+
+function itemClicked(event) {
+  let button = event.currentTarget;
+  let row = button.row;
+  let col = button.col;
+  
+  
 }
 
 
@@ -265,11 +274,9 @@ function drawCircle(x, y, r) {
   if (typeof x !== "number") {
     throw "Error in drawCircle: 1st parameter must be of type Number";
   }
-
   if (typeof y !== "number") {
     throw "Error in drawCircle: 2nd parameter must be of type Number";
   }
-
   if (typeof r !== "number") {
     throw "Error in drawCircle: 3rd parameter must be of type Number";
   }
@@ -284,11 +291,8 @@ function drawCircle(x, y, r) {
 
 
 function draw() {
-  //clear the canvas
   context.clearRect(0, 0, canvas.width, canvas.height);
-  
   state.onDraw(window.innerWidth, window.innerHeight, time);
-
 	time += 1 / callInterval;
 }
 
