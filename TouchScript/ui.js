@@ -91,6 +91,7 @@ function resizeListener() {
 window.onscroll = function() {
 	firstVisibleItemIndex = Math.floor(window.scrollY / itemHeight);
 	
+	/*
 	//user scrolled so far down all items are off screen
 	if (firstVisibleItemIndex >= firstLoadedItemIndex + itemPoolSize) {
 		//set the first loaded item far above the viewport so the following loop refills the screen
@@ -102,6 +103,7 @@ window.onscroll = function() {
 		//set the first loaded item far below the viewport so the following loop refills the screen
 		firstLoadedItemIndex = firstVisibleItemIndex + itemPoolSize;
 	}
+	/**/
 	
 	//keep a buffer of 2 unseen elements in either direction
 	while ((firstVisibleItemIndex - 4 > firstLoadedItemIndex) && (firstLoadedItemIndex < getRowCount() - itemPoolSize)) {
