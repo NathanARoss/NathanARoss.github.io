@@ -79,8 +79,10 @@ function resizeListener() {
 	canvas.height = window.innerHeight;
 
 	context.clearRect(0, 0, canvas.width, canvas.height);
-
 	//console.log("canvas resolution: " + canvas.width + "x" + canvas.height);
+	
+	if (state && state.onResize)
+    state.onResize(window.innerWidth, window.innerHeight);
 }
 
 
@@ -248,10 +250,14 @@ function hashListener() {
   	  console.log("state.onDraw() is not defined");
   	  window.location.hash = "";
   	}
-  	
+  	  	
+  	//onResize function is optional
+  	if (state.onResize)
+  	  state.onResize(window.innerWidth, window.innerHeight);
+	  
   	//initialize function is optional
   	if (state.initialize)
-  	  state.initialize(window.innerWidth, window.innerHeight);
+  	  state.initialize();
   }
 }
 hashListener();
@@ -292,7 +298,7 @@ function drawCircle(x, y, r) {
 
 function draw() {
   context.clearRect(0, 0, canvas.width, canvas.height);
-  state.onDraw(window.innerWidth, window.innerHeight, time);
+  state.onDraw(time);
 	time += 1 / callInterval;
 }
 

@@ -85,11 +85,14 @@ let FUNCTIONS = [
     parameters: makeParameterObject("Double", "a", "Double", "b")
   },
   
-  {name: "initalize", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "state.initialize",
+  {name: "onResize", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "state.onResize",
     parameters: makeParameterObject("Double", "width", "Double", "height")
   },
+  {name: "initalize", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "state.initialize",
+    parameters: null
+  },
   {name: "onDraw", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "state.onDraw",
-    parameters: makeParameterObject("Double", "width", "Double", "height", "Double", "time")
+    parameters: makeParameterObject("Double", "time")
   },
 ]
 

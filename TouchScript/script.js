@@ -11,17 +11,21 @@ let nextComment = 0;
 let comments = {};
 
 let script = parseScript(
-`var x , y , vX , vY
+`var width , height , radius
+var x , y , vX , vY
 
-func initalize ( _width , _height ) {
- x = _width / 2
- y = _height / 2
- vX = _width / 40
- vY = _height / 25
+func onResize ( newWidth , newHeight ) {
+ width = newWidth
+ height = newHeight
+ radius = Math.min ( width , height ) / 16
 }
-func onDraw ( width , height , time ) {
- let radius = Math.min ( width , height ) / 16
- 
+func initalize ( ) {
+ x = width / 2
+ y = height / 2
+ vX = width / 40
+ vY = height / 25
+}
+func onDraw ( time ) {
  vY += 1
  x += vX
  y += vY
@@ -281,7 +285,7 @@ function getJavaScript() {
         switch (format) {
           case VARIABLE_REFERENCE:
           {
-            js += "var" + value + " ";
+            js += "v" + value + " ";
             break;
           }
           
@@ -294,7 +298,7 @@ function getJavaScript() {
             if (func.js !== null) {
               funcName = func.js;
             } else {
-              funcName = "func" + value;
+              funcName = "f" + value;
             }
             
             js += funcName + " = function ";
@@ -310,7 +314,7 @@ function getJavaScript() {
             if (func.js !== null) {
               funcName = func.js;
             } else {
-              funcName = "func" + value;
+              funcName = "f" + value;
             }
             
             js += funcName + " ";
