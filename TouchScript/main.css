@@ -21,8 +21,8 @@ body {
   margin-bottom: -17px !important;
   margin-right: -17px !important;
 	box-sizing: border-box;
-	overflow: scroll;
-	white-space: nowrap;
+  overflow: scroll;
+  white-space: nowrap;
 }
 
 /* Chrome, Safari, IE */

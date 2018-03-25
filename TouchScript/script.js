@@ -76,25 +76,25 @@ function parseScript(script) {
         //figure out what this token refers to
         if(token.charAt(0) === '"') {
           stringLiterals[nextStringLiteral] = token.substring(1, token.length - 1);
-          data[row].push( makeItem(MAPPED_STRING, STRING_LITERAL, nextStringLiteral++) );
+          data[row].push( makeSecondary(STRING_LITERAL, nextStringLiteral++) );
         }
         else if(!isNaN(token)) {
           numericLiterals[nextNumericLiteral] = token;
-          data[row].push( makeItem(MAPPED_STRING, NUMERIC_LITERAL, nextNumericLiteral++) );
+          data[row].push( makeSecondary(NUMERIC_LITERAL, nextNumericLiteral++) );
         }
         else if (SYMBOL_TABLE[token] !== undefined) {
-          data[row].push( makeItem(MAPPED_STRING, SYMBOL, SYMBOL_TABLE[token]) );
+          data[row].push( makeSecondary(SYMBOL, SYMBOL_TABLE[token]) );
         }
         else if (KEYWORD_TABLE[token] !== undefined) {
-          data[row].push( makeItem(MAPPED_STRING, KEYWORD, KEYWORD_TABLE[token]) );
+          data[row].push( makeSecondary(KEYWORD, KEYWORD_TABLE[token]) );
         }
         else if (token.charAt(0) === "/" && token.charAt(1) === "*") {
           comments[nextComment] = token.substring(2, token.length - 2);
-          data[row].push( makeItem(MAPPED_STRING, COMMENT, nextComment++));
+          data[row].push( makeSecondary(COMMENT, nextComment++));
         }
         else if (token.charAt(0) === "/" && token.charAt(1) === "/") {
           comments[nextComment] = token.substring(2, token.length);
-          data[row].push( makeItem(MAPPED_STRING, COMMENT, nextComment++));
+          data[row].push( makeSecondary(COMMENT, nextComment++));
         }
         else {
           let identifier = token.includes(".") ? token : "Hidden." + token;
@@ -102,30 +102,30 @@ function parseScript(script) {
   
           if (funcId !== undefined) {
             if (i > 0 && tokens[i - 1] === "func") {
-              data[row].push( makeItem(FUNCTION_DEFINITION, FUNCTIONS[funcId].returnType, funcId) );
+              data[row].push( makePrimary(FUNCTION_DEFINITION, FUNCTIONS[funcId].returnType, funcId) );
             } else {
-              data[row].push( makeItem(FUNCTION_CALL, FUNCTIONS[funcId].scope, funcId) );
+              data[row].push( makeSecondary(FUNCTION_CALL, funcId) );
             }
           } else {
             let indexOf = token.indexOf(":");
-            let variableName = (indexOf === -1) ? token : token.substring(0, indexOf);
+            let name = (indexOf === -1) ? token : token.substring(0, indexOf);
             
             let id = -1;
-            Object.keys(variableNames).some(function(key) {
-              if (variableNames[key] === variableName) {
-                id = key;
-                return true;
+            for (let i = 0, keys = Object.keys(variableNames); i < keys.length; ++i) {
+              if (variableNames[i] === name) {
+                id = i;
+                break;
               }
-            });
+            }
             
             if (id === -1) {
-              variableNames[nextVariable] = variableName;
+              variableNames[nextVariable] = name;
               id = nextVariable++;
             }
             
             let type = (indexOf === -1) ? CLASS_TABLE.Hidden : CLASS_TABLE[token.substring(indexOf + 1)];
             
-            data[row].push( makeItem(VARIABLE_REFERENCE, type, id) );
+            data[row].push( makePrimary(VARIABLE_REFERENCE, type, id) );
           }
         }
       }
@@ -135,12 +135,19 @@ function parseScript(script) {
   return data;
 }
 
-function makeItem(format, meta, value) {
-  format |= 0;
-  meta |= 0;
-  value |= 0;
+function makePrimary(format, meta, value) {
+  format &= 3;
+  meta &= 0x3FFF;
+  value &= 0xFFFF;
   
-  return format << 29 | meta << 16 | value;
+  return format << 30 | meta << 16 | value;
+}
+
+function makeSecondary(format, value) {
+  format &= 0x3F;
+  value &= 0xFFFFFF;
+  
+  return SECONDARY_FORMAT << 30 | format << 24 | value;
 }
 
 
@@ -175,13 +182,14 @@ function getItem(row, col) {
   }
   
   let item = script[row][col];
-  let format = item >>> 29;
-  let meta = (item >>> 16) & 0x1FFF; //second-least sig 13 bits
-  let value = item & 0xFFFF; //least sig 16 bits
+  let format = item >>> 30;
   
   switch (format) {
     case VARIABLE_REFERENCE:
     {
+      let meta = (item >>> 16) & 0x3FFF; //second-least sig 14 bits
+      let value = item & 0xFFFF; //least sig 16 bits
+      
       let name = variableNames[value];
       if (name === undefined) {
         name = "var" + value;
@@ -198,6 +206,9 @@ function getItem(row, col) {
     
     case FUNCTION_DEFINITION:
     {
+      let meta = (item >>> 16) & 0x3FFF; //second-least sig 14 bits
+      let value = item & 0xFFFF; //least sig 16 bits
+      
       let func = FUNCTIONS[value];
       
       if (meta === 0) {
@@ -209,47 +220,57 @@ function getItem(row, col) {
       break;
     }
     
-    case FUNCTION_CALL:
-    {
-      let func = FUNCTIONS[value];
-      
-      if (meta === 0) {
-        return "<span class='method-call'>" + func.name + "</span>";
-      } else {
-        let type = CLASSES[meta].name;
-        return "<span class='keyword'>" + type + "</span><br><span class='method-call'>" + func.name + "</span>";
-      }
+    case 2:
+      return "primary format<br>2";
       break;
-    }
-    
-    case ARGUMENT_HINT:
-      return "argument hint";
       
-    case MAPPED_STRING:
-      switch (meta) {
+    case SECONDARY_FORMAT:
+      switch ( (item >>> 24) & 63 ) {
         case KEYWORD:
-          return "<span class='keyword'>" + KEYWORDS[value] + "</span>";
+          return "<span class='keyword'>" + KEYWORDS[item & 0xFFFFFF] + "</span>";
           
         case SYMBOL:
-          return SYMBOLS[value];
+          return SYMBOLS[item & 0xFFFFFF];
           
         case NUMERIC_LITERAL:
-          return "<span class='number'>" + numericLiterals[value] + "</span>";
+          return "<span class='number'>" + numericLiterals[item & 0xFFFFFF] + "</span>";
         
         case STRING_LITERAL:
-          return '<span class="string">"' + stringLiterals[value] + '"</span>';
+          return '<span class="string">"' + stringLiterals[item & 0xFFFFFF] + '"</span>';
         
         case COMMENT:
-          return "<span class='comment'>" + comments[value] + "</span>";
+          return "<span class='comment'>" + comments[item & 0xFFFFFF] + "</span>";
+          
+        case FUNCTION_CALL:
+        {
+          let funcId = item & 0xFFFF; //least sig 16 bits
+          let func = FUNCTIONS[funcId];
+          
+          if (func.scope === CLASS_TABLE.Hidden) {
+            return "<span class='method-call'>" + func.name + "</span>";
+          } else {
+            
+            return "<span class='keyword'>" + CLASSES[func.scope].name + "</span><br><span class='method-call'>" + func.name + "</span>";
+          }
+          break;
+        }
+        
+        case ARGUMENT_HINT:
+        {
+          let argumentOrdinal = (item >>> 16) & 0xFF; //second-least sig 8 bits
+          let funcId = item & 0xFFFF; //least sig 16 bits
+          
+          return "argument hint";
+        }
 
         default:
-          return "constant string.<br>meta: " + secondImpression;
+          return "secondary format<br>" + secondImpression;
       }
       
       break;
     
     default:
-      return "format<br>" + firstImpression;
+      return "format<br>" + format;
   }
 }
 
@@ -278,8 +299,7 @@ function getJavaScript() {
     let rowData = script[row];
     for (let col = 1; col < rowData.length; ++col) {
         let item = script[row][col];
-        let format = item >>> 29;
-        let meta = (item >>> 16) & 0x1FFF; //second-least sig 13 bits
+        let format = item >>> 30;
         let value = item & 0xFFFF; //least sig 16 bits
         
         switch (format) {
@@ -304,28 +324,9 @@ function getJavaScript() {
             js += funcName + " = function ";
             break;
           }
-          
-          case FUNCTION_CALL:
-          {
-            let func = FUNCTIONS[value];
             
-            //if a script function call interacts with outside JS, write it verbatim
-            let funcName;
-            if (func.js !== null) {
-              funcName = func.js;
-            } else {
-              funcName = "f" + value;
-            }
-            
-            js += funcName + " ";
-            break;
-          }
-          
-          case ARGUMENT_HINT:
-            return "argument hint";
-            
-          case MAPPED_STRING:
-            switch (meta) {
+          case SECONDARY_FORMAT:
+            switch ( (item >>> 24) & 63 ) {
               case KEYWORD:
                 js += JS_KEYWORDS[value] + " ";
                 break;
@@ -345,6 +346,25 @@ function getJavaScript() {
               case COMMENT:
                 //js += comments[value] + " ";
                 break;
+                
+              case FUNCTION_CALL:
+              {
+                let func = FUNCTIONS[value];
+                
+                //if a script function call interacts with outside JS, write it verbatim
+                let funcName;
+                if (func.js !== null) {
+                  funcName = func.js;
+                } else {
+                  funcName = "f" + value;
+                }
+                
+                js += funcName + " ";
+                break;
+              }
+              
+              case ARGUMENT_HINT:
+                return "argument hint";
       
               default:
                 js += "constant string meta: " + secondImpression;

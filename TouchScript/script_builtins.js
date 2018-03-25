@@ -1,14 +1,14 @@
 const VARIABLE_REFERENCE = 0;
 const FUNCTION_DEFINITION = 1;
-const FUNCTION_CALL = 2;
-const ARGUMENT_HINT = 3;
-const MAPPED_STRING = 4;
+const SECONDARY_FORMAT = 3;
 
 const KEYWORD = 0;
 const SYMBOL = 1;
 const NUMERIC_LITERAL = 2;
 const STRING_LITERAL = 3;
 const COMMENT = 4;
+const FUNCTION_CALL = 5;
+const ARGUMENT_HINT = 6;
 
 
 let CLASSES = [

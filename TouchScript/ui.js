@@ -234,6 +234,7 @@ function hashListener() {
     }
     
     state = null;
+    document.body.style.height = (getRowCount() + visibleItemCount - 2) * itemHeight + "px";
   }
   
   //returning to canvas
@@ -264,6 +265,8 @@ function hashListener() {
   	//initialize function is optional
   	if (state.initialize)
   	  state.initialize();
+    
+    document.body.style.height = "auto";
   }
 }
 hashListener();
