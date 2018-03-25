@@ -10,12 +10,24 @@ body {
 }
 
 .row {
-	display: flex;
-	height: var(--line-height);
-	
+  height: var(--line-height);
+  overflow: hidden;
+
+}
+
+.row-content {
+  display: flex;
+  height: calc(17px + var(--line-height));
+  margin-bottom: -17px !important;
+  margin-right: -17px !important;
 	box-sizing: border-box;
 	overflow: scroll;
 	white-space: nowrap;
+}
+
+/* Chrome, Safari, IE */
+.row::-webkit-scrollbar {
+    display: none;
 }
 
 .item {

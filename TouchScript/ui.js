@@ -40,14 +40,19 @@ function resizeListener() {
 		for(let i = 0; i < diff; ++i) {
 			let div = document.createElement("div");
 			div.classList.add("row");
+      
+      let divContent = document.createElement("div");
+      divContent.classList.add("row-content");
 			
 			let appendButton = document.createElement("button");
 			appendButton.classList.add("append-button");
-			div.append(appendButton);
+			divContent.append(appendButton);
 			
 			let indentation = document.createElement("button");
 			indentation.classList.add("indentation");
-			div.append(indentation);
+			divContent.append(indentation);
+      
+      div.append(divContent);
 
 			
 			let row = list.childNodes.length + firstLoadedItemIndex;
@@ -149,13 +154,14 @@ function loadRow(row, rowDiv) {
 	row = row|0;
 	
 	let itemCount = getItemCount(row);
+  let rowContent = rowDiv.firstChild;
 	
 	//remove the items of the table beyond the ones it will need
 	// the first node is the + button, the second node is the indentation
-	let toRemove =  rowDiv.childNodes.length - 2 - itemCount;
+	let toRemove =  rowContent.childNodes.length - 2 - itemCount;
 	for (let i = 0; i < toRemove; ++i) {
-	  let lastChild = rowDiv.childNodes[rowDiv.childNodes.length - 1];
-	  rowDiv.removeChild(lastChild);
+	  let lastChild = rowContent.childNodes[rowContent.childNodes.length - 1];
+	  rowContent.removeChild(lastChild);
 	  itemPool.push(lastChild);
 	}
 	
@@ -170,18 +176,18 @@ function loadRow(row, rowDiv) {
 	  } else {
 	    newButton = itemPool.pop();
 	  }
-	  newButton.col = rowDiv.childNodes.length - 2;
-	  rowDiv.append(newButton)
+	  newButton.col = rowContent.childNodes.length - 2;
+	  rowContent.append(newButton)
 	}
 	
 	// configure each item with the correct text
 	for (let i = 0; i < itemCount; ++i) {
-    let node = rowDiv.childNodes[i + 2];
+    let node = rowContent.childNodes[i + 2];
     node.innerHTML = getItem(row, i);
 	  node.row = row;
 	}
 	
-	rowDiv.childNodes[1].style.width = 10 * getIndentation(row) + "px";
+	rowContent.childNodes[1].style.width = 10 * getIndentation(row) + "px";
 }
 
 
