@@ -22,18 +22,20 @@ body {
   white-space: nowrap;
 }
 
-@-moz-document url-prefix() {
-  .row-content {
-    width: calc(17px + 100%);
-    height: calc(17px + var(--line-height));
-    margin-bottom: -17px !important;
-    margin-right: -17px !important;
-  }
-}
-
 .row {
   height: var(--line-height);
   overflow: hidden;
+}
+
+@-moz-document url-prefix() {
+  .row-content {
+    width: calc(17px + 100%);
+    height: calc(30px + var(--line-height));
+  }
+  
+  .row {
+    height: var(--line-height);
+  }
 }
 
 .item {
@@ -43,6 +45,7 @@ body {
   background: Transparent no-repeat;
   border: none;
   /* outline:none; */ /* Disables the outline around the items */
+  height: var(--line-height);
   
   color: white;
   white-space: nowrap;
