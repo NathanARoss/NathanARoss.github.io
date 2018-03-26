@@ -266,7 +266,7 @@ function hashListener() {
   	if (state.initialize)
   	  state.initialize();
     
-    document.body.style.height = "auto";
+    document.body.style.height = window.innerHeight + "px";
   }
 }
 hashListener();

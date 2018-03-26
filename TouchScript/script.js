@@ -10,41 +10,7 @@ let stringLiterals = {};
 let nextComment = 0;
 let comments = {};
 
-let script = parseScript(
-`var width , height , radius
-var x , y , vX , vY
-
-func onResize ( newWidth , newHeight ) {
- width = newWidth
- height = newHeight
- radius = Math.min ( width , height ) / 16
-}
-func initalize ( ) {
- x = width / 2
- y = height / 2
- vX = width / 40
- vY = height / 25
-}
-func onDraw ( time ) {
- vY += 1
- x += vX
- y += vY
- 
- if ( x < radius ) {
-  vX = vX * -0.99
-  x = radius
- } if ( y < radius ) {
-  vY = vY * -0.99
-  y = radius
- } if ( x > width - radius ) {
-  vX = vX * -0.99
-  x = width - radius
- } if ( y > height - radius ) {
-  vY = vY * -0.99
-  y = height - radius
- }
- Canvas.drawCircle ( x , y , radius )
-}`)
+let script = parseScript(sampleScripts[1])
 
 
 
@@ -96,17 +62,57 @@ function parseScript(script) {
           comments[nextComment] = token.substring(2, token.length);
           data[row].push( makeItem(COMMENT, nextComment++));
         }
-        else {
-          let identifier = token.includes(".") ? token : "Hidden." + token;
-          let funcId = FUNCTION_TABLE[identifier];
-  
-          if (funcId !== undefined) {
-            if (i > 0 && tokens[i - 1] === "func") {
-              data[row].push( makeItemWithMeta(FUNCTION_DEFINITION, FUNCTIONS[funcId].returnType, funcId) );
-            } else {
-              data[row].push( makeItem(FUNCTION_CALL, funcId) );
+        else if (i > 0 && tokens[i - 1] === "func") {
+          let newFunc = {};
+          
+          newFunc.scope = "Hidden";
+          newFunc.name = token;
+          newFunc.returnType = "Hidden";
+          
+          let indexOf = token.indexOf(":");
+          if (indexOf !== -1) {
+            newFunc.name = token.substring(0, indexOf);
+            newFunc.returnType = token.substring(indexOf + 1);
+          }
+          
+          //detect which functions are called from outside
+          newFunc.js = newFunc.name;
+          if (newFunc.scope === "Hidden") {
+            switch (newFunc.name) {
+              case "onResize":
+              case "initialize":
+              case "onDraw":
+                newFunc.js = "state." + newFunc.name;
             }
-          } else {
+          }
+          
+          //console.log("new function. name: " + newFunc.name + " returnType: " + newFunc.returnType + " js: " + newFunc.js);
+          
+          //the remaining tokens are parameters
+          newFunc.parameters = [];
+          for (let j = i + 1; j < tokens.length; ++j) {
+            let parameter = {};
+            let indexOf = tokens[j].indexOf(":");
+            parameter.name = tokens[j].substring(0, indexOf);
+            parameter.type = tokens[j].substring(indexOf + 1);
+            newFunc.parameters.push(parameter);
+            
+            //console.log("parameter name: " + parameter.name + " type: " + parameter.type);
+          }
+          
+          let funcId = FUNCTIONS.length;
+          FUNCTIONS.push(newFunc);
+          FUNCTION_TABLE[newFunc.scope + "." + newFunc.name] = funcId;
+          data[row].push( makeItemWithMeta(FUNCTION_DEFINITION, newFunc.returnType, funcId) );
+        }
+        else {
+          //figure out whether the identifier is a variable name or a function name
+          let funcName = token.includes(".") ? token : "Hidden." + token;
+          if (FUNCTION_TABLE[funcName] !== undefined) {
+            let funcId = FUNCTION_TABLE[funcName];
+            data[row].push( makeItemWithMeta(FUNCTION_CALL, FUNCTIONS[funcId].scope, funcId) );
+          }
+          else {
             let indexOf = token.indexOf(":");
             let name = (indexOf === -1) ? token : token.substring(0, indexOf);
             
@@ -190,10 +196,7 @@ function getItem(row, col) {
   switch (format) {
     case VARIABLE_REFERENCE:
     {
-      let name = variableNames[value];
-      if (name === undefined) {
-        name = "var" + value;
-      }
+      let name = variableNames[value] || "var" + value;
       
       if (meta === CLASS_TABLE.Hidden) {
         return name;
@@ -221,11 +224,11 @@ function getItem(row, col) {
     {
       let func = FUNCTIONS[value];
       
-      if (func.scope === CLASS_TABLE.Hidden) {
+      if (meta === CLASS_TABLE.Hidden) {
         return "<span class='method-call'>" + func.name + "</span>";
       } else {
-        
-        return "<span class='keyword'>" + CLASSES[func.scope].name + "</span><br><span class='method-call'>" + func.name + "</span>";
+        let type = CLASSES[meta].name;
+        return "<span class='keyword'>" + type + "</span><br><span class='method-call'>" + func.name + "</span>";
       }
       break;
     }
@@ -279,16 +282,32 @@ function getJavaScript() {
     let indentation = getIndentation(row);
     js += " ".repeat(indentation);
     
+    let needsEndParenthesis = false;
+    let needsCommas = false;
+    
     let rowData = script[row];
     for (let col = 1; col < rowData.length; ++col) {
         let item = script[row][col];
         let format = item >>> 28;
         let value = item & 0xFFFF; //least sig 16 bits
         
+        //if the first item is a keyword that begins a parenthesis
+        if (format === KEYWORD) {
+          let keyword = JS_KEYWORDS[value];
+          if (keyword && keyword.charAt(keyword.length - 1) === "(") {
+            needsEndParenthesis = true;
+          }
+        }
+        
+        //append an end parenthesis to the end of the line
+        
         switch (format) {
           case VARIABLE_REFERENCE:
           {
-            js += "v" + value + " ";
+            if (needsCommas)
+              js += "v" + value + ", ";
+            else
+              js += "v" + value + " ";
             break;
           }
           
@@ -303,7 +322,9 @@ function getJavaScript() {
               funcName = "f" + value;
             }
             
-            js += funcName + " = function ";
+            js += funcName + " = function ( ";
+            needsEndParenthesis = true;
+            needsCommas = true;
             break;
           }
           
@@ -323,10 +344,10 @@ function getJavaScript() {
           }
           
           case ARGUMENT_HINT:
-            return "/*argument hint*/";
+            return "/*argument hint*/ ";
           
           case ARGUMENT_LABEL:
-            return "/*argument label*/";
+            return "/*argument label*/ ";
             
           case SYMBOL:
             js += SYMBOLS[value] + " ";
@@ -354,10 +375,11 @@ function getJavaScript() {
         }
     }
     
-    //handle opening and closing scopes
-    if (isStartingScope(row)) {
+    if (needsEndParenthesis)
+      js += ") ";
+    
+    if (isStartingScope(row))
       js += "{ ";
-    }
     
     if (row < script.length - 1) {
       let nextIndentation = getIndentation(row + 1);
@@ -367,9 +389,8 @@ function getJavaScript() {
       }
     }
     
-    if (row == script.length - 1 && indentation > 0) {
+    if (row == script.length - 1 && indentation > 0)
       js += "}".repeat(indentation);
-    }
     
     js += "\n";
   }

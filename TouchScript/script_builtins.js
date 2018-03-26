@@ -85,16 +85,6 @@ let FUNCTIONS = [
   {name: "max", scope: CLASS_TABLE.Math, returnType: CLASS_TABLE.Double, js: "Math.max",
     parameters: makeParameterObject("Double", "a", "Double", "b")
   },
-  
-  {name: "onResize", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "state.onResize",
-    parameters: makeParameterObject("Double", "width", "Double", "height")
-  },
-  {name: "initalize", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "state.initialize",
-    parameters: null
-  },
-  {name: "onDraw", scope: CLASS_TABLE.Hidden, returnType: CLASS_TABLE.Hidden, js: "state.onDraw",
-    parameters: makeParameterObject("Double", "time")
-  },
 ]
 
 let FUNCTION_TABLE = {};
@@ -192,12 +182,12 @@ const JS_KEYWORDS = [
   null,
   "const",
   "let",
-  "if",
-  "for",
+  "if (",
+  "for (",
   "in",
-  "while",
-  "until",
-  "switch",
+  "while (",
+  "until (",
+  "switch (",
   "case",
   "default",
   "return",
@@ -212,3 +202,68 @@ for (let i = 0; i < KEYWORDS.length; ++i) {
   let key = KEYWORDS[i];
   KEYWORD_TABLE[key] = i;
 }
+
+
+
+
+let sampleScripts = [];
+
+sampleScripts[0] =
+`var width , height , radius
+var x , y , vX , vY
+
+func onResize newWidth:Double newHeight:Double {
+ width = newWidth
+ height = newHeight
+ radius = Math.min ( width , height ) / 16
+}
+func initialize {
+ x = width / 2
+ y = height / 2
+ vX = width / 40
+ vY = height / 25
+}
+func onDraw time:Double {
+ vY += 1
+ x += vX
+ y += vY
+ 
+ if x < radius {
+  vX = vX * -0.99
+  x = radius
+ } if y < radius {
+  vY = vY * -0.99
+  y = radius
+ } if x > width - radius {
+  vX = vX * -0.99
+  x = width - radius
+ } if y > height - radius {
+  vY = vY * -0.99
+  y = height - radius
+ }
+ Canvas.drawCircle ( x , y , radius )
+}`;
+
+sampleScripts[1] =
+`var width , height , radius
+
+func pattern x:Double {
+ return Math.sin ( x / width * 4 ) * height / 2 + height / 2
+}
+
+func onResize newWidth:Double newHeight:Double {
+ width = newWidth
+ height = newHeight
+ radius = Math.min ( width , height ) / 16
+}
+func initialize {
+ //nothing needed
+}
+func onDraw time:Double {
+ var x = radius / -2
+ while x < width + radius {
+  let y = pattern ( x + time )
+  Canvas.drawCircle ( x , y , radius )
+  x += radius / 4
+ }
+}`;
