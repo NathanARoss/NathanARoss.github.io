@@ -29,7 +29,7 @@ body {
 
 @-moz-document url-prefix() {
   .row-content {
-    width: calc(17px + 100%);
+    /* width: calc(17px + 100%); */
     height: calc(30px + var(--line-height));
   }
   
