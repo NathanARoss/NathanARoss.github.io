@@ -2,6 +2,11 @@
   --line-height: 40px;
 }
 
+/* Chrome, Safari, IE */
+::-webkit-scrollbar {
+    display: none;
+}
+
 body {
 	margin: 0px;
 	font-size: 16px;
@@ -9,25 +14,26 @@ body {
 	color: white;
 }
 
-.row {
-  height: var(--line-height);
-  overflow: hidden;
-
-}
-
 .row-content {
   display: flex;
-  height: calc(17px + var(--line-height));
-  margin-bottom: -17px !important;
-  margin-right: -17px !important;
+  height: var(--line-height);
 	box-sizing: border-box;
   overflow: scroll;
   white-space: nowrap;
 }
 
-/* Chrome, Safari, IE */
-.row::-webkit-scrollbar {
-    display: none;
+@-moz-document url-prefix() {
+  .row-content {
+    width: calc(17px + 100%);
+    height: calc(17px + var(--line-height));
+    margin-bottom: -17px !important;
+    margin-right: -17px !important;
+  }
+}
+
+.row {
+  height: var(--line-height);
+  overflow: hidden;
 }
 
 .item {

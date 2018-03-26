@@ -1,14 +1,15 @@
 const VARIABLE_REFERENCE = 0;
 const FUNCTION_DEFINITION = 1;
-const SECONDARY_FORMAT = 3;
+const FUNCTION_CALL = 2;
+const ARGUMENT_HINT = 3;
+const ARGUMENT_LABEL = 4;
+const SYMBOL = 5;
+const KEYWORD = 6;
+const NUMERIC_LITERAL = 7;
+const STRING_LITERAL = 8;
+const COMMENT = 9;
 
-const KEYWORD = 0;
-const SYMBOL = 1;
-const NUMERIC_LITERAL = 2;
-const STRING_LITERAL = 3;
-const COMMENT = 4;
-const FUNCTION_CALL = 5;
-const ARGUMENT_HINT = 6;
+
 
 
 let CLASSES = [
@@ -188,7 +189,7 @@ const KEYWORDS = [
 ]
 
 const JS_KEYWORDS = [
-  "",
+  null,
   "const",
   "let",
   "if",
