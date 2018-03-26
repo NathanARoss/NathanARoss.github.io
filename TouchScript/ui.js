@@ -34,7 +34,10 @@ function resizeListener() {
 	itemPoolSize = newItemPoolSize;
 	
 	//allow the viewport to scroll past the end of the list
-	document.body.style.height = (rowCount + visibleItemCount - 2) * itemHeight + "px";
+	if (window.location.hash === "")
+	  document.body.style.height = (rowCount + visibleItemCount - 2) * itemHeight + "px";
+  else
+    document.body.style.height = "auto";
 	
 	if (diff > 0) {
 		for(let i = 0; i < diff; ++i) {
@@ -82,8 +85,6 @@ function resizeListener() {
 	//resize canvas as well
 	canvas.width = window.innerWidth;
 	canvas.height = window.innerHeight;
-
-	context.clearRect(0, 0, canvas.width, canvas.height);
 	//console.log("canvas resolution: " + canvas.width + "x" + canvas.height);
 	
 	if (state && state.onResize)
@@ -214,10 +215,8 @@ function updateDebug() {
 
 
 function hashListener() {
-  let hash = window.location.hash;
-
   //returning to editor
-  if (hash === "") {
+  if (window.location.hash === "") {
     setView(editor);
 
     //stop render loop
@@ -249,9 +248,9 @@ function hashListener() {
     
     time = 0;
     
-    let scriptJS = getJavaScript();
+    let scriptFunction = getJavaScript();
     state = {};
-    scriptJS(state);
+    scriptFunction(state);
     
   	if (!state.onDraw) {
   	  console.log("state.onDraw() is not defined");
@@ -266,7 +265,7 @@ function hashListener() {
   	if (state.initialize)
   	  state.initialize();
     
-    document.body.style.height = window.innerHeight + "px";
+    document.body.style.height = "auto";
   }
 }
 hashListener();

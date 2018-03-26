@@ -30,12 +30,7 @@ body {
 /* Desktop Firefox, mobile Firefox (not Firefox Focus), Samsung Browser (oddly) */
 @-moz-document url-prefix() {
   .row-content {
-    /* width: calc(17px + 100%); */ /* Hide vertical scrollbar.  It's not worth it */
     height: calc(30px + var(--line-height));
-  }
-  
-  .row {
-    height: var(--line-height);
   }
 }
 
