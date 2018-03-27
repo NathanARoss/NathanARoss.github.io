@@ -18,8 +18,7 @@ let itemPool = [];
 const context = canvas.getContext("2d");
 const callInterval = 1000 / 60;
 
-let renderLoop = null;
-let time = 0.0;
+let renderLoop = 0;
 let error = null;
 let state = {}; //holds the js version of the script
 
@@ -220,10 +219,9 @@ function hashListener() {
     setView(editor);
 
     //stop render loop
-    if (renderLoop !== null) {
-      clearInterval(renderLoop);
-      renderLoop = null;
-      //console.log("stopping render loop");
+    if (renderLoop !== 0) {
+      window.cancelAnimationFrame(renderLoop)
+      renderLoop = 0;
     }
 
     //report any errors
@@ -241,12 +239,8 @@ function hashListener() {
     setView(canvas);
 
     //start render loop
-    if (renderLoop === null) {
-      renderLoop = setInterval(draw, callInterval);
-      //console.log("starting render loop");
-    }
-    
-    time = 0;
+    if (renderLoop === 0)
+      renderLoop = window.requestAnimationFrame(draw);
     
     let scriptFunction = getJavaScript();
     state = {};
@@ -255,6 +249,7 @@ function hashListener() {
   	if (!state.onDraw) {
   	  console.log("state.onDraw() is not defined");
   	  window.location.hash = "";
+  	  return;
   	}
   	  	
   	//onResize function is optional
@@ -304,10 +299,11 @@ function drawCircle(x, y, r) {
 
 
 
-function draw() {
+function draw(timestamp) {
   context.clearRect(0, 0, canvas.width, canvas.height);
-  state.onDraw(time);
-	time += 1 / callInterval;
+  state.onDraw(timestamp);
+	
+	renderLoop = window.requestAnimationFrame(draw);
 }
 
 resizeListener();

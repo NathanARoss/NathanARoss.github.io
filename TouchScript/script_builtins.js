@@ -260,9 +260,9 @@ func initialize {
  //nothing needed
 }
 func onDraw time:Double {
- var x = radius / -2
+ var x = - radius
  while x < width + radius {
-  let y = pattern ( x + time )
+  let y = pattern ( x + time / 1000 * width / 16 )
   Canvas.drawCircle ( x , y , radius )
   x += radius / 4
  }
