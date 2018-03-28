@@ -18,8 +18,9 @@ body {
   display: flex;
   height: var(--line-height);
 	box-sizing: border-box;
-  overflow: scroll;
   white-space: nowrap;
+  overflow-x: scroll;
+  overflow-y: hidden;
 }
 
 .row {
