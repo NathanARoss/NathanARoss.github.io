@@ -40,27 +40,27 @@ function parseScript(script) {
         let token = tokens[i];
         
         //figure out what this token refers to
-        if(token.charAt(0) === '"') {
+        if (token.startsWith('"')) {
           stringLiterals[nextStringLiteral] = token.substring(1, token.length - 1);
           data[row].push( makeItem(STRING_LITERAL, nextStringLiteral++) );
+        }
+        else if (token.startsWith("//")) {
+          comments[nextComment] = token.substring(2);
+          data[row].push( makeItem(COMMENT, nextComment++));
+        }
+        else if (token.startsWith("/*")) {
+          comments[nextComment] = token.substring(2, token.length - 2);
+          data[row].push( makeItem(COMMENT, nextComment++));
         }
         else if(!isNaN(token)) {
           numericLiterals[nextNumericLiteral] = token;
           data[row].push( makeItem(NUMERIC_LITERAL, nextNumericLiteral++) );
         }
-        else if (SYMBOL_TABLE[token] !== undefined) {
+        else if (token in SYMBOL_TABLE) {
           data[row].push( makeItem(SYMBOL, SYMBOL_TABLE[token]) );
         }
-        else if (KEYWORD_TABLE[token] !== undefined) {
+        else if (token in KEYWORD_TABLE) {
           data[row].push( makeItem(KEYWORD, KEYWORD_TABLE[token]) );
-        }
-        else if (token.charAt(0) === "/" && token.charAt(1) === "*") {
-          comments[nextComment] = token.substring(2, token.length - 2);
-          data[row].push( makeItem(COMMENT, nextComment++));
-        }
-        else if (token.charAt(0) === "/" && token.charAt(1) === "/") {
-          comments[nextComment] = token.substring(2, token.length);
-          data[row].push( makeItem(COMMENT, nextComment++));
         }
         else if (i > 0 && tokens[i - 1] === "func") {
           let newFunc = {};
@@ -82,7 +82,7 @@ function parseScript(script) {
               case "onResize":
               case "initialize":
               case "onDraw":
-                newFunc.js = "state." + newFunc.name;
+                newFunc.js = `state.${newFunc.name}`;
             }
           }
           
@@ -107,7 +107,7 @@ function parseScript(script) {
         }
         else {
           //figure out whether the identifier is a variable name or a function name
-          let funcName = token.includes(".") ? token : "Hidden." + token;
+          let funcName = token.includes(".") ? token : `Hidden.${token}`;
           if (FUNCTION_TABLE[funcName] !== undefined) {
             let funcId = FUNCTION_TABLE[funcName];
             data[row].push( makeItemWithMeta(FUNCTION_CALL, FUNCTIONS[funcId].scope, funcId) );
@@ -169,7 +169,7 @@ function getItemCount(row) {
   row = row|0;
   
   if (row < 0 || row >= script.length) {
-    console.log("attempting to get item count of row " + row);
+    console.log(`attempting to get item count of row ${row}`);
     return 0;
   }
   
@@ -183,8 +183,8 @@ function getItem(row, col) {
   col = (col|0) + 1;
   
   if (row < 0 || row >= script.length || col < 1 || col >= script[row].length) {
-    console.log("attempting to get item of row " + row + " col " + col);
-    return "error";
+    console.log(`attempting to get item of row ${row} col ${col}`);
+    return `error`;
   }
   
   let item = script[row][col];
@@ -196,13 +196,13 @@ function getItem(row, col) {
   switch (format) {
     case VARIABLE_REFERENCE:
     {
-      let name = variableNames[value] || "var" + value;
+      let name = variableNames[value] || `var${value}`;
       
       if (meta === CLASS_TABLE.Hidden) {
         return name;
       } else {
         let type = CLASSES[meta].name;
-        return "<span class='keyword'>" + type + "</span><br>" + name;
+        return `<span class="keyword">${type}</span><br>${name}`;
       }
       break;
     }
@@ -212,10 +212,10 @@ function getItem(row, col) {
       let func = FUNCTIONS[value];
       
       if (meta === CLASS_TABLE.Hidden) {
-        return "<span class='method-declaration'>" + func.name + "</span>";
+        return `<span class="method-declaration">${func.name}</span>`;
       } else {
         let type = CLASSES[meta].name;
-        return "<span class='keyword'>" + type + "</span><br><span class='method-declaration'>" + func.name + "</span>";
+        return `<span class="keyword">${type}</span><br><span class="method-declaration">${func.name}</span>`;
       }
       break;
     }
@@ -225,37 +225,37 @@ function getItem(row, col) {
       let func = FUNCTIONS[value];
       
       if (meta === CLASS_TABLE.Hidden) {
-        return "<span class='method-call'>" + func.name + "</span>";
+        return `<span class="method-declaration">${func.name}</span>`;
       } else {
         let type = CLASSES[meta].name;
-        return "<span class='keyword'>" + type + "</span><br><span class='method-call'>" + func.name + "</span>";
+        return `<span class="keyword">${type}</span><br><span class="method-call">${func.name}</span>`;
       }
       break;
     }
     
     case ARGUMENT_HINT:
-      return "argument hint";
+      return `argument hint`;
     
     case ARGUMENT_LABEL:
-      return "argument label";
+      return `argument label`;
     
     case SYMBOL:
       return SYMBOLS[data];
 
     case KEYWORD:
-      return "<span class='keyword'>" + KEYWORDS[data] + "</span>";
+      return `<span class="keyword">${KEYWORDS[data]}</span>`;
       
     case NUMERIC_LITERAL:
-      return "<span class='number'>" + numericLiterals[data] + "</span>";
+      return `<span class="number">${numericLiterals[data]}</span>`;
     
     case STRING_LITERAL:
-      return '<span class="string">"' + stringLiterals[data] + '"</span>';
+      return `<span class="string">${stringLiterals[data]}</span>`;
     
     case COMMENT:
-      return "<span class='comment'>" + comments[data] + "</span>";
+      return `<span class="comment">${comments[data]}</span>`;
     
     default:
-      return "format<br>" + format;
+      return `format<br>${format}`;
   }
 }
 
@@ -272,8 +272,8 @@ function isStartingScope(row) {
 
 
 /*
-Temporary function.  Generates an array of javascript strings from the script
-containing each defined function and returns it for use in Function()
+Generates a Function object from the binary script.
+Run the function with an object argument to attach .initialize(), .onResize(), and .onDraw() to the object
 */
 function getJavaScript() {
   let js = "";
@@ -303,13 +303,11 @@ function getJavaScript() {
         
         switch (format) {
           case VARIABLE_REFERENCE:
-          {
             if (needsCommas)
-              js += "v" + value + ", ";
+              js += `v${value}, `;
             else
-              js += "v" + value + " ";
+              js += `v${value} `;
             break;
-          }
           
           case FUNCTION_DEFINITION:
           {
@@ -319,10 +317,10 @@ function getJavaScript() {
             if (func.js !== null) {
               funcName = func.js;
             } else {
-              funcName = "f" + value;
+              funcName = `f${value}`;
             }
             
-            js += funcName + " = function ( ";
+            js += `${funcName} = function ( `;
             needsEndParenthesis = true;
             needsCommas = true;
             break;
@@ -336,42 +334,42 @@ function getJavaScript() {
             if (func.js !== null) {
               funcName = func.js;
             } else {
-              funcName = "f" + value;
+              funcName = `f${value}`;
             }
             
-            js += funcName + " ";
+            js += `${funcName} `;
             break;
           }
           
           case ARGUMENT_HINT:
-            return "/*argument hint*/ ";
+            return `/*argument hint*/ `;
           
           case ARGUMENT_LABEL:
-            return "/*argument label*/ ";
+            return `/*argument label*/ `;
             
           case SYMBOL:
-            js += SYMBOLS[value] + " ";
+            js += `${SYMBOLS[value]} `;
             break;
             
           case KEYWORD:
             if (JS_KEYWORDS[value] !== null)
-              js += JS_KEYWORDS[value] + " ";
+              js += `${JS_KEYWORDS[value]} `;
             break;
             
           case NUMERIC_LITERAL:
-            js += numericLiterals[value] + " ";
+            js += `${numericLiterals[value]} `;
             break;
           
           case STRING_LITERAL:
-            js += '"' + stringLiterals[value] + '" ';
+            js += `"${stringLiterals[value]}" `;
             break;
           
           case COMMENT:
-            js += "/*" + comments[value] + "*/ ";
+            js += `/*${comments[value]}*/ `;
             break;
           
           default:
-            js += "format " + firstImpression;
+            js += `/*format ${format}*/ `;
         }
     }
     
