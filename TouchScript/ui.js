@@ -183,8 +183,16 @@ function loadRow(row, rowDiv) {
 	// configure each item with the correct text
 	for (let i = 0; i < itemCount; ++i) {
     let node = rowContent.childNodes[i + 2];
-    node.innerHTML = getItem(row, i);
-	  node.row = row;
+    node.row = row;
+    
+    let item = getItem(row, i);
+    node.innerHTML = item.text;
+    if (node.classList.length == 2) {
+      node.classList.remove(node.classList.index(1));
+    }
+    if (item.style !== null) {
+      node.classList.add(item.style);
+    }
 	}
 	
 	rowContent.childNodes[1].style.width = 10 * getIndentation(row) + "px";

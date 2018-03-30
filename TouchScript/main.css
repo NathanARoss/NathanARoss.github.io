@@ -79,7 +79,7 @@ body {
   color: #A9B7C6;
 }
 
-.keyword {
+.keyword, .keyword-default::first-line, .keyword-call::first-line, .keyword-def::first-line {
   color: #CC7832;
 }
 
@@ -95,15 +95,16 @@ body {
   color: #808080;
 }
 
-.method-definition {
+.method-definition, .keyword-def {
   color: #FFC66D;
 }
 
-.method-call {
+.method-call, .keyword-call {
   color: #A9B7C6;
 }
-.method-call {
-  color: #A9B7C6;
+
+.error {
+  color: red;
 }
 
 #debug {

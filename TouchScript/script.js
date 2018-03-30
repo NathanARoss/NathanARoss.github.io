@@ -200,10 +200,10 @@ function getItem(row, col) {
       let name = variableNames[value] || `var${value}`;
       
       if (meta === CLASS_TABLE.Hidden) {
-        return name;
+        return {text: name, style: null};
       } else {
         let type = CLASSES[meta].name;
-        return `<span class="keyword">${type}</span><br>${name}`;
+        return {text: `${type}<br>${name}`, style: "keyword-default"};
       }
       break;
     }
@@ -213,10 +213,10 @@ function getItem(row, col) {
       let func = FUNCTIONS[value];
       
       if (meta === CLASS_TABLE.Hidden) {
-        return `<span class="method-declaration">${func.name}</span>`;
+        return {text: func.name, style: "method-definition"};
       } else {
         let type = CLASSES[meta].name;
-        return `<span class="keyword">${type}</span><br><span class="method-declaration">${func.name}</span>`;
+        return {text: `${type}<br>${func.name}`, style: "keyword-def"};
       }
       break;
     }
@@ -226,37 +226,37 @@ function getItem(row, col) {
       let func = FUNCTIONS[value];
       
       if (meta === CLASS_TABLE.Hidden) {
-        return `<span class="method-call">${func.name}</span>`;
+        return {text: func.name, style: "method-call"};
       } else {
         let type = CLASSES[meta].name;
-        return `<span class="keyword">${type}</span><br><span class="method-call">${func.name}</span>`;
+        return {text: `${type}<br>${func.name}`, style: "keyword-call"};
       }
       break;
     }
     
     case ARGUMENT_HINT:
-      return `argument hint`;
+      return {text: `argument hint`, style: "comment"};
     
     case ARGUMENT_LABEL:
-      return `argument label`;
+      return {text: `argument label`, style: "comment"};
     
     case SYMBOL:
-      return SYMBOLS[data];
+      return {text: SYMBOLS[data], style: null};
 
     case KEYWORD:
-      return `<span class="keyword">${KEYWORDS[data]}</span>`;
+      return {text: KEYWORDS[data], style: "keyword"};
       
     case NUMERIC_LITERAL:
-      return `<span class="number">${numericLiterals[data]}</span>`;
+      return {text: numericLiterals[data], style: "numeric"};
     
     case STRING_LITERAL:
-      return `<span class="string">${stringLiterals[data]}</span>`;
+      return {text: stringLiterals[data], style: "string"};
     
     case COMMENT:
-      return `<span class="comment">${comments[data]}</span>`;
+      return {text: comments[data], style: "comment"};
     
     default:
-      return `format<br>${format}`;
+      return {text: `format<br>${format}`, style: "error"};
   }
 }
 
