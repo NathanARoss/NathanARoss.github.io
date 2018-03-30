@@ -90,8 +90,12 @@ let FUNCTIONS = [
 let FUNCTION_TABLE = {};
 for (let i = 0; i < FUNCTIONS.length; ++i) {
   let scope = CLASSES[FUNCTIONS[i].scope].name;
-  scope = scope || "Hidden";
-  let key = scope + "." + FUNCTIONS[i].name;
+  //scope = scope || "Hidden";
+  //let key = scope + "." + FUNCTIONS[i].name;
+  let key = FUNCTIONS[i].name;
+  if (scope)
+    key = `${scope}.${key}`;
+    
   FUNCTION_TABLE[key] = i;
 }
 

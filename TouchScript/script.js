@@ -15,6 +15,8 @@ let script = parseScript(sampleScripts[1])
 
 
 function parseScript(script) {
+  const FUNC = makeItem(KEYWORD, KEYWORD_TABLE.func);
+  
   let data = [];
   let lines = script.split('\n');
   
@@ -62,22 +64,28 @@ function parseScript(script) {
         else if (token in KEYWORD_TABLE) {
           data[row].push( makeItem(KEYWORD, KEYWORD_TABLE[token]) );
         }
-        else if (i > 0 && tokens[i - 1] === "func") {
+        else if (token in FUNCTION_TABLE) {
+          let funcId = FUNCTION_TABLE[token];
+          data[row].push( makeItemWithMeta(FUNCTION_CALL, FUNCTIONS[funcId].scope, funcId) );
+        }
+        else if (data[row][data[row].length - 1] === FUNC) {
           let newFunc = {};
           
-          newFunc.scope = "Hidden";
-          newFunc.name = token;
-          newFunc.returnType = "Hidden";
+          newFunc.scope = CLASS_TABLE.Hidden;
           
           let indexOf = token.indexOf(":");
           if (indexOf !== -1) {
             newFunc.name = token.substring(0, indexOf);
-            newFunc.returnType = token.substring(indexOf + 1);
+            newFunc.returnType = CLASS_TABLE[token.substring(indexOf + 1)];
+          }
+          else {
+            newFunc.name = token;
+            newFunc.returnType = CLASS_TABLE.Hidden;
           }
           
           //detect which functions are called from outside
           newFunc.js = newFunc.name;
-          if (newFunc.scope === "Hidden") {
+          if (newFunc.scope === CLASS_TABLE.Hidden) {
             switch (newFunc.name) {
               case "onResize":
               case "initialize":
@@ -86,53 +94,46 @@ function parseScript(script) {
             }
           }
           
-          //console.log("new function. name: " + newFunc.name + " returnType: " + newFunc.returnType + " js: " + newFunc.js);
+          //console.log("new function. name: " + newFunc.name + " returnType: " + CLASSES[newFunc.returnType].name + " js: " + newFunc.js);
           
           //the remaining tokens are parameters
           newFunc.parameters = [];
           for (let j = i + 1; j < tokens.length; ++j) {
-            let parameter = {};
             let indexOf = tokens[j].indexOf(":");
+            let parameter = {};
             parameter.name = tokens[j].substring(0, indexOf);
-            parameter.type = tokens[j].substring(indexOf + 1);
+            parameter.type = CLASS_TABLE[tokens[j].substring(indexOf + 1)];
             newFunc.parameters.push(parameter);
             
-            //console.log("parameter name: " + parameter.name + " type: " + parameter.type);
+            //console.log("parameter name: " + parameter.name + " type: " + CLASSES[parameter.type].name);
           }
           
           let funcId = FUNCTIONS.length;
           FUNCTIONS.push(newFunc);
-          FUNCTION_TABLE[newFunc.scope + "." + newFunc.name] = funcId;
+          let key = newFunc.scope ? `${CLASSES[newFunc.scope].name}.${newFunc.name}` : newFunc.name;
+          FUNCTION_TABLE[key] = funcId;
           data[row].push( makeItemWithMeta(FUNCTION_DEFINITION, newFunc.returnType, funcId) );
         }
         else {
-          //figure out whether the identifier is a variable name or a function name
-          let funcName = token.includes(".") ? token : `Hidden.${token}`;
-          if (FUNCTION_TABLE[funcName] !== undefined) {
-            let funcId = FUNCTION_TABLE[funcName];
-            data[row].push( makeItemWithMeta(FUNCTION_CALL, FUNCTIONS[funcId].scope, funcId) );
-          }
-          else {
-            let indexOf = token.indexOf(":");
-            let name = (indexOf === -1) ? token : token.substring(0, indexOf);
-            
-            let id = -1;
-            for (let i = 0, keys = Object.keys(variableNames); i < keys.length; ++i) {
-              if (variableNames[i] === name) {
-                id = i;
-                break;
-              }
+          let indexOf = token.indexOf(":");
+          let name = (indexOf === -1) ? token : token.substring(0, indexOf);
+          
+          let id = -1;
+          for (let i = 0, keys = Object.keys(variableNames); i < keys.length; ++i) {
+            if (variableNames[i] === name) {
+              id = i;
+              break;
             }
-            
-            if (id === -1) {
-              variableNames[nextVariable] = name;
-              id = nextVariable++;
-            }
-            
-            let type = (indexOf === -1) ? CLASS_TABLE.Hidden : CLASS_TABLE[token.substring(indexOf + 1)];
-            
-            data[row].push( makeItemWithMeta(VARIABLE_REFERENCE, type, id) );
           }
+          
+          if (id === -1) {
+            variableNames[nextVariable] = name;
+            id = nextVariable++;
+          }
+          
+          let type = (indexOf === -1) ? CLASS_TABLE.Hidden : CLASS_TABLE[token.substring(indexOf + 1)];
+          
+          data[row].push( makeItemWithMeta(VARIABLE_REFERENCE, type, id) );
         }
       }
     }
@@ -180,7 +181,7 @@ function getItemCount(row) {
 
 function getItem(row, col) {
   row = row|0;
-  col = (col|0) + 1;
+  col = (col|0) + 1; //col paremeter starts at 0, but script[?][0] contains line metadata
   
   if (row < 0 || row >= script.length || col < 1 || col >= script[row].length) {
     console.log(`attempting to get item of row ${row} col ${col}`);
@@ -225,7 +226,7 @@ function getItem(row, col) {
       let func = FUNCTIONS[value];
       
       if (meta === CLASS_TABLE.Hidden) {
-        return `<span class="method-declaration">${func.name}</span>`;
+        return `<span class="method-call">${func.name}</span>`;
       } else {
         let type = CLASSES[meta].name;
         return `<span class="keyword">${type}</span><br><span class="method-call">${func.name}</span>`;

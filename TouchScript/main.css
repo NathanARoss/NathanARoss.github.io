@@ -35,19 +35,6 @@ body {
   }
 }
 
-.item {
-  padding: 0 4px;
-  margin: 0px;
-  box-sizing: border-box;
-  background: Transparent no-repeat;
-  border: none;
-  /* outline:none; */ /* Disables the outline around the items */
-  height: var(--line-height);
-  
-  color: white;
-  white-space: nowrap;
-}
-
 /* This class is applied to the last item in a row.  This item simply exposes the background of the div */
 .append-button {
   flex: 1 0 var(--line-height);
@@ -71,6 +58,27 @@ body {
   background-color: #333333;
 }
 
+.item {
+  padding: 0 4px;
+  margin: 0px;
+  box-sizing: border-box;
+  background: Transparent no-repeat;
+  border: none;
+  /* outline:none; */ /* Disables the outline around the items */
+  height: var(--line-height);
+  
+  color: white;
+  white-space: nowrap;
+}
+
+.global-var {
+  color: #9876AA;
+}
+
+.class {
+  color: #A9B7C6;
+}
+
 .keyword {
   color: #CC7832;
 }
@@ -87,10 +95,13 @@ body {
   color: #808080;
 }
 
-.method-declaration {
+.method-definition {
   color: #FFC66D;
 }
 
+.method-call {
+  color: #A9B7C6;
+}
 .method-call {
   color: #A9B7C6;
 }
@@ -121,10 +132,6 @@ body {
 	position: fixed;
 	bottom: 10px;
 	right: 10px;
-}
-
-#run_button:link, #run_button:visited {
-	
 }
 
 #run_button:hover, #run_button:active {
