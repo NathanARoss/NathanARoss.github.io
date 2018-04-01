@@ -236,9 +236,8 @@ function loadRow(row, rowDiv) {
 	}
 	
 	const indentation = getIndentation(row);
-	
-	rowContent.childNodes[1].style.width = Math.max(0, 10 * indentation - 1) + "px";
-	rowContent.childNodes[1].style.borderRightWidth =  indentation ? "1px" : "0px";
+	rowContent.childNodes[1].style.width = Math.max(0, 10 * indentation - 2) + "px";
+	rowContent.childNodes[1].style.borderRightWidth =  indentation ? "2px" : "0px";
 }
 
 
