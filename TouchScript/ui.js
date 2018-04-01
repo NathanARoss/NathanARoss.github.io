@@ -50,6 +50,11 @@ function resizeListener() {
 			
 			let appendButton = document.createElement("button");
 			appendButton.classList.add("append-button");
+			
+      let select = getSelect();
+      select.innerHTML = `<option>New line</option><option>Delete line</option>`;
+      appendButton.append(select);
+			
 			divContent.append(appendButton);
 			
 			let indentation = document.createElement("button");
@@ -231,7 +236,6 @@ function loadRow(row, rowDiv) {
 	}
 	
 	const indentation = getIndentation(row);
-	console.log(`row ${row} indentation ${indentation}`);
 	
 	rowContent.childNodes[1].style.width = Math.max(0, 10 * indentation - 1) + "px";
 	rowContent.childNodes[1].style.borderRightWidth =  indentation ? "1px" : "0px";
@@ -265,7 +269,7 @@ function recycleButton(button) {
   if (button.childNodes.length !== 0) {
     let lastChild = button.childNodes[button.childNodes.length - 1];
     if (lastChild.tagName === "SELECT")
-      selectPool.push(lastChild);
+      recycleSelect(lastChild);
   }
   
   button.innerHTML = "";
@@ -275,8 +279,6 @@ function recycleButton(button) {
 function recycleSelect(select) {
   select.innerHTML = "";
   selectPool.push(select);
-  
-  console.log("recycle select");
 }
 
 

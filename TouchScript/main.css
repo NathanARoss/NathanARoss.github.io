@@ -47,6 +47,7 @@ body {
 
 /* This class is applied to the last item in a row.  This item simply exposes the background of the div */
 .append-button {
+  position: relative;
   flex: 1 0 var(--line-height);
   height: var(--line-height);
   margin: 0px;

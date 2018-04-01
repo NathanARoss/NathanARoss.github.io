@@ -269,4 +269,5 @@ func onDraw time:Double {
   Canvas.drawCircle ( x , y , radius )
   x += radius / 4
  }
-}`;
+}
+`;
