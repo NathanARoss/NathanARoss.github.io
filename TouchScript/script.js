@@ -181,12 +181,10 @@ function getItemCount(row) {
 
 function getItem(row, col) {
   row = row|0;
-  col = (col|0) + 1; //col paremeter starts at 0, but script[?][0] contains line metadata
+  col = (col|0) + 1; //col paremeter starts at 0, but script[row][0] contains line metadata like indentation
   
-  if (row < 0 || row >= script.length || col < 1 || col >= script[row].length) {
-    console.log(`attempting to get item of row ${row} col ${col}`);
-    return `error`;
-  }
+  if (row < 0 || row >= script.length || col < 1 || col >= script[row].length)
+    return [`${row}, ${col}`, "error", false];
   
   let item = script[row][col];
   let format = item >>> 28; //4 bits
@@ -200,10 +198,10 @@ function getItem(row, col) {
       let name = variableNames[value] || `var${value}`;
       
       if (meta === CLASS_TABLE.Hidden) {
-        return {text: name, style: null};
+        return [name, null, true];
       } else {
         let type = CLASSES[meta].name;
-        return {text: `${type}<br>${name}`, style: "keyword-default"};
+        return [`${type}<br>${name}`, "keyword-default", true];
       }
       break;
     }
@@ -213,10 +211,10 @@ function getItem(row, col) {
       let func = FUNCTIONS[value];
       
       if (meta === CLASS_TABLE.Hidden) {
-        return {text: func.name, style: "method-definition"};
+        return [func.name, "method-definition", true];
       } else {
         let type = CLASSES[meta].name;
-        return {text: `${type}<br>${func.name}`, style: "keyword-def"};
+        return [`${type}<br>${func.name}`, "keyword-def", true];
       }
       break;
     }
@@ -226,37 +224,37 @@ function getItem(row, col) {
       let func = FUNCTIONS[value];
       
       if (meta === CLASS_TABLE.Hidden) {
-        return {text: func.name, style: "method-call"};
+        return [func.name, "method-call", true];
       } else {
         let type = CLASSES[meta].name;
-        return {text: `${type}<br>${func.name}`, style: "keyword-call"};
+        return [`${type}<br>${func.name}`, "keyword-call", true];
       }
       break;
     }
     
     case ARGUMENT_HINT:
-      return {text: `argument hint`, style: "comment"};
+      return [`argument hint`, "comment", false];
     
     case ARGUMENT_LABEL:
-      return {text: `argument label`, style: "comment"};
+      return [`argument label`, "comment", false];
     
     case SYMBOL:
-      return {text: SYMBOLS[data], style: null};
+      return [SYMBOLS[data], null, false];
 
     case KEYWORD:
-      return {text: KEYWORDS[data], style: "keyword"};
+      return [KEYWORDS[data], "keyword", false];
       
     case NUMERIC_LITERAL:
-      return {text: numericLiterals[data], style: "numeric"};
+      return [numericLiterals[data], "numeric", true];
     
     case STRING_LITERAL:
-      return {text: stringLiterals[data], style: "string"};
+      return [stringLiterals[data], "string", true];
     
     case COMMENT:
-      return {text: comments[data], style: "comment"};
+      return [comments[data], "comment", false];
     
     default:
-      return {text: `format<br>${format}`, style: "error"};
+      return [`format<br>${format}`, "error", false];
   }
 }
 
@@ -397,4 +395,33 @@ function getJavaScript() {
   console.log(js);
   
   return Function(js);
+}
+
+
+
+function itemClicked(row, col) {
+  row = row|0;
+  col = col|0;
+  
+  const item = script[row][col + 1];
+  
+  const LET = makeItem(KEYWORD, KEYWORD_TABLE.let);
+  const VAR = makeItem(KEYWORD, KEYWORD_TABLE.var);
+  const WHILE = makeItem(KEYWORD, KEYWORD_TABLE.while);
+  const UNTIL = makeItem(KEYWORD, KEYWORD_TABLE.until);
+  const DEFAULT = makeItem(KEYWORD, KEYWORD_TABLE.DEFAULT);
+  const BREAK = makeItem(KEYWORD, KEYWORD_TABLE.BREAK);
+  
+  const toggles = [LET, VAR, WHILE, UNTIL, DEFAULT, BREAK];
+  
+  //console.log(`item ${item} let ${LET} VAR ${VAR}`);
+  
+  for (let i = 0; i < toggles.length; ++i) {
+    if (item === toggles[i]) {
+      script[row][col + 1] = toggles[i ^ 1];
+      return {instant: getItem(row, col)};
+    }
+  }
+  
+  return {};
 }

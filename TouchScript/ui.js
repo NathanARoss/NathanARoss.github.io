@@ -1,6 +1,6 @@
 "use strict";
 
-let itemPoolSize = 0;
+let buttonPoolSize = 0;
 let visibleItemCount = 0;
 let itemHeight = 40;
 let firstLoadedItemIndex = 0;
@@ -13,9 +13,10 @@ let debug = document.getElementById("debug");
 const canvas = document.getElementById("canvas");
 const editor = document.getElementById("editor_div");
 
-let itemPool = [];
+let buttonPool = [];
+let selectPool = [];
 
-const context = canvas.getContext("2d");
+const context = canvas.getContext("2d", { alpha: false });
 const callInterval = 1000 / 60;
 
 let renderLoop = 0;
@@ -23,14 +24,15 @@ let error = null;
 let state = {}; //holds the js version of the script
 
 
+
 function resizeListener() {
   let rowCount = getRowCount();
   
 	visibleItemCount = Math.ceil(window.innerHeight / itemHeight);
-	let newItemPoolSize = visibleItemCount + 6;
-	newItemPoolSize = Math.min(newItemPoolSize, rowCount);
-	let diff = newItemPoolSize - itemPoolSize;
-	itemPoolSize = newItemPoolSize;
+	let newbuttonPoolSize = visibleItemCount + 6;
+	newbuttonPoolSize = Math.min(newbuttonPoolSize, rowCount);
+	let diff = newbuttonPoolSize - buttonPoolSize;
+	buttonPoolSize = newbuttonPoolSize;
 	
 	//allow the viewport to scroll past the end of the list
 	if (window.location.hash === "")
@@ -82,12 +84,12 @@ function resizeListener() {
 	updateDebug();
 
 	//resize canvas as well
-	canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
+	canvas.width = window.innerWidth * window.devicePixelRatio;
+	canvas.height = window.innerHeight * window.devicePixelRatio;
 	//console.log("canvas resolution: " + canvas.width + "x" + canvas.height);
 	
 	if (state && state.onResize)
-    state.onResize(window.innerWidth, window.innerHeight);
+    state.onResize(canvas.width, canvas.height);
 }
 
 
@@ -99,18 +101,18 @@ window.onscroll = function() {
 	firstVisibleItemIndex = Math.floor(window.scrollY / itemHeight);
 	
 	/*
-	if (firstVisibleItemIndex >= firstLoadedItemIndex + itemPoolSize) {
-		firstLoadedItemIndex = firstVisibleItemIndex - itemPoolSize - 2;
+	if (firstVisibleItemIndex >= firstLoadedItemIndex + buttonPoolSize) {
+		firstLoadedItemIndex = firstVisibleItemIndex - buttonPoolSize - 2;
 	}
 	
-	if (firstVisibleItemIndex <= firstLoadedItemIndex - itemPoolSize) {
-		firstLoadedItemIndex = firstVisibleItemIndex + itemPoolSize;
+	if (firstVisibleItemIndex <= firstLoadedItemIndex - buttonPoolSize) {
+		firstLoadedItemIndex = firstVisibleItemIndex + buttonPoolSize;
 	}
 	/**/
 	
 	//keep a buffer of 2 unseen elements in either direction
-	while ((firstVisibleItemIndex - 4 > firstLoadedItemIndex) && (firstLoadedItemIndex < getRowCount() - itemPoolSize)) {
-		appendItem(itemPoolSize + firstLoadedItemIndex);
+	while ((firstVisibleItemIndex - 4 > firstLoadedItemIndex) && (firstLoadedItemIndex < getRowCount() - buttonPoolSize)) {
+		appendItem(buttonPoolSize + firstLoadedItemIndex);
 		++firstLoadedItemIndex;
 	}
 	
@@ -160,60 +162,137 @@ function loadRow(row, rowDiv) {
 	// the first node is the + button, the second node is the indentation
 	let toRemove =  rowContent.childNodes.length - 2 - itemCount;
 	for (let i = 0; i < toRemove; ++i) {
-	  let lastChild = rowContent.childNodes[rowContent.childNodes.length - 1];
+	  let lastChild = rowContent.childNodes[rowDiv.childNodes.length - 1];
 	  rowContent.removeChild(lastChild);
-	  itemPool.push(lastChild);
+	  recycle(lastChild);
 	}
 	
-	//add items until it has enough
+	//update existing nodes
+	for (let i = 2; i < rowDiv.childNodes.length; ++i) {
+	  let node = rowContent.childNodes[i];
+	  
+	  const [text, style, dropdown] = getItem(row, i);
+	  if (dropdown) {
+	    if (rowContent.childNodes.tagName !== "SELECT") {
+	      let newSelect = getSelect();
+	      rowContent.childNodes.replaceChild(node, newSelect);
+	      recycle(node);
+	      newSelect.col = i - 2;
+	    }
+	    
+	    node.innerHTML = `<option>${text}</option>`;
+	  } else {
+	    if (rowContent.childNodes.tagName !== "BUTTON") {
+	      let newButton = getButton();
+	      rowContent.childNodes.replaceChild(node, newButton);
+	      recycle(node);
+	      newButton.col = i - 2;
+	    }
+	    
+	    node.innerHTML = text;
+	  }
+	  
+	  node.style = "item";
+    if (style !== null)
+      node.classList.add(style);
+	}
+	
+	//add new items
 	let toAdd = -toRemove;
 	for (let i = 0; i < toAdd; ++i) {
-	  let newButton;
-	  if (itemPool.length === 0) {
-  	  newButton = document.createElement("button");
-  	  newButton.classList.add("item");
-  	  newButton.addEventListener('click', itemClicked, true);
+	  let node;
+	  const [text, style, dropdown] = getItem(row, i);
+	  if (dropdown) {
+      node = getSelect();
+      node.innerHTML = `<option>${text}</option>`;
 	  } else {
-	    newButton = itemPool.pop();
+	    node = getButton();
+	    node.innerHTML = text;
 	  }
-	  newButton.col = rowContent.childNodes.length - 2;
-	  rowContent.append(newButton)
+	  
+    rowContent.append(node);
+    node.col = rowContent.childNodes.length - 2;
+	  
+	  node.style = "item";
+    if (style !== null)
+      node.classList.add(style);
 	}
 	
-	// configure each item with the correct text
-	for (let i = 0; i < itemCount; ++i) {
-    let node = rowContent.childNodes[i + 2];
-    node.row = row;
-    
-    let item = getItem(row, i);
-    node.innerHTML = item.text;
-    if (node.classList.length == 2) {
-      node.classList.remove(node.classList.index(1));
-    }
-    if (item.style !== null) {
-      node.classList.add(item.style);
-    }
-	}
-	
-	rowContent.childNodes[1].style.width = 10 * getIndentation(row) + "px";
+	const indentation = getIndentation(row);
+	rowContent.childNodes[1].style.width = 10 * indentation - 1 + "px";
+	rowContent.childNodes[1].style.borderRightWidth =  indentation ? "1px" : "0px";
+}
+
+
+function getButton() {
+  if (buttonPool.length !== 0) {
+    return buttonPool.pop();
+  } else {
+    let newButton = document.createElement("button");
+    newButton.classList.add("item");
+    newButton.addEventListener('click', elementClicked, true);
+    return newButton;
+  }
+}
+
+function getSelect() {
+  if (selectPool.length !== 0) {
+    return selectPool.pop();
+  } else {
+    let newSelect = document.createElement("select");
+    newSelect.classList.add("item");
+    newSelect.addEventListener('click', elementClicked, true);
+    return newSelect;
+  }
+}
+
+function recycle(element) {
+  if (element.tagName === "BUTTON") {
+    buttonPool.push(element);
+  } else {
+    selectPool.push(element);
+  }
 }
 
 
 
-function itemClicked(event) {
+function elementClicked(event) {
   let button = event.currentTarget;
-  let row = button.row;
-  let col = button.col;
   
+  let row = button.row|0;
+  let col = button.col|0;
   
+  let response = itemClicked(row, col);
+  if (response.instant) {
+    const [text, style] = response.instant;
+    button.innerHTML = text;
+    
+    if (button.classList.length == 2)
+      button.classList.remove(button.classList[1]);
+    if (style !== null)
+      button.classList.add(style);
+  }
 }
 
+/*
+document.addEventListener('keydown', (event) => {
+  const keyName = event.key;
+  console.log(keyName);
+  
+  
+}, false);
+
+
+list.addEventListener('touchmove', function(event) {
+  event.preventDefault();
+}, false);
+/**/
 
 
 
 function updateDebug() {
 	let debugText = ""//"scrollY: " + Math.floor(window.scrollY) + "<br>"
-			+ "loaded: [" + firstLoadedItemIndex + ", " + (firstLoadedItemIndex + itemPoolSize - 1) + "]<br>"
+			+ "loaded: [" + firstLoadedItemIndex + ", " + (firstLoadedItemIndex + buttonPoolSize - 1) + "]<br>"
 			+ "visible: [" + firstVisibleItemIndex + ", " + (firstVisibleItemIndex + visibleItemCount - 1) + "]";
 	debug.innerHTML = debugText;
 }
@@ -262,7 +341,7 @@ function hashListener() {
   	  	
   	//onResize function is optional
   	if (state.onResize)
-  	  state.onResize(window.innerWidth, window.innerHeight);
+  	  state.onResize(canvas.width, canvas.height);
 	  
   	//initialize function is optional
   	if (state.initialize)
