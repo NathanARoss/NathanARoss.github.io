@@ -162,37 +162,46 @@ function loadRow(row, rowDiv) {
 	// the first node is the + button, the second node is the indentation
 	let toRemove =  rowContent.childNodes.length - 2 - itemCount;
 	for (let i = 0; i < toRemove; ++i) {
-	  let lastChild = rowContent.childNodes[rowDiv.childNodes.length - 1];
+	  let lastChild = rowContent.childNodes[rowContent.childNodes.length - 1];
 	  rowContent.removeChild(lastChild);
-	  recycle(lastChild);
+	  recycleButton(lastChild);
 	}
 	
 	//update existing nodes
-	for (let i = 2; i < rowDiv.childNodes.length; ++i) {
+	for (let i = 2; i < rowContent.childNodes.length; ++i) {
 	  let node = rowContent.childNodes[i];
+	  const [text, style, dropdown] = getItem(row, i - 2);
 	  
-	  const [text, style, dropdown] = getItem(row, i);
 	  if (dropdown) {
-	    if (rowContent.childNodes.tagName !== "SELECT") {
-	      let newSelect = getSelect();
-	      rowContent.childNodes.replaceChild(node, newSelect);
-	      recycle(node);
-	      newSelect.col = i - 2;
+	    let select;
+	    if (node.childNodes.length !== 0) {
+	      let lastChild = node.childNodes[node.childNodes.length - 1];
+	      if (lastChild.tagName === "SELECT")
+	        select = lastChild;
+        else
+          select = getSelect();
 	    }
 	    
-	    node.innerHTML = `<option>${text}</option>`;
-	  } else {
-	    if (rowContent.childNodes.tagName !== "BUTTON") {
-	      let newButton = getButton();
-	      rowContent.childNodes.replaceChild(node, newButton);
-	      recycle(node);
-	      newButton.col = i - 2;
-	    }
-	    
+	    select.innerHTML = `<option>${text}</option>`;
 	    node.innerHTML = text;
+	    node.appendChild(select);
 	  }
 	  
-	  node.style = "item";
+	  //if there shouldn't be a node and there is, remove it
+	  else if (node.childNodes.length !== 0) {
+	    let lastChild = node.childNodes[node.childNodes.length - 1];
+	    if (lastChild.tagName === "SELECT") {
+        node.removeChild(lastChild);
+        recycleSelect(lastChild);
+      }
+      
+      node.innerHTML = text;
+    }
+    
+    node.row = row;
+    
+    if (node.classList.length == 2)
+      node.classList.remove(node.classList[1]);
     if (style !== null)
       node.classList.add(style);
 	}
@@ -200,26 +209,31 @@ function loadRow(row, rowDiv) {
 	//add new items
 	let toAdd = -toRemove;
 	for (let i = 0; i < toAdd; ++i) {
-	  let node;
-	  const [text, style, dropdown] = getItem(row, i);
-	  if (dropdown) {
-      node = getSelect();
-      node.innerHTML = `<option>${text}</option>`;
-	  } else {
-	    node = getButton();
-	    node.innerHTML = text;
-	  }
-	  
-    rowContent.append(node);
+    let node = getButton();
     node.col = rowContent.childNodes.length - 2;
+    
+	  const [text, style, dropdown] = getItem(row, node.col);
+    node.innerHTML = text;
+    
+    if (dropdown) {
+      let select = getSelect();
+      select.innerHTML = `<option>${text}</option>`;
+      node.append(select);
+    }
+    
+    rowContent.append(node);
+    node.row = row;
 	  
-	  node.style = "item";
+    if (node.classList.length == 2)
+      node.classList.remove(node.classList[1]);
     if (style !== null)
       node.classList.add(style);
 	}
 	
 	const indentation = getIndentation(row);
-	rowContent.childNodes[1].style.width = 10 * indentation - 1 + "px";
+	console.log(`row ${row} indentation ${indentation}`);
+	
+	rowContent.childNodes[1].style.width = Math.max(0, 10 * indentation - 1) + "px";
 	rowContent.childNodes[1].style.borderRightWidth =  indentation ? "1px" : "0px";
 }
 
@@ -240,18 +254,29 @@ function getSelect() {
     return selectPool.pop();
   } else {
     let newSelect = document.createElement("select");
-    newSelect.classList.add("item");
-    newSelect.addEventListener('click', elementClicked, true);
+    newSelect.classList.add("hidden-select");
     return newSelect;
   }
 }
 
-function recycle(element) {
-  if (element.tagName === "BUTTON") {
-    buttonPool.push(element);
-  } else {
-    selectPool.push(element);
+function recycleButton(button) {
+  button.removeEventListener('click', elementClicked);
+
+  if (button.childNodes.length !== 0) {
+    let lastChild = button.childNodes[button.childNodes.length - 1];
+    if (lastChild.tagName === "SELECT")
+      selectPool.push(lastChild);
   }
+  
+  button.innerHTML = "";
+  buttonPool.push(button);
+}
+
+function recycleSelect(select) {
+  select.innerHTML = "";
+  selectPool.push(select);
+  
+  console.log("recycle select");
 }
 
 

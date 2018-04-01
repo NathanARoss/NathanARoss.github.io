@@ -35,7 +35,7 @@ function parseScript(script) {
     }
     
     let indentation = lines[row].search(/\S|$/); //count leading spaces
-    data[row] = [indentation | isStartingScope << 31];
+    data[row] = [indentation | (isStartingScope << 31)];
     
     if (tokens !== null) {
       for (let i = 0; i < tokens.length; ++i) {
@@ -409,8 +409,8 @@ function itemClicked(row, col) {
   const VAR = makeItem(KEYWORD, KEYWORD_TABLE.var);
   const WHILE = makeItem(KEYWORD, KEYWORD_TABLE.while);
   const UNTIL = makeItem(KEYWORD, KEYWORD_TABLE.until);
-  const DEFAULT = makeItem(KEYWORD, KEYWORD_TABLE.DEFAULT);
-  const BREAK = makeItem(KEYWORD, KEYWORD_TABLE.BREAK);
+  const DEFAULT = makeItem(KEYWORD, KEYWORD_TABLE.default);
+  const BREAK = makeItem(KEYWORD, KEYWORD_TABLE.break);
   
   const toggles = [LET, VAR, WHILE, UNTIL, DEFAULT, BREAK];
   

@@ -254,7 +254,6 @@ sampleScripts[1] =
 func pattern x:Double {
  return Math.sin ( x / width * 4 ) * height / 2 + height / 2
 }
-
 func onResize newWidth:Double newHeight:Double {
  width = newWidth
  height = newHeight
