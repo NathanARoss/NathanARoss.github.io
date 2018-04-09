@@ -53,9 +53,14 @@ body {
   margin: 0px;
   border: none;
   box-sizing: border-box;
-  opacity: 0;
+  background: Transparent no-repeat;
+  color: white;
   
   order: 999;
+}
+
+option {
+  color: black;
 }
 
 .indentation {
