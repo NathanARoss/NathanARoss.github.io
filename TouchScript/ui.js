@@ -42,26 +42,7 @@ function resizeListener() {
 	
 	if (diff > 0) {
 		for(let i = 0; i < diff; ++i) {
-			let div = document.createElement("div");
-			div.classList.add("row");
-      
-      let divContent = document.createElement("div");
-      divContent.classList.add("row-content");
-			
-			let appendButton = document.createElement("button");
-			appendButton.classList.add("append-button");
-			
-      let select = getSelect();
-      select.innerHTML = `<option>New line</option><option>Delete line</option>`;
-      appendButton.append(select);
-			
-			divContent.append(appendButton);
-			
-			let indentation = document.createElement("button");
-			indentation.classList.add("indentation");
-			divContent.append(indentation);
-      
-      div.append(divContent);
+      let div = createDiv();
 
 			
 			let row = list.childNodes.length + firstLoadedItemIndex;
@@ -69,10 +50,10 @@ function resizeListener() {
 			//if the user is scrolled all the way to the bottom, prepend instead of appending
 			if (row < rowCount) {
 				list.insertBefore(div, list.firstChild);
-				appendItem(row);
+				appendDiv(row);
 			} else {
 				list.append(div);
-				prependItem(firstLoadedItemIndex - 1);
+				prependDiv(firstLoadedItemIndex - 1);
 				--firstLoadedItemIndex;
 				spacer.style.height = firstLoadedItemIndex * itemHeight + "px";
 			}
@@ -81,6 +62,7 @@ function resizeListener() {
 		diff = -diff;
 		for (let i = 0; i < diff; ++i) {
 			let lastChild = list.childNodes[list.childNodes.length - 1];
+			recycleDiv(lastChild);
 			list.removeChild(lastChild);
 		}
 	}
@@ -117,12 +99,12 @@ window.onscroll = function() {
 	
 	//keep a buffer of 2 unseen elements in either direction
 	while ((firstVisibleItemIndex - 4 > firstLoadedItemIndex) && (firstLoadedItemIndex < getRowCount() - buttonPoolSize)) {
-		appendItem(buttonPoolSize + firstLoadedItemIndex);
+		appendDiv(buttonPoolSize + firstLoadedItemIndex);
 		++firstLoadedItemIndex;
 	}
 	
 	while ((firstVisibleItemIndex - 2 < firstLoadedItemIndex) && (firstLoadedItemIndex > 0)) {
-		prependItem(firstLoadedItemIndex - 1);
+		prependDiv(firstLoadedItemIndex - 1);
 		--firstLoadedItemIndex;
 	}
 	
@@ -131,11 +113,51 @@ window.onscroll = function() {
 }
 
 
-
-
-function appendItem(row) {
-	row = row|0;
+function createDiv() {
+	let div = document.createElement("div");
+	div.classList.add("row");
+  
+  let divContent = document.createElement("div");
+  divContent.classList.add("row-content");
 	
+  let select = document.createElement("select");
+  select.classList.add("append");
+  select.addEventListener('change', appendChanged, true);
+  select.innerHTML =
+`<option disabled selected style="display:none;"></option>
+<option>New line</option>
+<option>Delete line</option>`;
+	
+	divContent.append(select);
+	
+	let indentation = document.createElement("button");
+	indentation.classList.add("indentation");
+	divContent.append(indentation);
+  
+  div.append(divContent);
+  
+  return div;
+}
+
+function recycleDiv(divToRemove) {
+  let rowDiv = divToRemove.firstChild;
+  let rowNodes = rowDiv.childNodes;
+	
+	let toRemove =  rowNodes.length;
+	for (let i = 2; i < toRemove; ++i) {
+	  let lastChild = rowNodes[rowNodes.length - 1];
+	  rowDiv.removeChild(lastChild);
+	  recycleButton(lastChild);
+	}
+	rowDiv.removeEventListener('change', appendChanged);
+	
+	console.log(`recycling div`);
+}
+
+
+
+
+function appendDiv(row) {
 	let firstChild = list.firstChild;
 	list.removeChild(firstChild);
 	
@@ -144,14 +166,82 @@ function appendItem(row) {
 	
 }
 
-function prependItem(row) {
-	row = row|0;
-	
+function prependDiv(row) {
 	let lastChild = list.childNodes[list.childNodes.length - 1];
 	list.removeChild(lastChild);
 	
 	loadRow(row, lastChild);
 	list.insertBefore(lastChild, list.firstChild);
+}
+
+function insertDiv(row) {
+  //modify either the first or last row depending on what the user can see
+  let rowToModify;
+  
+  let lastLoaded = firstLoadedItemIndex + buttonPoolSize - 1;
+  let lastVisible = firstVisibleItemIndex + visibleItemCount - 1;
+  if (lastLoaded > lastVisible) {
+    rowToModify = list.childNodes[list.childNodes.length - 1];
+    list.removeChild(rowToModify);
+  }
+  else if (firstLoadedItemIndex < firstVisibleItemIndex) {
+    rowToModify = list.firstChild;
+    list.removeChild(rowToModify);
+    ++firstLoadedItemIndex;
+  } else {
+    //too few nodes, create one
+    rowToModify = createDiv();
+  }
+  
+  loadRow(row, rowToModify);
+  
+  
+  let positionToInsert = row - firstLoadedItemIndex;
+  list.insertBefore(rowToModify, list.childNodes[positionToInsert]);
+  
+  updateList(positionToInsert + 1);
+}
+
+function deleteDiv(row) {
+  let lastLoaded = firstLoadedItemIndex + buttonPoolSize - 1;
+  let lastVisible = firstVisibleItemIndex + visibleItemCount - 1;
+  
+  let childToRemove = list.childNodes[row - firstLoadedItemIndex];
+  list.removeChild(childToRemove);
+  
+  //add the removed row either as the first or last row depending on if the user is at the end of the script
+  if (lastLoaded + 1 < getRowCount()) {
+  	loadRow(row, childToRemove);
+	  list.appendChild(childToRemove);
+	  console.log(`appending deleted div row ${row} rowCount ${getRowCount()} lastLoaded ${lastLoaded}`);
+  }
+  else if (firstLoadedItemIndex > 0) {
+    loadRow(row, childToRemove);
+    list.insertBefore(childToRemove, list.firstChild);
+    console.log(`prepending deleted div row ${row} rowCount ${getRowCount()} lastLoaded ${lastLoaded}`);
+  } else {
+    //if the removed item can't be placed at either end of the list, get rid of it
+    recycleDiv(childToRemove);
+  }
+  
+  updateList(row - firstLoadedItemIndex);
+}
+
+
+
+function updateList(modifiedRow) {
+  //tell the rows which position they are
+  let count = list.childNodes.length;
+  for (let i = modifiedRow; i < count; ++i) {
+    list.childNodes[i].firstChild.row = i + firstLoadedItemIndex;
+  }
+  
+	buttonPoolSize = Math.min(visibleItemCount + 6, getRowCount());
+  
+  spacer.style.height = firstLoadedItemIndex * itemHeight + "px";
+  document.body.style.height = (getRowCount() + visibleItemCount - 2) * itemHeight + "px";
+  
+  updateDebug();
 }
 
 
@@ -161,20 +251,21 @@ function loadRow(row, rowDiv) {
 	row = row|0;
 	
 	let itemCount = getItemCount(row);
-  let rowContent = rowDiv.firstChild;
+  rowDiv = rowDiv.firstChild;
+  let rowNodes = rowDiv.childNodes;
 	
 	//remove the items of the table beyond the ones it will need
 	// the first node is the + button, the second node is the indentation
-	let toRemove =  rowContent.childNodes.length - 2 - itemCount;
+	let toRemove =  rowNodes.length - 2 - itemCount;
 	for (let i = 0; i < toRemove; ++i) {
-	  let lastChild = rowContent.childNodes[rowContent.childNodes.length - 1];
-	  rowContent.removeChild(lastChild);
+	  let lastChild = rowNodes[rowNodes.length - 1];
+	  rowDiv.removeChild(lastChild);
 	  recycleButton(lastChild);
 	}
 	
 	//update existing nodes
-	for (let i = 2; i < rowContent.childNodes.length; ++i) {
-	  let node = rowContent.childNodes[i];
+	for (let i = 2; i < rowNodes.length; ++i) {
+	  let node = rowNodes[i];
 	  const [text, style, dropdown] = getItem(row, i - 2);
 	  
 	  if (dropdown) {
@@ -187,23 +278,26 @@ function loadRow(row, rowDiv) {
           select = getSelect();
 	    }
 	    
-	    select.innerHTML = `<option>${text}</option>`;
+	    select.innerHTML = `<option disabled selected style="display:none;"></option><option>${text}</option>`;
 	    node.innerHTML = text;
 	    node.appendChild(select);
+	    
+      node.removeEventListener('click', buttonClicked);
+    } else {
+      node.addEventListener('click', buttonClicked, true);
+      
+      //if there shouldn't be a select and there is, remove it
+      if (node.childNodes.length !== 0) {
+        let lastChild = node.childNodes[node.childNodes.length - 1];
+        if (lastChild.tagName === "SELECT") {
+          node.removeChild(lastChild);
+          recycleSelect(lastChild);
+        }
+        
+        node.innerHTML = text;
+      }
 	  }
 	  
-	  //if there shouldn't be a node and there is, remove it
-	  else if (node.childNodes.length !== 0) {
-	    let lastChild = node.childNodes[node.childNodes.length - 1];
-	    if (lastChild.tagName === "SELECT") {
-        node.removeChild(lastChild);
-        recycleSelect(lastChild);
-      }
-      
-      node.innerHTML = text;
-    }
-    
-    node.row = row;
     
     if (node.classList.length == 2)
       node.classList.remove(node.classList[1]);
@@ -215,19 +309,20 @@ function loadRow(row, rowDiv) {
 	let toAdd = -toRemove;
 	for (let i = 0; i < toAdd; ++i) {
     let node = getButton();
-    node.col = rowContent.childNodes.length - 2;
+    node.col = rowNodes.length - 2;
     
 	  const [text, style, dropdown] = getItem(row, node.col);
     node.innerHTML = text;
     
     if (dropdown) {
       let select = getSelect();
-      select.innerHTML = `<option>${text}</option>`;
+      select.innerHTML = `<option disabled selected style="display:none;"></option><option>${text}</option>`;
       node.append(select);
+    } else {
+      node.addEventListener('click', buttonClicked, true);
     }
     
-    rowContent.append(node);
-    node.row = row;
+    rowDiv.append(node);
 	  
     if (node.classList.length == 2)
       node.classList.remove(node.classList[1]);
@@ -235,9 +330,11 @@ function loadRow(row, rowDiv) {
       node.classList.add(style);
 	}
 	
+	rowDiv.row = row;
+	
 	const indentation = getIndentation(row);
-	rowContent.childNodes[1].style.width = Math.max(0, 10 * indentation - 2) + "px";
-	rowContent.childNodes[1].style.borderRightWidth =  indentation ? "2px" : "0px";
+	rowNodes[1].style.width = Math.max(0, 8 * indentation) + "px";
+	rowNodes[1].style.borderRightWidth =  indentation ? "4px" : "0px";
 }
 
 
@@ -247,7 +344,6 @@ function getButton() {
   } else {
     let newButton = document.createElement("button");
     newButton.classList.add("item");
-    newButton.addEventListener('click', elementClicked, true);
     return newButton;
   }
 }
@@ -258,12 +354,14 @@ function getSelect() {
   } else {
     let newSelect = document.createElement("select");
     newSelect.classList.add("hidden-select");
+    newSelect.addEventListener('click', selectClicked, true);
+    newSelect.addEventListener('change', selectChanged, true);
     return newSelect;
   }
 }
 
 function recycleButton(button) {
-  button.removeEventListener('click', elementClicked);
+  button.removeEventListener('click', buttonClicked);
 
   if (button.childNodes.length !== 0) {
     let lastChild = button.childNodes[button.childNodes.length - 1];
@@ -276,19 +374,24 @@ function recycleButton(button) {
 }
 
 function recycleSelect(select) {
+  select.removeEventListener('click', selectClicked);
+  select.removeEventListener('click', selectChanged);
+  
   select.innerHTML = "";
   selectPool.push(select);
 }
 
 
 
-function elementClicked(event) {
+function buttonClicked(event) {
   let button = event.currentTarget;
   
-  let row = button.row|0;
+  let row = button.parentElement.row|0;
   let col = button.col|0;
   
-  let response = itemClicked(row, col);
+  console.log(`button clicked ${row},${col}`);
+  
+  let response = clickItem(row, col);
   if (response.instant) {
     const [text, style] = response.instant;
     button.innerHTML = text;
@@ -298,6 +401,48 @@ function elementClicked(event) {
     if (style !== null)
       button.classList.add(style);
   }
+}
+
+function selectClicked(event) {
+  let select = event.currentTarget
+  let button = select.parentElement;
+  
+  let row = button.parentElement.row|0;
+  let col = button.col|0;
+  
+  if (select.used) {
+    console.log("select clicked after selecting item");
+    select.used = false;
+  } else {
+    console.log(`select clicked ${row},${col}`);
+  }
+}
+
+function selectChanged(event) {
+  let select = event.currentTarget;
+  console.log("selectChanged " + select.value);
+  
+  select.value = "";
+  select.used = true;
+}
+
+function appendChanged(event) {
+  let select = event.currentTarget;
+  
+  let row = select.parentElement.row|0;
+  //console.log(`append changed ${row},${select.value},${select.selectedIndex}`);
+  
+  if (select.selectedIndex === 1) {
+    insertRow(row + 1);
+    insertDiv(row + 1);
+    console.log(`inserting row ${row}`);
+  }
+  if (select.selectedIndex === 2) {
+    deleteRow(row);
+    deleteDiv(row);
+  }
+  
+  select.value = "";
 }
 
 /*

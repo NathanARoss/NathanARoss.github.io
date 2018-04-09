@@ -2,7 +2,7 @@
   --line-height: 40px;
 }
 
-/* Chrome, Safari, IE */
+/* Chrome, Safari, Edge, Opera */
 ::-webkit-scrollbar {
     display: none;
 }
@@ -46,18 +46,16 @@ body {
 }
 
 /* This class is applied to the last item in a row.  This item simply exposes the background of the div */
-.append-button {
+.append {
   position: relative;
   flex: 1 0 var(--line-height);
   height: var(--line-height);
   margin: 0px;
   border: none;
   box-sizing: border-box;
+  opacity: 0;
   
   order: 999;
-  
-	/* Draw a big "+" at the end of row */
-	background: url(ic_add_white_24px.svg) no-repeat right center;
 }
 
 .indentation {
@@ -68,10 +66,6 @@ body {
   border: 0;
   background-color: Transparent;
   
-  /*
-  background-color: #444; */
-  
-  border-right: 1px;
   border-color: #444;
   border-style: solid;
 }
@@ -83,7 +77,7 @@ body {
   box-sizing: border-box;
   background: Transparent no-repeat;
   border: none;
-  /* outline:none; */ /* Disables the outline around the items */
+  /* outline:none; */
   height: var(--line-height);
   
   color: white;
@@ -134,6 +128,7 @@ body {
 	background-color: gray;
 	padding: 4px;
 	margin: 0px;
+	z-index: 1;
 	
 	user-select: none;
 }
@@ -155,6 +150,7 @@ body {
 	position: fixed;
 	bottom: 10px;
 	right: 10px;
+	z-index: 1;
 	
 	user-select: none;
 }
@@ -164,7 +160,7 @@ body {
 }
 
 /* I set this so the Canvas does not cause scroll bars to appear*/
-/* I still manually modify the resolution on onresize() */
+/* I still manually modify the resolution in onresize() */
 canvas {
 	position: fixed;
 	left: 0;

@@ -1,3 +1,5 @@
+"use strict";
+
 const VARIABLE_REFERENCE = 0;
 const FUNCTION_DEFINITION = 1;
 const FUNCTION_CALL = 2;
@@ -44,54 +46,52 @@ for (let i = 1; i < CLASSES.length; ++i) {
 */
 let FUNCTIONS = [
   {name: "Int8", scope: CLASS_TABLE.Int8, returnType: CLASS_TABLE.Int8, js: "Number",
-    parameters: makeParameterObject("Any", "toConvert")
+    parameters: makeParameterObject("toConvert:Any")
   },
   {name: "Uint8", scope: CLASS_TABLE.UInt8, returnType: CLASS_TABLE.Uint8, js: "Number",
-    parameters: makeParameterObject("Any", "toConvert")
+    parameters: makeParameterObject("toConvert:Any")
   },
   {name: "Int16", scope: CLASS_TABLE.Int16, returnType: CLASS_TABLE.Int16, js: "Number",
-    parameters: makeParameterObject("Any", "toConvert")
+    parameters: makeParameterObject("toConvert:Any")
   },
   {name: "Uint16", scope: CLASS_TABLE.UInt16, returnType: CLASS_TABLE.Uint16, js: "Number",
-    parameters: makeParameterObject("Any", "toConvert")
+    parameters: makeParameterObject("toConvert:Any")
   },
   {name: "Int32", scope: CLASS_TABLE.Int32, returnType: CLASS_TABLE.Int32, js: "Number",
-    parameters: makeParameterObject("Any", "toConvert")
+    parameters: makeParameterObject("toConvert:Any")
   },
   {name: "Uint32", scope: CLASS_TABLE.UInt32, returnType: CLASS_TABLE.Uint32, js: "Number",
-    parameters: makeParameterObject("Any", "toConvert")
+    parameters: makeParameterObject("toConvert:Any")
   },
   {name: "Int64", scope: CLASS_TABLE.Int64, returnType: CLASS_TABLE.Int64, js: "Number",
-    parameters: makeParameterObject("Any", "toConvert")
+    parameters: makeParameterObject("toConvert:Any")
   },
   {name: "Uint64", scope: CLASS_TABLE.UInt64, returnType: CLASS_TABLE.Uint64, js: "Number",
-    parameters: makeParameterObject("Any", "toConvert")
+    parameters: makeParameterObject("toConvert:Any")
   },
   {name: "print", scope: CLASS_TABLE.System, returnType: CLASS_TABLE.Hidden, js: "console.log",
-    parameters: makeParameterObject("Any", "item")
+    parameters: makeParameterObject("item:Any")
   },
   {name: "drawCircle", scope: CLASS_TABLE.Canvas, returnType: CLASS_TABLE.Hidden, js: "drawCircle",
-    parameters: makeParameterObject("Double", "x", "Double", "y", "Double", "r")
+    parameters: makeParameterObject("x:Double", "y:Double", "r:Double")
   },
   {name: "cos", scope: CLASS_TABLE.Math, returnType: CLASS_TABLE.Double, js: "Math.cos",
-    parameters: makeParameterObject("Double", "theta")
+    parameters: makeParameterObject("theta:Double")
   },
   {name: "sin", scope: CLASS_TABLE.Math, returnType: CLASS_TABLE.Double, js: "Math.sin",
-    parameters: makeParameterObject("Double", "theta")
+    parameters: makeParameterObject("theta:Double")
   },
   {name: "min", scope: CLASS_TABLE.Math, returnType: CLASS_TABLE.Double, js: "Math.min",
-    parameters: makeParameterObject("Double", "a", "Double", "b")
+    parameters: makeParameterObject("a:Double", "b:Double")
   },
   {name: "max", scope: CLASS_TABLE.Math, returnType: CLASS_TABLE.Double, js: "Math.max",
-    parameters: makeParameterObject("Double", "a", "Double", "b")
+    parameters: makeParameterObject("a:Double", "b:Double")
   },
 ]
 
 let FUNCTION_TABLE = {};
 for (let i = 0; i < FUNCTIONS.length; ++i) {
   let scope = CLASSES[FUNCTIONS[i].scope].name;
-  //scope = scope || "Hidden";
-  //let key = scope + "." + FUNCTIONS[i].name;
   let key = FUNCTIONS[i].name;
   if (scope)
     key = `${scope}.${key}`;
@@ -100,15 +100,11 @@ for (let i = 0; i < FUNCTIONS.length; ++i) {
 }
 
 function makeParameterObject() {
-  if (arguments.length & 1 !== 0)
-    console.log("Warning.  makeParameterObject() called with an odd number of arguments");
+  let parameters = Array(arguments.length);
   
-  let parameters = [];
-  
-  for (let i = 0; i < arguments.length; i += 2) {
-    let type = CLASS_TABLE[arguments[i]];
-    let name = arguments[i + 1];
-    parameters.push({"type": type, "name": name});
+  for (let i = 0; i < arguments.length; ++i) {
+    let name_type = arguments[i].split(":");
+    parameters.push({"type": CLASS_TABLE[name_type[1]], "name": name_type[0]});
   }
   
   return parameters;
@@ -217,57 +213,61 @@ sampleScripts[0] =
 var x , y , vX , vY
 
 func onResize newWidth:Double newHeight:Double {
- width = newWidth
- height = newHeight
- radius = Math.min ( width , height ) / 16
+  width = newWidth
+  height = newHeight
+  radius = Math.min ( width , height ) / 16
 }
 func initialize {
- x = width / 2
- y = height / 2
- vX = width / 40
- vY = height / 25
+  x = width / 2
+  y = height / 2
+  vX = width / 40
+  vY = height / 25
 }
 func onDraw time:Double {
- vY += 1
- x += vX
- y += vY
+  vY += 1
+  x += vX
+  y += vY
  
- if x < radius {
-  vX = vX * -0.99
-  x = radius
- } if y < radius {
-  vY = vY * -0.99
-  y = radius
- } if x > width - radius {
-  vX = vX * -0.99
-  x = width - radius
- } if y > height - radius {
-  vY = vY * -0.99
-  y = height - radius
- }
- Canvas.drawCircle ( x , y , radius )
+  if x < radius {
+    vX = vX * -0.99
+    x = radius
+  } if y < radius {
+    vY = vY * -0.99
+    y = radius
+  } if x > width - radius {
+    vX = vX * -0.99
+    x = width - radius
+  } if y > height - radius {
+    vY = vY * -0.99
+    y = height - radius
+  }
+  Canvas.drawCircle ( x , y , radius )
 }`;
 
 sampleScripts[1] =
-`var width , height , radius
+`var width, height, radius
 
 func pattern x:Double {
- return Math.sin ( x / width * 4 ) * height / 2 + height / 2
+  return Math.sin(x / width * 4) * height / 2 + height / 2
 }
 func onResize newWidth:Double newHeight:Double {
- width = newWidth
- height = newHeight
- radius = Math.min ( width , height ) / 16
+  width = newWidth
+  height = newHeight
+  radius = Math.min(width, height) / 16
 }
 func initialize {
- //nothing needed
+  //nothing needed
 }
 func onDraw time:Double {
- var x = - radius
- while x < width + radius {
-  let y = pattern ( x + time / 1000 * width / 16 )
-  Canvas.drawCircle ( x , y , radius )
-  x += radius / 4
- }
-}
-`;
+  var x = -radius
+  while x < width + radius {
+    let y = pattern(x + time / 1000 * width / 16)
+    Canvas.drawCircle(x, y, radius)
+    x += radius / 4
+  }
+}`;
+
+sampleScripts[2] =
+`let message = "Hello World"
+System.print(message)
+`

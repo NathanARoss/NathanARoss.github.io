@@ -1,3 +1,5 @@
+"use strict";
+
 let nextVariable = 0;
 let variableNames = {};
 
@@ -10,136 +12,132 @@ let stringLiterals = {};
 let nextComment = 0;
 let comments = {};
 
-let script = parseScript(sampleScripts[1])
+let script = parseScript(sampleScripts[0])
 
 
 
-function parseScript(script) {
+function parseScript(source) {
+  //define specific item values to test for later
   const FUNC = makeItem(KEYWORD, KEYWORD_TABLE.func);
   
-  let data = [];
-  let lines = script.split('\n');
+  let wholeScript = [];
+  let line = [0];
+  let indentation = 0;
   
-  for (let row = 0; row < lines.length; ++row) {
-    let tokens = lines[row].match(/(?:\/\*(?:[^*]|(?:\*+(?:[^*\/])))*\*+\/)|(?:\/\/.*)|(?:[^\s"]+|"[^"]*")+/g);
+  let tokens = source.match(/(?:\/\*(?:[^*]|(?:\*+(?:[^*\/])))*\*+\/)|(?:\/\/.*)|(?:[^\s(,)=+\-*\/"]+|"[^"]*")+|[\n,()]|[=+\-\*\/]+/g);
+  
+  for (let i = 0; i < tokens.length; ++i) {
+    let token = tokens[i];
     
-    let isStartingScope = 0;
-    if (tokens) {
-      if (tokens[0] === "}")
-        tokens.shift();
-      
-      if (tokens[tokens.length - 1] === "{") {
-        isStartingScope = 1;
-        tokens.pop();
-      }
+    //figure out what this token refers to
+    if (token === "\n") {
+      wholeScript.push(line);
+      line = [indentation];
     }
-    
-    let indentation = lines[row].search(/\S|$/); //count leading spaces
-    data[row] = [indentation | (isStartingScope << 31)];
-    
-    if (tokens !== null) {
-      for (let i = 0; i < tokens.length; ++i) {
-        let token = tokens[i];
-        
-        //figure out what this token refers to
-        if (token.startsWith('"')) {
-          stringLiterals[nextStringLiteral] = token.substring(1, token.length - 1);
-          data[row].push( makeItem(STRING_LITERAL, nextStringLiteral++) );
-        }
-        else if (token.startsWith("//")) {
-          comments[nextComment] = token.substring(2);
-          data[row].push( makeItem(COMMENT, nextComment++));
-        }
-        else if (token.startsWith("/*")) {
-          comments[nextComment] = token.substring(2, token.length - 2);
-          data[row].push( makeItem(COMMENT, nextComment++));
-        }
-        else if(!isNaN(token)) {
-          numericLiterals[nextNumericLiteral] = token;
-          data[row].push( makeItem(NUMERIC_LITERAL, nextNumericLiteral++) );
-        }
-        else if (token in SYMBOL_TABLE) {
-          data[row].push( makeItem(SYMBOL, SYMBOL_TABLE[token]) );
-        }
-        else if (token in KEYWORD_TABLE) {
-          data[row].push( makeItem(KEYWORD, KEYWORD_TABLE[token]) );
-        }
-        else if (token in FUNCTION_TABLE) {
-          let funcId = FUNCTION_TABLE[token];
-          data[row].push( makeItemWithMeta(FUNCTION_CALL, FUNCTIONS[funcId].scope, funcId) );
-        }
-        else if (data[row][data[row].length - 1] === FUNC) {
-          let newFunc = {};
-          
-          newFunc.scope = CLASS_TABLE.Hidden;
-          
-          let indexOf = token.indexOf(":");
-          if (indexOf !== -1) {
-            newFunc.name = token.substring(0, indexOf);
-            newFunc.returnType = CLASS_TABLE[token.substring(indexOf + 1)];
-          }
-          else {
-            newFunc.name = token;
-            newFunc.returnType = CLASS_TABLE.Hidden;
-          }
-          
-          //detect which functions are called from outside
-          newFunc.js = newFunc.name;
-          if (newFunc.scope === CLASS_TABLE.Hidden) {
-            switch (newFunc.name) {
-              case "onResize":
-              case "initialize":
-              case "onDraw":
-                newFunc.js = `state.${newFunc.name}`;
-            }
-          }
-          
-          //console.log("new function. name: " + newFunc.name + " returnType: " + CLASSES[newFunc.returnType].name + " js: " + newFunc.js);
-          
-          //the remaining tokens are parameters
-          newFunc.parameters = [];
-          for (let j = i + 1; j < tokens.length; ++j) {
-            let indexOf = tokens[j].indexOf(":");
-            let parameter = {};
-            parameter.name = tokens[j].substring(0, indexOf);
-            parameter.type = CLASS_TABLE[tokens[j].substring(indexOf + 1)];
-            newFunc.parameters.push(parameter);
-            
-            //console.log("parameter name: " + parameter.name + " type: " + CLASSES[parameter.type].name);
-          }
-          
-          let funcId = FUNCTIONS.length;
-          FUNCTIONS.push(newFunc);
-          let key = newFunc.scope ? `${CLASSES[newFunc.scope].name}.${newFunc.name}` : newFunc.name;
-          FUNCTION_TABLE[key] = funcId;
-          data[row].push( makeItemWithMeta(FUNCTION_DEFINITION, newFunc.returnType, funcId) );
-        }
-        else {
-          let indexOf = token.indexOf(":");
-          let name = (indexOf === -1) ? token : token.substring(0, indexOf);
-          
-          let id = -1;
-          for (let i = 0, keys = Object.keys(variableNames); i < keys.length; ++i) {
-            if (variableNames[i] === name) {
-              id = i;
-              break;
-            }
-          }
-          
-          if (id === -1) {
-            variableNames[nextVariable] = name;
-            id = nextVariable++;
-          }
-          
-          let type = (indexOf === -1) ? CLASS_TABLE.Hidden : CLASS_TABLE[token.substring(indexOf + 1)];
-          
-          data[row].push( makeItemWithMeta(VARIABLE_REFERENCE, type, id) );
+    else if (token === "{") {
+      ++indentation;
+      line[0] |= 1 << 31;
+      
+    }
+    else if (token === "}") {
+      --indentation;
+      line[0] = (line[0] & 0xFFFF0000) | indentation;
+    }
+    else if (token.startsWith('"')) {
+      stringLiterals[nextStringLiteral] = token.substring(1, token.length - 1);
+      line.push( makeItem(STRING_LITERAL, nextStringLiteral++) );
+    }
+    else if (token.startsWith("//")) {
+      comments[nextComment] = token.substring(2);
+      line.push( makeItem(COMMENT, nextComment++));
+    }
+    else if (token.startsWith("/*")) {
+      comments[nextComment] = token.substring(2, token.length - 2);
+      line.push( makeItem(COMMENT, nextComment++));
+    }
+    else if(!isNaN(token)) {
+      numericLiterals[nextNumericLiteral] = token;
+      line.push( makeItem(NUMERIC_LITERAL, nextNumericLiteral++) );
+    }
+    else if (token in SYMBOL_TABLE) {
+      line.push( makeItem(SYMBOL, SYMBOL_TABLE[token]) );
+    }
+    else if (token in KEYWORD_TABLE) {
+      line.push( makeItem(KEYWORD, KEYWORD_TABLE[token]) );
+    }
+    else if (token in FUNCTION_TABLE) {
+      let funcId = FUNCTION_TABLE[token];
+      line.push( makeItemWithMeta(FUNCTION_CALL, FUNCTIONS[funcId].scope, funcId) );
+    }
+    else if (line[line.length - 1] === FUNC) {
+      let newFunc = {};
+      
+      newFunc.scope = CLASS_TABLE.Hidden;
+      
+      let indexOf = token.indexOf(":");
+      if (indexOf !== -1) {
+        newFunc.name = token.substring(0, indexOf);
+        newFunc.returnType = CLASS_TABLE[token.substring(indexOf + 1)];
+      }
+      else {
+        newFunc.name = token;
+        newFunc.returnType = CLASS_TABLE.Hidden;
+      }
+      
+      //detect which functions are called from outside
+      if (newFunc.scope === CLASS_TABLE.Hidden) {
+        switch (newFunc.name) {
+          case "onResize":
+          case "initialize":
+          case "onDraw":
+            newFunc.js = newFunc.name;
         }
       }
+      
+      //console.log("new function. name: " + newFunc.name + " returnType: " + CLASSES[newFunc.returnType].name + " js: " + newFunc.js);
+      
+      //the remaining tokens are parameters
+      newFunc.parameters = [];
+      for (let j = i + 1; tokens[j] !== "\n"; ++j) {
+        let indexOf = tokens[j].indexOf(":");
+        let parameter = {};
+        parameter.name = tokens[j].substring(0, indexOf);
+        parameter.type = CLASS_TABLE[tokens[j].substring(indexOf + 1)];
+        newFunc.parameters.push(parameter);
+        
+        //console.log("parameter name: " + parameter.name + " type: " + CLASSES[parameter.type].name);
+      }
+      
+      let funcId = FUNCTIONS.length;
+      FUNCTIONS.push(newFunc);
+      let key = newFunc.scope ? `${CLASSES[newFunc.scope].name}.${newFunc.name}` : newFunc.name;
+      FUNCTION_TABLE[key] = funcId;
+      line.push( makeItemWithMeta(FUNCTION_DEFINITION, newFunc.returnType, funcId) );
+    }
+    else {
+      let indexOf = token.indexOf(":");
+      let name = (indexOf === -1) ? token : token.substring(0, indexOf);
+      
+      let id = -1;
+      for (let i = 0, keys = Object.keys(variableNames); i < keys.length; ++i) {
+        if (variableNames[i] === name) {
+          id = i;
+          break;
+        }
+      }
+      
+      if (id === -1) {
+        variableNames[nextVariable] = name;
+        id = nextVariable++;
+      }
+      
+      let type = (indexOf === -1) ? CLASS_TABLE.Hidden : CLASS_TABLE[token.substring(indexOf + 1)];
+      
+      line.push( makeItemWithMeta(VARIABLE_REFERENCE, type, id) );
     }
   }
   
-  return data;
+  return wholeScript;
 }
 
 function makeItemWithMeta(format, meta, value) {
@@ -248,7 +246,7 @@ function getItem(row, col) {
       return [numericLiterals[data], "numeric", true];
     
     case STRING_LITERAL:
-      return [stringLiterals[data], "string", true];
+      return [`"${stringLiterals[data]}"`, "string", true];
     
     case COMMENT:
       return [comments[data], "comment", false];
@@ -313,13 +311,12 @@ function getJavaScript() {
             let func = FUNCTIONS[value];
             
             let funcName;
-            if (func.js !== null) {
-              funcName = func.js;
+            if ("js" in func) {
+              js += `state.${func.js} = function ( `;
             } else {
-              funcName = `f${value}`;
+              js += `function f${value} (`
             }
             
-            js += `${funcName} = function ( `;
             needsEndParenthesis = true;
             needsCommas = true;
             break;
@@ -330,7 +327,7 @@ function getJavaScript() {
             let func = FUNCTIONS[value];
             
             let funcName;
-            if (func.js !== null) {
+            if ("js" in func) {
               funcName = func.js;
             } else {
               funcName = `f${value}`;
@@ -399,7 +396,7 @@ function getJavaScript() {
 
 
 
-function itemClicked(row, col) {
+function clickItem(row, col) {
   row = row|0;
   col = col|0;
   
@@ -424,4 +421,12 @@ function itemClicked(row, col) {
   }
   
   return {};
+}
+
+function insertRow(row) {
+  script.splice(row, 0, [getIndentation(row-1) + isStartingScope(row-1)]);
+}
+
+function deleteRow(row) {
+  script.splice(row, 1);
 }
