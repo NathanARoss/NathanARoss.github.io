@@ -54,13 +54,13 @@ body {
   border: none;
   box-sizing: border-box;
   background: Transparent no-repeat;
-  color: white;
   
   order: 999;
 }
 
 option {
-  color: black;
+  background-color: gray;
+  color: white;
 }
 
 .indentation {
@@ -145,6 +145,7 @@ option {
 	text-decoration: none;
 	text-align: center; /* horizontal centering */
 	line-height: 50px;
+	color: white;
 
 	border: none;
 	width: 50px;

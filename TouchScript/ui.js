@@ -1,10 +1,10 @@
 "use strict";
 
-let buttonPoolSize = 0;
-let visibleItemCount = 0;
-let itemHeight = 40;
-let firstLoadedItemIndex = 0;
-let firstVisibleItemIndex = 0;
+let loadedRowCount = 0;
+let visibleRowCount = 0;
+let rowHeight = 40;
+let firstLoadedRowPosition = 0;
+let firstVisibleRowPosition = 0;
 
 let list = document.getElementById("list"); //a div containing all elements
 let spacer = document.getElementById("spacer"); //an empty div that changes height to offset elements
@@ -17,7 +17,6 @@ let buttonPool = [];
 let selectPool = [];
 
 const context = canvas.getContext("2d", { alpha: false });
-const callInterval = 1000 / 60;
 
 let renderLoop = 0;
 let error = null;
@@ -28,34 +27,33 @@ let state = {}; //holds the js version of the script
 function resizeListener() {
   let rowCount = getRowCount();
   
-	visibleItemCount = Math.ceil(window.innerHeight / itemHeight);
-	let newbuttonPoolSize = visibleItemCount + 6;
-	newbuttonPoolSize = Math.min(newbuttonPoolSize, rowCount);
-	let diff = newbuttonPoolSize - buttonPoolSize;
-	buttonPoolSize = newbuttonPoolSize;
+	visibleRowCount = Math.ceil(window.innerHeight / rowHeight);
+	let newloadedRowCount = visibleRowCount + 6;
+	newloadedRowCount = Math.min(newloadedRowCount, rowCount);
+	let diff = newloadedRowCount - loadedRowCount;
+	loadedRowCount = newloadedRowCount;
 	
 	//allow the viewport to scroll past the end of the list
 	if (window.location.hash === "")
-	  document.body.style.height = (rowCount + visibleItemCount - 2) * itemHeight + "px";
+	  document.body.style.height = (rowCount + visibleRowCount - 2) * rowHeight + "px";
   else
     document.body.style.height = "auto";
 	
 	if (diff > 0) {
 		for(let i = 0; i < diff; ++i) {
       let div = createDiv();
-
-			
-			let row = list.childNodes.length + firstLoadedItemIndex;
+      let row = list.childNodes.length + firstLoadedRowPosition;
 			
 			//if the user is scrolled all the way to the bottom, prepend instead of appending
 			if (row < rowCount) {
-				list.insertBefore(div, list.firstChild);
-				appendDiv(row);
+				loadRow(row, div);
+	      list.appendChild(div);
 			} else {
-				list.append(div);
-				prependDiv(firstLoadedItemIndex - 1);
-				--firstLoadedItemIndex;
-				spacer.style.height = firstLoadedItemIndex * itemHeight + "px";
+				let row = firstLoadedRowPosition - 1;
+				loadRow(row, div);
+	      list.insertBefore(div, list.firstChild);
+				--firstLoadedRowPosition;
+				spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
 			}
 		}
 	} else if (diff < 0) {
@@ -67,7 +65,7 @@ function resizeListener() {
 		}
 	}
 	
-	firstVisibleItemIndex = Math.floor(window.scrollY / itemHeight);
+	firstVisibleRowPosition = Math.floor(window.scrollY / rowHeight);
 	updateDebug();
 
 	//resize canvas as well
@@ -85,30 +83,30 @@ function resizeListener() {
 
 //detect when items need to be loaded in the direction of scroll, take nodes from the back to add to the front
 window.onscroll = function() {
-	firstVisibleItemIndex = Math.floor(window.scrollY / itemHeight);
+	firstVisibleRowPosition = Math.floor(window.scrollY / rowHeight);
 	
 	/*
-	if (firstVisibleItemIndex >= firstLoadedItemIndex + buttonPoolSize) {
-		firstLoadedItemIndex = firstVisibleItemIndex - buttonPoolSize - 2;
+	if (firstVisibleRowPosition >= firstLoadedRowPosition + loadedRowCount) {
+		firstLoadedRowPosition = firstVisibleRowPosition - loadedRowCount - 2;
 	}
 	
-	if (firstVisibleItemIndex <= firstLoadedItemIndex - buttonPoolSize) {
-		firstLoadedItemIndex = firstVisibleItemIndex + buttonPoolSize;
+	if (firstVisibleRowPosition <= firstLoadedRowPosition - loadedRowCount) {
+		firstLoadedRowPosition = firstVisibleRowPosition + loadedRowCount;
 	}
 	/**/
 	
 	//keep a buffer of 2 unseen elements in either direction
-	while ((firstVisibleItemIndex - 4 > firstLoadedItemIndex) && (firstLoadedItemIndex < getRowCount() - buttonPoolSize)) {
-		appendDiv(buttonPoolSize + firstLoadedItemIndex);
-		++firstLoadedItemIndex;
+	while ((firstVisibleRowPosition - 4 > firstLoadedRowPosition) && (firstLoadedRowPosition < getRowCount() - loadedRowCount)) {
+		appendDiv(loadedRowCount + firstLoadedRowPosition);
+		++firstLoadedRowPosition;
 	}
 	
-	while ((firstVisibleItemIndex - 2 < firstLoadedItemIndex) && (firstLoadedItemIndex > 0)) {
-		prependDiv(firstLoadedItemIndex - 1);
-		--firstLoadedItemIndex;
+	while ((firstVisibleRowPosition - 2 < firstLoadedRowPosition) && (firstLoadedRowPosition > 0)) {
+		prependDiv(firstLoadedRowPosition - 1);
+		--firstLoadedRowPosition;
 	}
 	
-	spacer.style.height = firstLoadedItemIndex * itemHeight + "px";
+	spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
 	updateDebug();
 }
 
@@ -163,7 +161,6 @@ function appendDiv(row) {
 	
 	loadRow(row, firstChild);
 	list.appendChild(firstChild);
-	
 }
 
 function prependDiv(row) {
@@ -175,47 +172,47 @@ function prependDiv(row) {
 }
 
 function insertDiv(row) {
-  //modify either the first or last row depending on what the user can see
+  //grab an offscreen div to modify, or create a new one if the entire script is on screen
   let rowToModify;
   
-  let lastLoaded = firstLoadedItemIndex + buttonPoolSize - 1;
-  let lastVisible = firstVisibleItemIndex + visibleItemCount - 1;
+  let lastLoaded = firstLoadedRowPosition + loadedRowCount - 1;
+  let lastVisible = firstVisibleRowPosition + visibleRowCount - 1;
   if (lastLoaded > lastVisible) {
     rowToModify = list.childNodes[list.childNodes.length - 1];
     list.removeChild(rowToModify);
   }
-  else if (firstLoadedItemIndex < firstVisibleItemIndex) {
+  else if (firstLoadedRowPosition < firstVisibleRowPosition) {
     rowToModify = list.firstChild;
     list.removeChild(rowToModify);
-    ++firstLoadedItemIndex;
+    ++firstLoadedRowPosition;
   } else {
-    //too few nodes, create one
+    //all divs on screen, create a new one
     rowToModify = createDiv();
   }
   
   loadRow(row, rowToModify);
   
   
-  let positionToInsert = row - firstLoadedItemIndex;
+  let positionToInsert = row - firstLoadedRowPosition;
   list.insertBefore(rowToModify, list.childNodes[positionToInsert]);
   
   updateList(positionToInsert + 1);
 }
 
 function deleteDiv(row) {
-  let lastLoaded = firstLoadedItemIndex + buttonPoolSize - 1;
-  let lastVisible = firstVisibleItemIndex + visibleItemCount - 1;
+  let lastLoaded = firstLoadedRowPosition + loadedRowCount - 1;
+  let lastVisible = firstVisibleRowPosition + visibleRowCount - 1;
   
-  let childToRemove = list.childNodes[row - firstLoadedItemIndex];
+  let childToRemove = list.childNodes[row - firstLoadedRowPosition];
   list.removeChild(childToRemove);
   
-  //add the removed row either as the first or last row depending on if the user is at the end of the script
+  //move the removed div either above or below the visible list of items unless the entire script is already loaded
   if (lastLoaded + 1 < getRowCount()) {
   	loadRow(row, childToRemove);
 	  list.appendChild(childToRemove);
 	  console.log(`appending deleted div row ${row} rowCount ${getRowCount()} lastLoaded ${lastLoaded}`);
   }
-  else if (firstLoadedItemIndex > 0) {
+  else if (firstLoadedRowPosition > 0) {
     loadRow(row, childToRemove);
     list.insertBefore(childToRemove, list.firstChild);
     console.log(`prepending deleted div row ${row} rowCount ${getRowCount()} lastLoaded ${lastLoaded}`);
@@ -224,7 +221,7 @@ function deleteDiv(row) {
     recycleDiv(childToRemove);
   }
   
-  updateList(row - firstLoadedItemIndex);
+  updateList(row - firstLoadedRowPosition);
 }
 
 
@@ -233,13 +230,13 @@ function updateList(modifiedRow) {
   //tell the rows which position they are
   let count = list.childNodes.length;
   for (let i = modifiedRow; i < count; ++i) {
-    list.childNodes[i].firstChild.row = i + firstLoadedItemIndex;
+    list.childNodes[i].firstChild.row = i + firstLoadedRowPosition;
   }
   
-	buttonPoolSize = Math.min(visibleItemCount + 6, getRowCount());
+	loadedRowCount = Math.min(visibleRowCount + 6, getRowCount());
   
-  spacer.style.height = firstLoadedItemIndex * itemHeight + "px";
-  document.body.style.height = (getRowCount() + visibleItemCount - 2) * itemHeight + "px";
+  spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
+  document.body.style.height = (getRowCount() + visibleRowCount - 2) * rowHeight + "px";
   
   updateDebug();
 }
@@ -463,8 +460,8 @@ list.addEventListener('touchmove', function(event) {
 
 function updateDebug() {
 	let debugText = ""//"scrollY: " + Math.floor(window.scrollY) + "<br>"
-			+ "loaded: [" + firstLoadedItemIndex + ", " + (firstLoadedItemIndex + buttonPoolSize - 1) + "]<br>"
-			+ "visible: [" + firstVisibleItemIndex + ", " + (firstVisibleItemIndex + visibleItemCount - 1) + "]";
+			+ "loaded: [" + firstLoadedRowPosition + ", " + (firstLoadedRowPosition + loadedRowCount - 1) + "]<br>"
+			+ "visible: [" + firstVisibleRowPosition + ", " + (firstVisibleRowPosition + visibleRowCount - 1) + "]";
 	debug.innerHTML = debugText;
 }
 
@@ -489,7 +486,7 @@ function hashListener() {
     }
     
     state = null;
-    document.body.style.height = (getRowCount() + visibleItemCount - 2) * itemHeight + "px";
+    document.body.style.height = (getRowCount() + visibleRowCount - 2) * rowHeight + "px";
   }
   
   //returning to canvas
