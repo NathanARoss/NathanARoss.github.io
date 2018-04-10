@@ -60,7 +60,7 @@ function resizeListener() {
 		diff = -diff;
 		for (let i = 0; i < diff; ++i) {
 			let lastChild = list.childNodes[list.childNodes.length - 1];
-			recycleDiv(lastChild);
+			prepareForGarbageCollection(lastChild);
 			list.removeChild(lastChild);
 		}
 	}
@@ -97,12 +97,26 @@ window.onscroll = function() {
 	
 	//keep a buffer of 2 unseen elements in either direction
 	while ((firstVisibleRowPosition - 4 > firstLoadedRowPosition) && (firstLoadedRowPosition < getRowCount() - loadedRowCount)) {
-		appendDiv(loadedRowCount + firstLoadedRowPosition);
+    let row = loadedRowCount + firstLoadedRowPosition;
+    
+    let firstChild = list.firstChild;
+    list.removeChild(firstChild);
+    
+    loadRow(row, firstChild);
+    list.appendChild(firstChild);
+    
 		++firstLoadedRowPosition;
 	}
 	
 	while ((firstVisibleRowPosition - 2 < firstLoadedRowPosition) && (firstLoadedRowPosition > 0)) {
-		prependDiv(firstLoadedRowPosition - 1);
+		let row = firstLoadedRowPosition - 1;
+    
+    let lastChild = list.childNodes[list.childNodes.length - 1];
+    list.removeChild(lastChild);
+    
+    loadRow(row, lastChild);
+    list.insertBefore(lastChild, list.firstChild);
+    
 		--firstLoadedRowPosition;
 	}
 	
@@ -137,8 +151,9 @@ function createDiv() {
   return div;
 }
 
-function recycleDiv(divToRemove) {
-  let rowDiv = divToRemove.firstChild;
+/* prepare the div for garbage collection by recycling all it's items */
+function prepareForGarbageCollection(div) {
+  let rowDiv = div.firstChild;
   let rowNodes = rowDiv.childNodes;
 	
 	let toRemove =  rowNodes.length;
@@ -154,22 +169,6 @@ function recycleDiv(divToRemove) {
 
 
 
-
-function appendDiv(row) {
-	let firstChild = list.firstChild;
-	list.removeChild(firstChild);
-	
-	loadRow(row, firstChild);
-	list.appendChild(firstChild);
-}
-
-function prependDiv(row) {
-	let lastChild = list.childNodes[list.childNodes.length - 1];
-	list.removeChild(lastChild);
-	
-	loadRow(row, lastChild);
-	list.insertBefore(lastChild, list.firstChild);
-}
 
 function insertDiv(row) {
   //grab an offscreen div to modify, or create a new one if the entire script is on screen
@@ -199,6 +198,7 @@ function insertDiv(row) {
   updateList(positionToInsert + 1);
 }
 
+/* move the given row off screen and update its content, or garbage collect it if the entire script is on screen */
 function deleteDiv(row) {
   let lastLoaded = firstLoadedRowPosition + loadedRowCount - 1;
   let lastVisible = firstVisibleRowPosition + visibleRowCount - 1;
@@ -218,7 +218,7 @@ function deleteDiv(row) {
     console.log(`prepending deleted div row ${row} rowCount ${getRowCount()} lastLoaded ${lastLoaded}`);
   } else {
     //if the removed item can't be placed at either end of the list, get rid of it
-    recycleDiv(childToRemove);
+    prepareForGarbageCollection(childToRemove);
   }
   
   updateList(row - firstLoadedRowPosition);
