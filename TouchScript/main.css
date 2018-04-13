@@ -14,29 +14,27 @@ body {
 	color: white;
 }
 
-.inner-row {
-  display: table;
-  width: 100%;
-  height: var(--line-height);
-	box-sizing: border-box;
-  white-space: nowrap;
-
-}
-
-.middle-row {
-  height: var(--line-height);
-  overflow-x: scroll;
-  overflow-y: hidden;
-}
-
 .outer-row {
   height: var(--line-height);
   overflow: hidden;
 }
 
+.inner-row {
+  overflow-x: scroll;
+  overflow-y: hidden;
+}
+
+table {
+  width: 100%;
+  height: var(--line-height);
+  white-space: nowrap;
+  border-width: 0;
+  border-collapse: collapse;
+}
+
 /* Desktop Firefox, mobile Firefox (not Firefox Focus), Samsung Browser (oddly) */
 @-moz-document url-prefix() {
-  .middle-row {
+  .inner-row {
     height: calc(30px + var(--line-height));
   }
 }
@@ -51,11 +49,10 @@ body {
   border: none;
 }
 
-/* This class is applied to the last item in a row.  This item simply exposes the background of the div */
+/* The append button has a minimum size, but grows to fill remaining space. */
 .append {
-  display: table-cell;
   position: relative;
-  width: 0px;
+  min-width: var(--line-height);
   margin: 0px;
   border: none;
   box-sizing: border-box;
@@ -68,42 +65,28 @@ option {
 }
 
 .indentation {
-  display: table-cell;
-  width: 1px;
-  height: var(--line-height);
-  margin: 0px;
+  width: 0.001px; /* Webkit treats a width of 0 as a request to fill remaining space */
   padding: 0;
   border: 0;
-  background-color: Transparent;
-  
   border-color: #444;
   border-style: solid;
 }
 
 .item, .dropdown {
-  display: table-cell;
   text-align: center;
   vertical-align: middle;
-  
-  width: 1px;
-  height: var(--line-height);
-  
+  width: 0.0001px;
   padding: 0 4px;
-  box-sizing: border-box;
-  
   color: white;
-  white-space: nowrap;
   user-select: none;
 }
 
 .item {
   cursor: pointer;
-  border: solid thin darkblue;
 }
 
 .dropdown {
   position: relative;
-  border: solid thin darkred;
 }
 
 .global-var {

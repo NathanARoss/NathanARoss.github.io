@@ -129,15 +129,14 @@ function createDiv() {
 	let outerDiv = document.createElement("div");
 	outerDiv.classList.add("outer-row");
 	
-	let middleDiv = document.createElement("div");
-	middleDiv.classList.add("middle-row");
+	let innerRow = document.createElement("div");
+	innerRow.classList.add("inner-row");
   
-  let innerDiv = document.createElement("div");
-  innerDiv.classList.add("inner-row");
+  let table = document.createElement("table");
 	
-	let indentation = document.createElement("p");
+	let indentation = document.createElement("td");
 	indentation.classList.add("indentation");
-	innerDiv.append(indentation);
+	table.append(indentation);
 	
   let select = document.createElement("select");
   select.classList.add("hidden-select");
@@ -147,13 +146,13 @@ function createDiv() {
 <option>New line</option>
 <option>Delete line</option>`;
 
-  let dropdown = document.createElement("div");
+  let dropdown = document.createElement("td");
   dropdown.classList.add("append");
   dropdown.append(select);
 	
-	innerDiv.append(dropdown);
-	middleDiv.append(innerDiv);
-  outerDiv.append(middleDiv);
+	table.append(dropdown);
+	innerRow.append(table);
+  outerDiv.append(innerRow);
   
   return outerDiv;
 }
@@ -269,12 +268,12 @@ function loadRow(row, rowDiv) {
 	  let lastChild = rowNodes[i];
 	  rowDiv.removeChild(lastChild);
 	  
-	  if (lastChild.tagName === "P") {
-	    lastChild.innerHTML = "";
-	    buttonPool.push(lastChild);
-    } else {
+	  if (lastChild.isDropdown) {
       cleanDropdown(lastChild);
       dropdownPool.push(lastChild);
+    } else {
+      lastChild.innerHTML = "";
+	    buttonPool.push(lastChild);
     }
 	}
 	
@@ -311,7 +310,8 @@ function getButton() {
   if (buttonPool.length !== 0) {
     return buttonPool.pop();
   } else {
-    let newButton = document.createElement("p");
+    let newButton = document.createElement("td");
+    newButton.isDropdown = false;
     newButton.classList.add("item");
     newButton.addEventListener('click', buttonClicked, true);
     return newButton;
@@ -322,8 +322,9 @@ function getDropdown() {
   if (dropdownPool.length !== 0) {
     return dropdownPool.pop();
   } else {
-    let newDiv = document.createElement("div");
+    let newDiv = document.createElement("td");
     newDiv.classList.add("dropdown");
+    newDiv.isDropdown = true;
     
     let newSelect = document.createElement("select");
     newSelect.classList.add("hidden-select");
@@ -417,20 +418,6 @@ function appendChanged(event) {
   
   select.value = "";
 }
-
-/*
-document.addEventListener('keydown', (event) => {
-  const keyName = event.key;
-  console.log(keyName);
-  
-  
-}, false);
-
-
-list.addEventListener('touchmove', function(event) {
-  event.preventDefault();
-}, false);
-/**/
 
 
 
