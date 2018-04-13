@@ -56,7 +56,6 @@ body {
   display: table-cell;
   position: relative;
   width: 0px;
-  height: var(--line-height);
   margin: 0px;
   border: none;
   box-sizing: border-box;
@@ -99,10 +98,12 @@ option {
 
 .item {
   cursor: pointer;
+  border: solid thin darkblue;
 }
 
 .dropdown {
   position: relative;
+  border: solid thin darkred;
 }
 
 .global-var {
