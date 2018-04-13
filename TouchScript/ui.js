@@ -14,7 +14,7 @@ const canvas = document.getElementById("canvas");
 const editor = document.getElementById("editor_div");
 
 let buttonPool = [];
-let selectPool = [];
+let dropdownPool = [];
 
 const context = canvas.getContext("2d", { alpha: false });
 
@@ -126,34 +126,45 @@ window.onscroll = function() {
 
 
 function createDiv() {
-	let div = document.createElement("div");
-	div.classList.add("row");
+	let outerDiv = document.createElement("div");
+	outerDiv.classList.add("outer-row");
+	
+	let middleDiv = document.createElement("div");
+	middleDiv.classList.add("middle-row");
   
-  let divContent = document.createElement("div");
-  divContent.classList.add("row-content");
+  let innerDiv = document.createElement("div");
+  innerDiv.classList.add("inner-row");
+	
+	let indentation = document.createElement("p");
+	indentation.classList.add("indentation");
+	innerDiv.append(indentation);
 	
   let select = document.createElement("select");
-  select.classList.add("append");
+  select.classList.add("hidden-select");
   select.addEventListener('change', appendChanged, true);
   select.innerHTML =
 `<option disabled selected style="display:none;"></option>
 <option>New line</option>
 <option>Delete line</option>`;
+
+  let dropdown = document.createElement("div");
+  dropdown.classList.add("append");
+  dropdown.append(select);
 	
-	divContent.append(select);
-	
-	let indentation = document.createElement("button");
-	indentation.classList.add("indentation");
-	divContent.append(indentation);
+	innerDiv.append(dropdown);
+	middleDiv.append(innerDiv);
+  outerDiv.append(middleDiv);
   
-  div.append(divContent);
-  
-  return div;
+  return outerDiv;
 }
 
 /* prepare the div for garbage collection by recycling all it's items */
 function prepareForGarbageCollection(div) {
+<<<<<<< HEAD
+  let rowDiv = div.firstChild.firstChild;
+=======
   let rowDiv = div.firstChild;
+>>>>>>> 9c90e0d60f656ba0394ffc793df86d913b00242c
   let rowNodes = rowDiv.childNodes;
 	
 	let toRemove =  rowNodes.length;
@@ -230,7 +241,8 @@ function updateList(modifiedRow) {
   //tell the rows which position they are
   let count = list.childNodes.length;
   for (let i = modifiedRow; i < count; ++i) {
-    list.childNodes[i].firstChild.row = i + firstLoadedRowPosition;
+    //update the row property of the outer row's middle row's inner row
+    list.childNodes[i].firstChild.firstChild.row = i + firstLoadedRowPosition;
   }
   
 	loadedRowCount = Math.min(visibleRowCount + 6, getRowCount());
@@ -248,90 +260,54 @@ function loadRow(row, rowDiv) {
 	row = row|0;
 	
 	let itemCount = getItemCount(row);
-  rowDiv = rowDiv.firstChild;
+  rowDiv = rowDiv.firstChild.firstChild;
+	rowDiv.row = row;
   let rowNodes = rowDiv.childNodes;
+  
+	let appendButton = rowNodes[rowNodes.length - 1];
+	rowDiv.removeChild(appendButton);
 	
 	//remove the items of the table beyond the ones it will need
-	// the first node is the + button, the second node is the indentation
-	let toRemove =  rowNodes.length - 2 - itemCount;
-	for (let i = 0; i < toRemove; ++i) {
-	  let lastChild = rowNodes[rowNodes.length - 1];
+	//the first node is the indentation
+	for (let i = rowNodes.length - 1; i > 0; --i) {
+	  let lastChild = rowNodes[i];
 	  rowDiv.removeChild(lastChild);
-	  recycleButton(lastChild);
-	}
-	
-	//update existing nodes
-	for (let i = 2; i < rowNodes.length; ++i) {
-	  let node = rowNodes[i];
-	  const [text, style, dropdown] = getItem(row, i - 2);
 	  
-	  if (dropdown) {
-	    let select;
-	    if (node.childNodes.length !== 0) {
-	      let lastChild = node.childNodes[node.childNodes.length - 1];
-	      if (lastChild.tagName === "SELECT")
-	        select = lastChild;
-        else
-          select = getSelect();
-	    }
-	    
-	    select.innerHTML = `<option disabled selected style="display:none;"></option><option>${text}</option>`;
-	    node.innerHTML = text;
-	    node.appendChild(select);
-	    
-      node.removeEventListener('click', buttonClicked);
+	  if (lastChild.tagName === "P") {
+	    lastChild.innerHTML = "";
+	    buttonPool.push(lastChild);
     } else {
-      node.addEventListener('click', buttonClicked, true);
-      
-      //if there shouldn't be a select and there is, remove it
-      if (node.childNodes.length !== 0) {
-        let lastChild = node.childNodes[node.childNodes.length - 1];
-        if (lastChild.tagName === "SELECT") {
-          node.removeChild(lastChild);
-          recycleSelect(lastChild);
-        }
-        
-        node.innerHTML = text;
-      }
-	  }
-	  
-    
-    if (node.classList.length == 2)
-      node.classList.remove(node.classList[1]);
-    if (style !== null)
-      node.classList.add(style);
+      cleanDropdown(lastChild);
+      dropdownPool.push(lastChild);
+    }
 	}
 	
 	//add new items
-	let toAdd = -toRemove;
-	for (let i = 0; i < toAdd; ++i) {
-    let node = getButton();
-    node.col = rowNodes.length - 2;
+	for (let col = 0; col < itemCount; ++col) {
+	  const [line1, line2, style, dropDown] = getItem(row, col);
     
-	  const [text, style, dropdown] = getItem(row, node.col);
-    node.innerHTML = text;
+    let node = dropDown ? getDropdown() : getButton();
+    node.col = col;
     
-    if (dropdown) {
-      let select = getSelect();
-      select.innerHTML = `<option disabled selected style="display:none;"></option><option>${text}</option>`;
-      node.append(select);
-    } else {
-      node.addEventListener('click', buttonClicked, true);
+    node.append(line1);
+    if (line2) {
+      node.append(document.createElement("br"));
+      node.append(line2);
     }
-    
-    rowDiv.append(node);
 	  
     if (node.classList.length == 2)
       node.classList.remove(node.classList[1]);
     if (style !== null)
       node.classList.add(style);
+    
+    rowDiv.append(node);
 	}
 	
-	rowDiv.row = row;
+	rowDiv.append(appendButton);
 	
 	const indentation = getIndentation(row);
-	rowNodes[1].style.width = Math.max(0, 8 * indentation) + "px";
-	rowNodes[1].style.borderRightWidth =  indentation ? "4px" : "0px";
+	rowNodes[0].style.minWidth = Math.max(0, 8 * indentation) + "px";
+	rowNodes[0].style.borderRightWidth =  indentation ? "4px" : "0px";
 }
 
 
@@ -339,43 +315,41 @@ function getButton() {
   if (buttonPool.length !== 0) {
     return buttonPool.pop();
   } else {
-    let newButton = document.createElement("button");
+    let newButton = document.createElement("p");
     newButton.classList.add("item");
+    newButton.addEventListener('click', buttonClicked, true);
     return newButton;
   }
 }
 
-function getSelect() {
-  if (selectPool.length !== 0) {
-    return selectPool.pop();
+function getDropdown() {
+  if (dropdownPool.length !== 0) {
+    return dropdownPool.pop();
   } else {
+    let newDiv = document.createElement("div");
+    newDiv.classList.add("dropdown");
+    
     let newSelect = document.createElement("select");
     newSelect.classList.add("hidden-select");
     newSelect.addEventListener('click', selectClicked, true);
     newSelect.addEventListener('change', selectChanged, true);
-    return newSelect;
+    newSelect.innerHTML = `<option disabled selected style="display:none;"><option>1</option><option>2</option><option>3</option>`;
+    
+    newDiv.append(newSelect);
+    return newDiv;
   }
 }
 
-function recycleButton(button) {
-  button.removeEventListener('click', buttonClicked);
-
-  if (button.childNodes.length !== 0) {
-    let lastChild = button.childNodes[button.childNodes.length - 1];
-    if (lastChild.tagName === "SELECT")
-      recycleSelect(lastChild);
+/* remove all unnecessary children from the div so loadItem() can immediately populate it*/
+function cleanDropdown(div) {
+  
+  //remove all the text and <br> nodes located after the <select>
+  for (let i = div.childNodes.length - 1; i > 0; --i) {
+    div.removeChild(div.childNodes[i]);
   }
   
-  button.innerHTML = "";
-  buttonPool.push(button);
-}
-
-function recycleSelect(select) {
-  select.removeEventListener('click', selectClicked);
-  select.removeEventListener('click', selectChanged);
-  
-  select.innerHTML = "";
-  selectPool.push(select);
+  //let select = div.firstChild;
+  //remove all options except the dud at position 0
 }
 
 
@@ -390,9 +364,15 @@ function buttonClicked(event) {
   
   let response = clickItem(row, col);
   if (response.instant) {
-    const [text, style] = response.instant;
-    button.innerHTML = text;
+	  const [line1, line2, style, dropDown] = response.instant;
     
+    button.innerHTML = "";
+    button.append(line1);
+    if (line2) {
+      button.append(document.createElement("br"));
+      button.append(line2);
+    }
+	  
     if (button.classList.length == 2)
       button.classList.remove(button.classList[1]);
     if (style !== null)
