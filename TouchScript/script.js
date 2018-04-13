@@ -196,10 +196,10 @@ function getItem(row, col) {
       let name = variableNames[value] || `var${value}`;
       
       if (meta === CLASS_TABLE.Hidden) {
-        return [name, null, true];
+        return [name, null, null, true];
       } else {
         let type = CLASSES[meta].name;
-        return [`${type}<br>${name}`, "keyword-default", true];
+        return [type, name, "keyword-default", true];
       }
       break;
     }
@@ -209,10 +209,10 @@ function getItem(row, col) {
       let func = FUNCTIONS[value];
       
       if (meta === CLASS_TABLE.Hidden) {
-        return [func.name, "method-definition", true];
+        return [func.name, null, "method-definition", true];
       } else {
         let type = CLASSES[meta].name;
-        return [`${type}<br>${func.name}`, "keyword-def", true];
+        return [type, func.name, "keyword-def", true];
       }
       break;
     }
@@ -222,37 +222,37 @@ function getItem(row, col) {
       let func = FUNCTIONS[value];
       
       if (meta === CLASS_TABLE.Hidden) {
-        return [func.name, "method-call", true];
+        return [func.name, null, "method-call", true];
       } else {
         let type = CLASSES[meta].name;
-        return [`${type}<br>${func.name}`, "keyword-call", true];
+        return [type, func.name, "keyword-call", true];
       }
       break;
     }
     
     case ARGUMENT_HINT:
-      return [`argument hint`, "comment", false];
+      return [`argument hint`, null, "comment", false];
     
     case ARGUMENT_LABEL:
-      return [`argument label`, "comment", false];
+      return [`argument label`, null, "comment", false];
     
     case SYMBOL:
-      return [SYMBOLS[data], null, false];
+      return [SYMBOLS[data], null, null, false];
 
     case KEYWORD:
-      return [KEYWORDS[data], "keyword", false];
+      return [KEYWORDS[data], null, "keyword", false];
       
     case NUMERIC_LITERAL:
-      return [numericLiterals[data], "numeric", true];
+      return [numericLiterals[data], null, "numeric", true];
     
     case STRING_LITERAL:
-      return [`"${stringLiterals[data]}"`, "string", true];
+      return [stringLiterals[data], null, "string", true];
     
     case COMMENT:
-      return [comments[data], "comment", false];
+      return [comments[data], null, "comment", false];
     
     default:
-      return [`format<br>${format}`, "error", false];
+      return ["format", '${format}', "error", false];
   }
 }
 

@@ -14,30 +14,36 @@ body {
 	color: white;
 }
 
-.row-content {
-  display: flex;
+.inner-row {
+  display: table;
+  width: 100%;
   height: var(--line-height);
 	box-sizing: border-box;
   white-space: nowrap;
+
+}
+
+.middle-row {
+  height: var(--line-height);
   overflow-x: scroll;
   overflow-y: hidden;
 }
 
-.row {
+.outer-row {
   height: var(--line-height);
   overflow: hidden;
 }
 
 /* Desktop Firefox, mobile Firefox (not Firefox Focus), Samsung Browser (oddly) */
 @-moz-document url-prefix() {
-  .row-content {
+  .middle-row {
     height: calc(30px + var(--line-height));
   }
 }
 
 .hidden-select {
   width: 100%;
-  height: 100%;
+  height: var(--line-height);
   opacity: 0;
   position: absolute;
   top: 0;
@@ -47,15 +53,14 @@ body {
 
 /* This class is applied to the last item in a row.  This item simply exposes the background of the div */
 .append {
+  display: table-cell;
   position: relative;
-  flex: 1 0 var(--line-height);
+  width: 0px;
   height: var(--line-height);
   margin: 0px;
   border: none;
   box-sizing: border-box;
-  background: Transparent no-repeat;
-  
-  order: 999;
+  background: url(ic_subdirectory_arrow_left_white_24px.svg) no-repeat center right;
 }
 
 option {
@@ -64,7 +69,8 @@ option {
 }
 
 .indentation {
-  flex-shrink: 0;
+  display: table-cell;
+  width: 1px;
   height: var(--line-height);
   margin: 0px;
   padding: 0;
@@ -75,19 +81,28 @@ option {
   border-style: solid;
 }
 
-.item {
-  position: relative;
-  padding: 0 4px;
-  margin: 0px;
-  box-sizing: border-box;
-  background: Transparent no-repeat;
-  border: none;
-  /* outline:none; */
+.item, .dropdown {
+  display: table-cell;
+  text-align: center;
+  vertical-align: middle;
+  
+  width: 1px;
   height: var(--line-height);
+  
+  padding: 0 4px;
+  box-sizing: border-box;
   
   color: white;
   white-space: nowrap;
   user-select: none;
+}
+
+.item {
+  cursor: pointer;
+}
+
+.dropdown {
+  position: relative;
 }
 
 .global-var {

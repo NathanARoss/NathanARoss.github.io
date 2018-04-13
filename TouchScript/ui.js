@@ -160,11 +160,7 @@ function createDiv() {
 
 /* prepare the div for garbage collection by recycling all it's items */
 function prepareForGarbageCollection(div) {
-<<<<<<< HEAD
   let rowDiv = div.firstChild.firstChild;
-=======
-  let rowDiv = div.firstChild;
->>>>>>> 9c90e0d60f656ba0394ffc793df86d913b00242c
   let rowNodes = rowDiv.childNodes;
 	
 	let toRemove =  rowNodes.length;
