@@ -22,6 +22,8 @@ let renderLoop = 0;
 let error = null;
 let state = {}; //holds the js version of the script
 
+let touchMoved = false;
+
 
 
 function resizeListener() {
@@ -310,11 +312,18 @@ function getButton() {
   if (buttonPool.length !== 0) {
     return buttonPool.pop();
   } else {
-    let newButton = document.createElement("td");
-    newButton.isDropdown = false;
-    newButton.classList.add("item");
-    newButton.addEventListener('click', buttonClicked, true);
-    return newButton;
+    let node = document.createElement("td");
+    node.isDropdown = false;
+    node.classList.add("item");
+    node.addEventListener('click', buttonClicked, true);
+    node.addEventListener('touchstart', onTouchStart, true);
+    node.addEventListener('touchmove', onTouchMove, true);
+    node.addEventListener('touchend', onTouchEnd, false);
+    /* node.addEventListener('click', () => {console.log('click')}, true);
+    node.addEventListener('touchstart', () => {console.log('touchstart')}, true);
+    node.addEventListener('touchend', () => {console.log('touchend')}, true);
+    node.addEventListener('touchmove', () => {console.log('touchmove')}, true); */
+    return node;
   }
 }
 
@@ -322,18 +331,22 @@ function getDropdown() {
   if (dropdownPool.length !== 0) {
     return dropdownPool.pop();
   } else {
-    let newDiv = document.createElement("td");
-    newDiv.classList.add("dropdown");
-    newDiv.isDropdown = true;
+    let node = document.createElement("td");
+    node.classList.add("dropdown");
+    node.isDropdown = true;
     
     let newSelect = document.createElement("select");
     newSelect.classList.add("hidden-select");
     newSelect.addEventListener('click', selectClicked, true);
     newSelect.addEventListener('change', selectChanged, true);
+    /* newSelect.addEventListener('click', () => {console.log('click')}, true);
+    newSelect.addEventListener('touchstart', () => {console.log('touchstart')}, true);
+    newSelect.addEventListener('touchend', (event) => {console.log('touchend'); event.preventDefault()}, true);
+    newSelect.addEventListener('touchmove', () => {console.log('touchmove')}, true); */
     newSelect.innerHTML = `<option disabled selected style="display:none;"><option>1</option><option>2</option><option>3</option>`;
     
-    newDiv.append(newSelect);
-    return newDiv;
+    node.append(newSelect);
+    return node;
   }
 }
 
@@ -374,6 +387,24 @@ function buttonClicked(event) {
       button.classList.remove(button.classList[1]);
     if (style !== null)
       button.classList.add(style);
+  }
+}
+
+function onTouchStart(event) {
+  console.log("touch start");
+  touchMoved = false;
+}
+
+function onTouchMove(event) {
+  console.log("touch move");
+  touchMoved = true;
+}
+
+function onTouchEnd(event) {
+  console.log("touch end");
+  if (!touchMoved) {
+    buttonClicked(event);
+    event.preventDefault();
   }
 }
 
