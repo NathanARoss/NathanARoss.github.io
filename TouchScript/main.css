@@ -81,10 +81,6 @@ option {
   user-select: none;
 }
 
-.item {
-  cursor: pointer;
-}
-
 .dropdown {
   position: relative;
 }
