@@ -85,6 +85,10 @@ option {
   position: relative;
 }
 
+.item {
+  cursor: default;
+}
+
 .global-var {
   color: #9876AA;
 }
