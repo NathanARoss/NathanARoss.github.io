@@ -49,6 +49,11 @@ table {
   border: none;
 }
 
+option {
+  background-color: gray;
+  color: white;
+}
+
 /* The append button has a minimum size, but grows to fill remaining space. */
 .append {
   position: relative;
@@ -59,17 +64,13 @@ table {
   background: url(ic_subdirectory_arrow_left_white_24px.svg) no-repeat center right;
 }
 
-option {
-  background-color: gray;
-  color: white;
-}
-
 .indentation {
   width: 0.001px; /* Webkit treats a width of 0 as a request to fill remaining space */
   padding: 0;
   border: 0;
   border-color: #444;
   border-style: solid;
+  box-sizing: border-box;
 }
 
 .item, .dropdown {

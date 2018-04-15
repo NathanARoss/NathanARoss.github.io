@@ -303,7 +303,7 @@ function loadRow(row, rowDiv) {
 	rowDiv.append(appendButton);
 	
 	const indentation = getIndentation(row);
-	rowNodes[0].style.minWidth = Math.max(0, 8 * indentation) + "px";
+	rowNodes[0].style.minWidth = 8 * indentation + "px";
 	rowNodes[0].style.borderRightWidth =  indentation ? "4px" : "0px";
 }
 
