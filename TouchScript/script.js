@@ -430,7 +430,7 @@ function Script() {
       let funcId = this.functions.length;
       this.functions.push(newFunc);
       let key = newFunc.scope ? `${this.classes[newFunc.scope].name}.${newFunc.name}` : newFunc.name;
-      this.keywordMap.set(key, funcId);
+      this.functionMap.set(key, funcId);
       line.push( makeItemWithMeta(FUNCTION_DEFINITION, newFunc.returnType, funcId) );
     }
     else {

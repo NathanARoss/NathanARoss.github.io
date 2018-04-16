@@ -236,5 +236,5 @@ function getBuiltIns() {
   System.print(message)
   `
   
-  return [CLASSES, CLASS_MAP, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, sampleScripts[0]];
+  return [CLASSES, CLASS_MAP, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, sampleScripts[1]];
 }
