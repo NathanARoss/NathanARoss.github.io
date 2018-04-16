@@ -1,37 +1,356 @@
 "use strict";
 
-let nextVariable = 0;
-let variableNames = {};
-
-let nextNumericLiteral = 0;
-let numericLiterals = {};
-
-let nextStringLiteral = 0;
-let stringLiterals = {};
-
-let nextComment = 0;
-let comments = {};
-
-let script = parseScript(sampleScripts[0])
-
-
-
-function parseScript(source) {
-  //define specific item values to test for later
-  const FUNC = makeItem(KEYWORD, KEYWORD_TABLE.func);
+function Script() {
+  const VARIABLE_REFERENCE = 0;
+  const FUNCTION_DEFINITION = 1;
+  const FUNCTION_CALL = 2;
+  const ARGUMENT_HINT = 3;
+  const ARGUMENT_LABEL = 4;
+  const SYMBOL = 5;
+  const KEYWORD = 6;
+  const NUMERIC_LITERAL = 7;
+  const STRING_LITERAL = 8;
+  const COMMENT = 9;
   
-  let wholeScript = [];
+
+  this.nextVariable = 0;
+  this.variableNames = {};
+  
+  this.nextNumericLiteral = 0;
+  this.numericLiterals = {};
+  
+  this.nextStringLiteral = 0;
+  this.stringLiterals = {};
+  
+  this.nextComment = 0;
+  this.comments = {};
+  
+  this.data = [];
+  
+  let sampleScript;
+  {
+    const [CLASSES, CLASS_MAP, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, SAMPLE_SCRIPT]
+      = getBuiltIns();
+    
+    this.classes = CLASSES;
+    this.classMap = CLASS_MAP;
+    this.functions = FUNCTIONS;
+    this.functionMap = FUNCTION_MAP;
+    this.symbols = SYMBOLS;
+    this.symbolMap = SYMBOL_MAP;
+    this.keywords = KEYWORDS;
+    this.jsKeywords = JS_KEYWORDS;
+    this.keywordMap = KEYWORD_MAP;
+    sampleScript = SAMPLE_SCRIPT;
+    }
+  
+  
+  function makeItemWithMeta(format, meta, value) {
+    format &= 0xF;
+    meta &= 0xFFF;
+    value &= 0xFFFF;
+    
+    return format << 28 | meta << 16 | value;
+  }
+  
+  function makeItem(format, value) {
+    format &= 0xF;
+    value &= 0xFFFFFFF;
+    
+    return format << 28 | value;
+  }
+  
+  //Object.defineProperty(this, 'length', {get: () => {return this.data.length;}});
+  this.getRowCount = function() {
+    return this.data.length;
+  }
+  
+  this.getItemCount = function(row) {
+    row = row|0;
+    
+    if (row < 0 || row >= this.data.length) {
+      console.log(`attempting to get item count of row ${row}`);
+      return 0;
+    }
+    
+    return this.data[row].length - 1;
+  }
+  
+  this.getItem = function(row, col) {
+    row = row|0;
+    col = (col|0) + 1; //col paremeter starts at 0, but script[row][0] contains line metadata like indentation
+    
+    if (row < 0 || row >= this.data.length || col < 1 || col >= this.data[row].length)
+      return [`${row}`, `${col}`, "error", false];
+    
+    let item = this.data[row][col];
+    let format = item >>> 28; //4 bits
+    let data = item & 0xFFFFFFF; //28 bits
+    let meta = data >>> 16; //12 bits
+    let value = item & 0xFFFF; //16 bits
+    
+    switch (format) {
+      case VARIABLE_REFERENCE:
+      {
+        let name = this.variableNames[value] || `var${value}`;
+        
+        if (meta === 0) {
+          return [name, null, null, true];
+        } else {
+          let type = this.classes[meta].name;
+          return [type, name, "keyword-default", true];
+        }
+        break;
+      }
+      
+      case FUNCTION_DEFINITION:
+      {
+        let func = this.functions[value];
+        
+        if (meta === 0) {
+          return [func.name, null, "method-definition", true];
+        } else {
+          let type = this.classes[meta].name;
+          return [type, func.name, "keyword-def", true];
+        }
+        break;
+      }
+      
+      case FUNCTION_CALL:
+      {
+        let func = this.functions[value];
+        
+        if (meta === 0) {
+          return [func.name, null, "method-call", true];
+        } else {
+          let type = this.classes[meta].name;
+          return [type, func.name, "keyword-call", true];
+        }
+        break;
+      }
+      
+      case ARGUMENT_HINT:
+        return [`argument hint`, null, "comment", false];
+      
+      case ARGUMENT_LABEL:
+        return [`argument label`, null, "comment", false];
+      
+      case SYMBOL:
+        return [this.symbols[data], null, null, false];
+  
+      case KEYWORD:
+        return [this.keywords[data], null, "keyword", false];
+        
+      case NUMERIC_LITERAL:
+        return [this.numericLiterals[data], null, "numeric", true];
+      
+      case STRING_LITERAL:
+        return [this.stringLiterals[data], null, "string", true];
+      
+      case COMMENT:
+        return [this.comments[data], null, "comment", false];
+      
+      default:
+        return ["format", '${format}', "error", false];
+    }
+  }
+  
+  
+  this.getIndentation = function(row) {
+    row |= 0;
+    return this.data[row][0] & 0xFFFF;
+  }
+  
+  this.isStartingScope = function(row) {
+    row |= 0;
+    return this.data[row][0] >>> 31;
+  }
+  
+  
+  /*
+  Generates a Function object from the binary script.
+  Run the function with an object argument to attach .initialize(), .onResize(), and .onDraw() to the object
+  */
+  this.getJavaScript = function() {
+    let js = "";
+    
+    for (let row = 0; row < this.data.length; ++row) {
+      let indentation = this.getIndentation(row);
+      js += " ".repeat(indentation);
+      
+      let needsEndParenthesis = false;
+      let needsCommas = false;
+      
+      let rowData = this.data[row];
+      for (let col = 1; col < rowData.length; ++col) {
+          let item = this.data[row][col];
+          let format = item >>> 28;
+          let value = item & 0xFFFF; //least sig 16 bits
+          
+          //if the first item is a keyword that begins a parenthesis
+          if (format === KEYWORD) {
+            let keyword = this.jsKeywords[value];
+            if (keyword && keyword.charAt(keyword.length - 1) === "(") {
+              needsEndParenthesis = true;
+            }
+          }
+          
+          //append an end parenthesis to the end of the line
+          
+          switch (format) {
+            case VARIABLE_REFERENCE:
+              if (needsCommas)
+                js += `v${value}, `;
+              else
+                js += `v${value} `;
+              break;
+            
+            case FUNCTION_DEFINITION:
+            {
+              let func = this.functions[value];
+              
+              let funcName;
+              if ("js" in func) {
+                js += `state.${func.js} = function ( `;
+              } else {
+                js += `function f${value} (`
+              }
+              
+              needsEndParenthesis = true;
+              needsCommas = true;
+              break;
+            }
+            
+            case FUNCTION_CALL:
+            {
+              let func = this.functions[value];
+              
+              let funcName;
+              if ("js" in func) {
+                funcName = func.js;
+              } else {
+                funcName = `f${value}`;
+              }
+              
+              js += `${funcName} `;
+              break;
+            }
+            
+            case ARGUMENT_HINT:
+              return `/*argument hint*/ `;
+            
+            case ARGUMENT_LABEL:
+              return `/*argument label*/ `;
+              
+            case SYMBOL:
+              js += `${this.symbols[value]} `;
+              break;
+              
+            case KEYWORD:
+              if (this.jsKeywords[value] !== null)
+                js += `${this.jsKeywords[value]} `;
+              break;
+              
+            case NUMERIC_LITERAL:
+              js += `${this.numericLiterals[value]} `;
+              break;
+            
+            case STRING_LITERAL:
+              js += `"${this.stringLiterals[value]}" `;
+              break;
+            
+            case COMMENT:
+              js += `/*${this.comments[value]}*/ `;
+              break;
+            
+            default:
+              js += `/*format ${format}*/ `;
+          }
+      }
+      
+      if (needsEndParenthesis)
+        js += ") ";
+      
+      if (this.isStartingScope(row))
+        js += "{ ";
+      
+      if (row < this.data.length - 1) {
+        let nextIndentation = this.getIndentation(row + 1);
+        let expectedIndentation = indentation + this.isStartingScope(row);
+        if (nextIndentation < expectedIndentation) {
+          js += "}";
+        }
+      }
+      
+      if (row == this.data.length - 1 && indentation > 0)
+        js += "}".repeat(indentation);
+      
+      js += "\n";
+    }
+    
+    console.log(js);
+    
+    //compile the string into a function and attach it to an object
+    let func = new Function("state", js);
+    let state = {};
+    func(state);
+    return state;
+  }
+  
+  
+  
+  this.clickItem = function(row, col) {
+    row = row|0;
+    col = col|0;
+    
+    const item = this.data[row][col + 1];
+    
+    const LET = makeItem(KEYWORD, this.keywordMap.get("let"));
+    const VAR = makeItem(KEYWORD, this.keywordMap.get("var"));
+    const WHILE = makeItem(KEYWORD, this.keywordMap.get("while"));
+    const UNTIL = makeItem(KEYWORD, this.keywordMap.get("until"));
+    const DEFAULT = makeItem(KEYWORD, this.keywordMap.get("default"));
+    const BREAK = makeItem(KEYWORD, this.keywordMap.get("break"));
+    
+    const toggles = [LET, VAR, WHILE, UNTIL, DEFAULT, BREAK];
+    
+    //console.log(`item ${item} let ${LET} VAR ${VAR}`);
+    
+    for (let i = 0; i < toggles.length; ++i) {
+      if (item === toggles[i]) {
+        this.data[row][col + 1] = toggles[i ^ 1];
+        return {instant: this.getItem(row, col)};
+      }
+    }
+    
+    return {};
+  }
+  
+  this.insertRow = function(row) {
+    this.data.splice(row, 0, [this.getIndentation(row-1) + this.isStartingScope(row-1)]);
+  }
+  
+  this.deleteRow = function(row) {
+    this.data.splice(row, 1);
+  }
+  
+  
+  
+  //load script data
+  //define specific item values to test for later
+  const FUNC = makeItem(KEYWORD, this.keywordMap.get("func"));
+  
   let line = [0];
   let indentation = 0;
   
-  let tokens = source.match(/(?:\/\*(?:[^*]|(?:\*+(?:[^*\/])))*\*+\/)|(?:\/\/.*)|(?:[^\s(,)=+\-*\/"]+|"[^"]*")+|[\n,()]|[=+\-\*\/]+/g);
+  let tokens = sampleScript.match(/(?:\/\*(?:[^*]|(?:\*+(?:[^*\/])))*\*+\/)|(?:\/\/.*)|(?:[^\s(,)=+\-*\/"]+|"[^"]*")+|[\n,()]|[=+\-\*\/]+/g);
   
   for (let i = 0; i < tokens.length; ++i) {
     let token = tokens[i];
     
     //figure out what this token refers to
     if (token === "\n") {
-      wholeScript.push(line);
+      this.data.push(line);
       line = [indentation];
     }
     else if (token === "{") {
@@ -44,48 +363,48 @@ function parseScript(source) {
       line[0] = (line[0] & 0xFFFF0000) | indentation;
     }
     else if (token.startsWith('"')) {
-      stringLiterals[nextStringLiteral] = token.substring(1, token.length - 1);
-      line.push( makeItem(STRING_LITERAL, nextStringLiteral++) );
+      this.stringLiterals[this.nextStringLiteral] = token.substring(1, token.length - 1);
+      line.push( makeItem(STRING_LITERAL, this.nextStringLiteral++) );
     }
     else if (token.startsWith("//")) {
-      comments[nextComment] = token.substring(2);
-      line.push( makeItem(COMMENT, nextComment++));
+      this.comments[this.nextComment] = token.substring(2);
+      line.push( makeItem(COMMENT, this.nextComment++));
     }
     else if (token.startsWith("/*")) {
-      comments[nextComment] = token.substring(2, token.length - 2);
-      line.push( makeItem(COMMENT, nextComment++));
+      this.comments[this.nextComment] = token.substring(2, token.length - 2);
+      line.push( makeItem(COMMENT, this.nextComment++));
     }
     else if(!isNaN(token)) {
-      numericLiterals[nextNumericLiteral] = token;
-      line.push( makeItem(NUMERIC_LITERAL, nextNumericLiteral++) );
+      this.numericLiterals[this.nextNumericLiteral] = token;
+      line.push( makeItem(NUMERIC_LITERAL, this.nextNumericLiteral++) );
     }
-    else if (token in SYMBOL_TABLE) {
-      line.push( makeItem(SYMBOL, SYMBOL_TABLE[token]) );
+    else if (this.symbolMap.has(token)) {
+      line.push( makeItem(SYMBOL, this.symbolMap.get(token)) );
     }
-    else if (token in KEYWORD_TABLE) {
-      line.push( makeItem(KEYWORD, KEYWORD_TABLE[token]) );
+    else if (this.keywordMap.has(token)) {
+      line.push( makeItem(KEYWORD, this.keywordMap.get(token)) );
     }
-    else if (token in FUNCTION_TABLE) {
-      let funcId = FUNCTION_TABLE[token];
-      line.push( makeItemWithMeta(FUNCTION_CALL, FUNCTIONS[funcId].scope, funcId) );
+    else if (this.functionMap.has(token)) {
+      let funcId = this.functionMap.get(token);
+      line.push( makeItemWithMeta(FUNCTION_CALL, this.functions[funcId].scope, funcId) );
     }
     else if (line[line.length - 1] === FUNC) {
       let newFunc = {};
       
-      newFunc.scope = CLASS_TABLE.Hidden;
+      newFunc.scope = 0;
       
       let indexOf = token.indexOf(":");
       if (indexOf !== -1) {
         newFunc.name = token.substring(0, indexOf);
-        newFunc.returnType = CLASS_TABLE[token.substring(indexOf + 1)];
+        newFunc.returnType = this.classMap.get(token.substring(indexOf + 1));
       }
       else {
         newFunc.name = token;
-        newFunc.returnType = CLASS_TABLE.Hidden;
+        newFunc.returnType = 0;
       }
       
       //detect which functions are called from outside
-      if (newFunc.scope === CLASS_TABLE.Hidden) {
+      if (newFunc.scope === 0) {
         switch (newFunc.name) {
           case "onResize":
           case "initialize":
@@ -102,16 +421,16 @@ function parseScript(source) {
         let indexOf = tokens[j].indexOf(":");
         let parameter = {};
         parameter.name = tokens[j].substring(0, indexOf);
-        parameter.type = CLASS_TABLE[tokens[j].substring(indexOf + 1)];
+        parameter.type = this.classMap.get(tokens[j].substring(indexOf + 1));
         newFunc.parameters.push(parameter);
         
         //console.log("parameter name: " + parameter.name + " type: " + CLASSES[parameter.type].name);
       }
       
-      let funcId = FUNCTIONS.length;
-      FUNCTIONS.push(newFunc);
-      let key = newFunc.scope ? `${CLASSES[newFunc.scope].name}.${newFunc.name}` : newFunc.name;
-      FUNCTION_TABLE[key] = funcId;
+      let funcId = this.functions.length;
+      this.functions.push(newFunc);
+      let key = newFunc.scope ? `${this.classes[newFunc.scope].name}.${newFunc.name}` : newFunc.name;
+      this.keywordMap.set(key, funcId);
       line.push( makeItemWithMeta(FUNCTION_DEFINITION, newFunc.returnType, funcId) );
     }
     else {
@@ -119,314 +438,21 @@ function parseScript(source) {
       let name = (indexOf === -1) ? token : token.substring(0, indexOf);
       
       let id = -1;
-      for (let i = 0, keys = Object.keys(variableNames); i < keys.length; ++i) {
-        if (variableNames[i] === name) {
+      for (let i = 0, keys = Object.keys(this.variableNames); i < keys.length; ++i) {
+        if (this.variableNames[i] === name) {
           id = i;
           break;
         }
       }
       
       if (id === -1) {
-        variableNames[nextVariable] = name;
-        id = nextVariable++;
+        this.variableNames[this.nextVariable] = name;
+        id = this.nextVariable++;
       }
       
-      let type = (indexOf === -1) ? CLASS_TABLE.Hidden : CLASS_TABLE[token.substring(indexOf + 1)];
+      let type = (indexOf === -1) ? 0 : this.classMap.get(token.substring(indexOf + 1));
       
       line.push( makeItemWithMeta(VARIABLE_REFERENCE, type, id) );
     }
   }
-  
-  return wholeScript;
-}
-
-function makeItemWithMeta(format, meta, value) {
-  format &= 0xF;
-  meta &= 0xFFF;
-  value &= 0xFFFF;
-  
-  return format << 28 | meta << 16 | value;
-}
-
-function makeItem(format, value) {
-  format &= 0xF;
-  value &= 0xFFFFFFF;
-  
-  return format << 28 | value;
-}
-
-
-
-
-function getRowCount() {
-  return script.length;
-}
-
-
-
-function getItemCount(row) {
-  row = row|0;
-  
-  if (row < 0 || row >= script.length) {
-    console.log(`attempting to get item count of row ${row}`);
-    return 0;
-  }
-  
-  return script[row].length - 1;
-}
-
-
-
-function getItem(row, col) {
-  row = row|0;
-  col = (col|0) + 1; //col paremeter starts at 0, but script[row][0] contains line metadata like indentation
-  
-  if (row < 0 || row >= script.length || col < 1 || col >= script[row].length)
-    return [`${row}, ${col}`, "error", false];
-  
-  let item = script[row][col];
-  let format = item >>> 28; //4 bits
-  let data = item & 0xFFFFFFF; //28 bits
-  let meta = data >>> 16; //12 bits
-  let value = item & 0xFFFF; //16 bits
-  
-  switch (format) {
-    case VARIABLE_REFERENCE:
-    {
-      let name = variableNames[value] || `var${value}`;
-      
-      if (meta === CLASS_TABLE.Hidden) {
-        return [name, null, null, true];
-      } else {
-        let type = CLASSES[meta].name;
-        return [type, name, "keyword-default", true];
-      }
-      break;
-    }
-    
-    case FUNCTION_DEFINITION:
-    {
-      let func = FUNCTIONS[value];
-      
-      if (meta === CLASS_TABLE.Hidden) {
-        return [func.name, null, "method-definition", true];
-      } else {
-        let type = CLASSES[meta].name;
-        return [type, func.name, "keyword-def", true];
-      }
-      break;
-    }
-    
-    case FUNCTION_CALL:
-    {
-      let func = FUNCTIONS[value];
-      
-      if (meta === CLASS_TABLE.Hidden) {
-        return [func.name, null, "method-call", true];
-      } else {
-        let type = CLASSES[meta].name;
-        return [type, func.name, "keyword-call", true];
-      }
-      break;
-    }
-    
-    case ARGUMENT_HINT:
-      return [`argument hint`, null, "comment", false];
-    
-    case ARGUMENT_LABEL:
-      return [`argument label`, null, "comment", false];
-    
-    case SYMBOL:
-      return [SYMBOLS[data], null, null, false];
-
-    case KEYWORD:
-      return [KEYWORDS[data], null, "keyword", false];
-      
-    case NUMERIC_LITERAL:
-      return [numericLiterals[data], null, "numeric", true];
-    
-    case STRING_LITERAL:
-      return [stringLiterals[data], null, "string", true];
-    
-    case COMMENT:
-      return [comments[data], null, "comment", false];
-    
-    default:
-      return ["format", '${format}', "error", false];
-  }
-}
-
-
-function getIndentation(row) {
-  row |= 0;
-  return script[row][0] & 0xFFFF;
-}
-
-function isStartingScope(row) {
-  row |= 0;
-  return script[row][0] >>> 31;
-}
-
-
-/*
-Generates a Function object from the binary script.
-Run the function with an object argument to attach .initialize(), .onResize(), and .onDraw() to the object
-*/
-function getJavaScript() {
-  let js = "";
-  
-  for (let row = 0; row < script.length; ++row) {
-    let indentation = getIndentation(row);
-    js += " ".repeat(indentation);
-    
-    let needsEndParenthesis = false;
-    let needsCommas = false;
-    
-    let rowData = script[row];
-    for (let col = 1; col < rowData.length; ++col) {
-        let item = script[row][col];
-        let format = item >>> 28;
-        let value = item & 0xFFFF; //least sig 16 bits
-        
-        //if the first item is a keyword that begins a parenthesis
-        if (format === KEYWORD) {
-          let keyword = JS_KEYWORDS[value];
-          if (keyword && keyword.charAt(keyword.length - 1) === "(") {
-            needsEndParenthesis = true;
-          }
-        }
-        
-        //append an end parenthesis to the end of the line
-        
-        switch (format) {
-          case VARIABLE_REFERENCE:
-            if (needsCommas)
-              js += `v${value}, `;
-            else
-              js += `v${value} `;
-            break;
-          
-          case FUNCTION_DEFINITION:
-          {
-            let func = FUNCTIONS[value];
-            
-            let funcName;
-            if ("js" in func) {
-              js += `state.${func.js} = function ( `;
-            } else {
-              js += `function f${value} (`
-            }
-            
-            needsEndParenthesis = true;
-            needsCommas = true;
-            break;
-          }
-          
-          case FUNCTION_CALL:
-          {
-            let func = FUNCTIONS[value];
-            
-            let funcName;
-            if ("js" in func) {
-              funcName = func.js;
-            } else {
-              funcName = `f${value}`;
-            }
-            
-            js += `${funcName} `;
-            break;
-          }
-          
-          case ARGUMENT_HINT:
-            return `/*argument hint*/ `;
-          
-          case ARGUMENT_LABEL:
-            return `/*argument label*/ `;
-            
-          case SYMBOL:
-            js += `${SYMBOLS[value]} `;
-            break;
-            
-          case KEYWORD:
-            if (JS_KEYWORDS[value] !== null)
-              js += `${JS_KEYWORDS[value]} `;
-            break;
-            
-          case NUMERIC_LITERAL:
-            js += `${numericLiterals[value]} `;
-            break;
-          
-          case STRING_LITERAL:
-            js += `"${stringLiterals[value]}" `;
-            break;
-          
-          case COMMENT:
-            js += `/*${comments[value]}*/ `;
-            break;
-          
-          default:
-            js += `/*format ${format}*/ `;
-        }
-    }
-    
-    if (needsEndParenthesis)
-      js += ") ";
-    
-    if (isStartingScope(row))
-      js += "{ ";
-    
-    if (row < script.length - 1) {
-      let nextIndentation = getIndentation(row + 1);
-      let expectedIndentation = indentation + isStartingScope(row);
-      if (nextIndentation < expectedIndentation) {
-        js += "}";
-      }
-    }
-    
-    if (row == script.length - 1 && indentation > 0)
-      js += "}".repeat(indentation);
-    
-    js += "\n";
-  }
-  
-  console.log(js);
-  
-  return Function(js);
-}
-
-
-
-function clickItem(row, col) {
-  row = row|0;
-  col = col|0;
-  
-  const item = script[row][col + 1];
-  
-  const LET = makeItem(KEYWORD, KEYWORD_TABLE.let);
-  const VAR = makeItem(KEYWORD, KEYWORD_TABLE.var);
-  const WHILE = makeItem(KEYWORD, KEYWORD_TABLE.while);
-  const UNTIL = makeItem(KEYWORD, KEYWORD_TABLE.until);
-  const DEFAULT = makeItem(KEYWORD, KEYWORD_TABLE.default);
-  const BREAK = makeItem(KEYWORD, KEYWORD_TABLE.break);
-  
-  const toggles = [LET, VAR, WHILE, UNTIL, DEFAULT, BREAK];
-  
-  //console.log(`item ${item} let ${LET} VAR ${VAR}`);
-  
-  for (let i = 0; i < toggles.length; ++i) {
-    if (item === toggles[i]) {
-      script[row][col + 1] = toggles[i ^ 1];
-      return {instant: getItem(row, col)};
-    }
-  }
-  
-  return {};
-}
-
-function insertRow(row) {
-  script.splice(row, 0, [getIndentation(row-1) + isStartingScope(row-1)]);
-}
-
-function deleteRow(row) {
-  script.splice(row, 1);
 }
