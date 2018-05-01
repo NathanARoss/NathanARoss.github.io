@@ -24,30 +24,30 @@ let state = {}; //holds the js version of the script
 
 let touchMoved = false;
 
+const script = new Script();
+
 
 
 function resizeListener() {
-  let rowCount = getRowCount();
-  
 	visibleRowCount = Math.ceil(window.innerHeight / rowHeight);
 	let newloadedRowCount = visibleRowCount + 6;
-	newloadedRowCount = Math.min(newloadedRowCount, rowCount);
+	newloadedRowCount = Math.min(newloadedRowCount, script.getRowCount());
 	let diff = newloadedRowCount - loadedRowCount;
 	loadedRowCount = newloadedRowCount;
 	
 	//allow the viewport to scroll past the end of the list
 	if (window.location.hash === "")
-	  document.body.style.height = (rowCount + visibleRowCount - 2) * rowHeight + "px";
+	  document.body.style.height = (script.getRowCount() + visibleRowCount - 2) * rowHeight + "px";
   else
     document.body.style.height = "auto";
 	
 	if (diff > 0) {
 		for(let i = 0; i < diff; ++i) {
-      let div = createDiv();
+      let div = createRow();
       let row = list.childNodes.length + firstLoadedRowPosition;
 			
 			//if the user is scrolled all the way to the bottom, prepend instead of appending
-			if (row < rowCount) {
+			if (row < script.getRowCount()) {
 				loadRow(row, div);
 	      list.appendChild(div);
 			} else {
@@ -98,7 +98,7 @@ window.onscroll = function() {
 	/**/
 	
 	//keep a buffer of 2 unseen elements in either direction
-	while ((firstVisibleRowPosition - 4 > firstLoadedRowPosition) && (firstLoadedRowPosition < getRowCount() - loadedRowCount)) {
+	while ((firstVisibleRowPosition - 4 > firstLoadedRowPosition) && (firstLoadedRowPosition < script.getRowCount() - loadedRowCount)) {
     let row = loadedRowCount + firstLoadedRowPosition;
     
     let firstChild = list.firstChild;
@@ -127,7 +127,7 @@ window.onscroll = function() {
 }
 
 
-function createDiv() {
+function createRow() {
 	let outerDiv = document.createElement("div");
 	outerDiv.classList.add("outer-row");
 	
@@ -161,16 +161,23 @@ function createDiv() {
 
 /* prepare the div for garbage collection by recycling all it's items */
 function prepareForGarbageCollection(div) {
-  let rowDiv = div.firstChild.firstChild;
-  let rowNodes = rowDiv.childNodes;
+  let table = div.firstChild.firstChild;
+  let tableCells = table.childNodes;
 	
-	let toRemove =  rowNodes.length;
-	for (let i = 2; i < toRemove; ++i) {
-	  let lastChild = rowNodes[rowNodes.length - 1];
-	  rowDiv.removeChild(lastChild);
-	  recycleButton(lastChild);
+	for (let i = tableCells.length - 2; i > 0; --i) {
+	  let node = tableCells[i];
+	  table.removeChild(node);
+	  
+	  if (node.isDropdown) {
+      cleanDropdown(node);
+      dropdownPool.push(node);
+    } else {
+      node.innerHTML = "";
+	    buttonPool.push(node);
+    }
 	}
-	rowDiv.removeEventListener('change', appendChanged);
+	
+	tableCells[1].removeEventListener('change', appendChanged);
 	
 	console.log(`recycling div`);
 }
@@ -178,7 +185,7 @@ function prepareForGarbageCollection(div) {
 
 
 
-function insertDiv(row) {
+function insertRow(row) {
   //grab an offscreen div to modify, or create a new one if the entire script is on screen
   let rowToModify;
   
@@ -194,7 +201,7 @@ function insertDiv(row) {
     ++firstLoadedRowPosition;
   } else {
     //all divs on screen, create a new one
-    rowToModify = createDiv();
+    rowToModify = createRow();
   }
   
   loadRow(row, rowToModify);
@@ -207,7 +214,7 @@ function insertDiv(row) {
 }
 
 /* move the given row off screen and update its content, or garbage collect it if the entire script is on screen */
-function deleteDiv(row) {
+function deleteRow(row) {
   let lastLoaded = firstLoadedRowPosition + loadedRowCount - 1;
   let lastVisible = firstVisibleRowPosition + visibleRowCount - 1;
   
@@ -215,15 +222,15 @@ function deleteDiv(row) {
   list.removeChild(childToRemove);
   
   //move the removed div either above or below the visible list of items unless the entire script is already loaded
-  if (lastLoaded + 1 < getRowCount()) {
+  if (lastLoaded + 1 < script.getRowCount()) {
   	loadRow(row, childToRemove);
 	  list.appendChild(childToRemove);
-	  console.log(`appending deleted div row ${row} rowCount ${getRowCount()} lastLoaded ${lastLoaded}`);
+	  console.log(`appending deleted div row ${row} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
   }
   else if (firstLoadedRowPosition > 0) {
     loadRow(row, childToRemove);
     list.insertBefore(childToRemove, list.firstChild);
-    console.log(`prepending deleted div row ${row} rowCount ${getRowCount()} lastLoaded ${lastLoaded}`);
+    console.log(`prepending deleted div row ${row} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
   } else {
     //if the removed item can't be placed at either end of the list, get rid of it
     prepareForGarbageCollection(childToRemove);
@@ -242,10 +249,10 @@ function updateList(modifiedRow) {
     list.childNodes[i].firstChild.firstChild.row = i + firstLoadedRowPosition;
   }
   
-	loadedRowCount = Math.min(visibleRowCount + 6, getRowCount());
+	loadedRowCount = Math.min(visibleRowCount + 6, script.getRowCount());
   
   spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
-  document.body.style.height = (getRowCount() + visibleRowCount - 2) * rowHeight + "px";
+  document.body.style.height = (script.getRowCount() + visibleRowCount - 2) * rowHeight + "px";
   
   updateDebug();
 }
@@ -256,19 +263,19 @@ function updateList(modifiedRow) {
 function loadRow(row, rowDiv) {
 	row = row|0;
 	
-	let itemCount = getItemCount(row);
-  rowDiv = rowDiv.firstChild.firstChild;
-	rowDiv.row = row;
-  let rowNodes = rowDiv.childNodes;
+	let itemCount = script.getItemCount(row);
+  let table = rowDiv.firstChild.firstChild;
+	table.row = row;
+  let tableCells = table.childNodes;
   
-	let appendButton = rowNodes[rowNodes.length - 1];
-	rowDiv.removeChild(appendButton);
+	let appendButton = tableCells[tableCells.length - 1];
+	table.removeChild(appendButton);
 	
 	//remove the items of the table beyond the ones it will need
 	//the first node is the indentation
-	for (let i = rowNodes.length - 1; i > 0; --i) {
-	  let lastChild = rowNodes[i];
-	  rowDiv.removeChild(lastChild);
+	for (let i = tableCells.length - 1; i > 0; --i) {
+	  let lastChild = tableCells[i];
+	  table.removeChild(lastChild);
 	  
 	  if (lastChild.isDropdown) {
       cleanDropdown(lastChild);
@@ -281,7 +288,7 @@ function loadRow(row, rowDiv) {
 	
 	//add new items
 	for (let col = 0; col < itemCount; ++col) {
-	  const [line1, line2, style, dropDown] = getItem(row, col);
+	  const [line1, line2, style, dropDown] = script.getItem(row, col);
     
     let node = dropDown ? getDropdown() : getButton();
     node.col = col;
@@ -297,14 +304,14 @@ function loadRow(row, rowDiv) {
     if (style !== null)
       node.classList.add(style);
     
-    rowDiv.append(node);
+    table.append(node);
 	}
 	
-	rowDiv.append(appendButton);
+	table.append(appendButton);
 	
-	const indentation = getIndentation(row);
-	rowNodes[0].style.minWidth = 8 * indentation + "px";
-	rowNodes[0].style.borderRightWidth =  indentation ? "4px" : "0px";
+	const indentation = script.getIndentation(row);
+	tableCells[0].style.minWidth = 8 * indentation + "px";
+	tableCells[0].style.borderRightWidth =  indentation ? "4px" : "0px";
 }
 
 
@@ -372,7 +379,7 @@ function buttonClicked(event) {
   
   console.log(`button clicked ${row},${col}`);
   
-  let response = clickItem(row, col);
+  let response = script.clickItem(row, col);
   if (response.instant) {
 	  const [line1, line2, style, dropDown] = response.instant;
     
@@ -438,13 +445,13 @@ function appendChanged(event) {
   //console.log(`append changed ${row},${select.value},${select.selectedIndex}`);
   
   if (select.selectedIndex === 1) {
+    script.insertRow(row + 1);
     insertRow(row + 1);
-    insertDiv(row + 1);
     console.log(`inserting row ${row}`);
   }
   if (select.selectedIndex === 2) {
+    script.deleteRow(row);
     deleteRow(row);
-    deleteDiv(row);
   }
   
   select.value = "";
@@ -480,7 +487,7 @@ function hashListener() {
     }
     
     state = null;
-    document.body.style.height = (getRowCount() + visibleRowCount - 2) * rowHeight + "px";
+    document.body.style.height = (script.getRowCount() + visibleRowCount - 2) * rowHeight + "px";
   }
   
   //returning to canvas
@@ -491,9 +498,7 @@ function hashListener() {
     if (renderLoop === 0)
       renderLoop = window.requestAnimationFrame(draw);
     
-    let scriptFunction = getJavaScript();
-    state = {};
-    scriptFunction(state);
+    state = script.getJavaScript(state);
     
   	if (!state.onDraw) {
   	  console.log("state.onDraw() is not defined");
