@@ -274,7 +274,7 @@ function loadRow(row, rowDiv) {
 function getButton(text) {
   if (buttonPool.length !== 0) {
     let node = buttonPool.pop();
-    node.nodeValue = text;
+    node.firstChild.nodeValue = text;
     return node;
   } else {
     let node = document.createElement("button");
