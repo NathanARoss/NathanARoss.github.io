@@ -51,6 +51,7 @@ body {
 
 .indentation {
   padding: 0;
+  border-right: 4px;
   border-color: #444;
   border-style: solid;
 }
@@ -59,9 +60,13 @@ body {
   text-align: center;
   vertical-align: middle;
   padding: 0 4px;
-  color: white;
   cursor: default;
   white-space: pre;
+  color: white;
+}
+
+.default {
+  /* unstyled element.  This must exist so it can be replaced by other stylings */
 }
 
 .global-var {

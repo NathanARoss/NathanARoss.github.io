@@ -95,7 +95,7 @@ function Script() {
         let name = this.variableNames[value] || `var${value}`;
         
         if (meta === 0) {
-          return [name, null];
+          return [name, "default"];
         } else {
           let type = this.classes[meta].name;
           return [type + '\n' + name, "keyword-default"];
@@ -136,7 +136,7 @@ function Script() {
         return [`argument label`, "comment"];
       
       case SYMBOL:
-        return [this.symbols[data], null];
+        return [this.symbols[data], "default"];
   
       case KEYWORD:
         return [this.keywords[data], "keyword"];

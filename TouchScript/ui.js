@@ -242,8 +242,7 @@ function loadRow(row, rowDiv) {
 	innerRow.row = row;
   let items = innerRow.childNodes;
 	
-	//remove all the item nodes
-	//[0] is indentation, [1] is append button
+	//remove all the item nodes. [0] is indentation, [1] is append button
 	for (let i = items.length - 1; i > 1; --i) {
 	  let lastChild = items[i];
 	  innerRow.removeChild(lastChild);
@@ -254,35 +253,25 @@ function loadRow(row, rowDiv) {
 	for (let col = 0; col < itemCount; ++col) {
 	  const [text, style] = script.getItem(row, col);
     
-    let node = getButton(text);
-    node.col = col;
-	  
-    if (node.classList.length == 2)
-      node.classList.remove(node.classList[1]);
-    if (style !== null)
-      node.classList.add(style);
+    let node;
+    if (buttonPool.length !== 0) {
+      node = buttonPool.pop();
+      node.firstChild.nodeValue = text;
+      node.classList.replace(node.classList[1], style);
+    } else {
+      node = document.createElement("button");
+      node.appendChild(document.createTextNode(text));
+      node.classList.add("item", style);
+      node.onclick = buttonClicked;
+    }
     
+    node.col = col;
     innerRow.appendChild(node);
 	}
 	
 	const indentation = script.getIndentation(row);
 	items[0].style.width = 8 * indentation + "px";
-	items[0].style.borderRightWidth =  indentation ? "4px" : "0px";
-}
-
-
-function getButton(text) {
-  if (buttonPool.length !== 0) {
-    let node = buttonPool.pop();
-    node.firstChild.nodeValue = text;
-    return node;
-  } else {
-    let node = document.createElement("button");
-    node.classList.add("item");
-    node.onclick = buttonClicked;
-    node.appendChild(document.createTextNode(text));
-    return node;
-  }
+	items[0].style.display =  indentation ? "default" : "none";
 }
 
 
@@ -299,11 +288,7 @@ function buttonClicked(event) {
   if (response.instant) {
 	  const [text, style] = response.instant;
     button.firstChild.nodeValue = text;
-	  
-    if (button.classList.length == 2)
-      button.classList.remove(button.classList[1]);
-    if (style !== null)
-      button.classList.add(style);
+	  button.classList.replace(button.classList[1], style);
   }
 }
 
