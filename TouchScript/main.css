@@ -34,11 +34,11 @@ body {
   }
 }
 
-.append, .indentation, .item {
+button {
   background: transparent;
   border: 0;
+  padding: 0;
   height: var(--line-height);
-  box-sizing: border-box;
 }
 
 /* The append button has a minimum size, but grows to fill remaining space. */
@@ -50,17 +50,13 @@ body {
 }
 
 .indentation {
-  padding: 0;
   border-right: 4px;
   border-color: #444;
   border-style: solid;
 }
 
 .item {
-  text-align: center;
-  vertical-align: middle;
   padding: 0 4px;
-  cursor: default;
   white-space: pre;
   color: white;
 }

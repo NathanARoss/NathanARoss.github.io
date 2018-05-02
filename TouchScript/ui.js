@@ -257,14 +257,13 @@ function loadRow(row, rowDiv) {
     if (buttonPool.length !== 0) {
       node = buttonPool.pop();
       node.firstChild.nodeValue = text;
-      node.classList.replace(node.classList[1], style);
     } else {
       node = document.createElement("button");
       node.appendChild(document.createTextNode(text));
-      node.classList.add("item", style);
       node.onclick = buttonClicked;
     }
     
+    node.className = "item " + style;
     node.col = col;
     innerRow.appendChild(node);
 	}
@@ -288,7 +287,7 @@ function buttonClicked(event) {
   if (response.instant) {
 	  const [text, style] = response.instant;
     button.firstChild.nodeValue = text;
-	  button.classList.replace(button.classList[1], style);
+	  button.className = "item " + style;
   }
 }
 
