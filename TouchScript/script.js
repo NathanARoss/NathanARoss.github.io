@@ -81,7 +81,7 @@ function Script() {
     col = (col|0) + 1; //col paremeter starts at 0, but script[row][0] contains line metadata like indentation
     
     if (row < 0 || row >= this.data.length || col < 1 || col >= this.data[row].length)
-      return [`${row}\n${col}`, "error"];
+      return [`${row}\n${col}`, " error"];
     
     let item = this.data[row][col];
     let format = item >>> 28; //4 bits
@@ -95,10 +95,10 @@ function Script() {
         let name = this.variableNames[value] || `var${value}`;
         
         if (meta === 0) {
-          return [name, "default"];
+          return [name, ""];
         } else {
           let type = this.classes[meta].name;
-          return [type + '\n' + name, "keyword-default"];
+          return [type + '\n' + name, " keyword-default"];
         }
         break;
       }
@@ -108,10 +108,10 @@ function Script() {
         let func = this.functions[value];
         
         if (meta === 0) {
-          return [func.name, "method-definition"];
+          return [func.name, " method-definition"];
         } else {
           let type = this.classes[meta].name;
-          return [type + '\n' + func.name, "keyword-def"];
+          return [type + '\n' + func.name, " keyword-def"];
         }
         break;
       }
@@ -121,37 +121,37 @@ function Script() {
         let func = this.functions[value];
         
         if (meta === 0) {
-          return [func.name, "method-call"];
+          return [func.name, " method-call"];
         } else {
           let type = this.classes[meta].name;
-          return [type + '\n' + func.name, "keyword-call"];
+          return [type + '\n' + func.name, " keyword-call"];
         }
         break;
       }
       
       case ARGUMENT_HINT:
-        return [`argument hint`, "comment"];
+        return [`argument hint`, " comment"];
       
       case ARGUMENT_LABEL:
-        return [`argument label`, "comment"];
+        return [`argument label`, " comment"];
       
       case SYMBOL:
-        return [this.symbols[data], "default"];
+        return [this.symbols[data], ""];
   
       case KEYWORD:
-        return [this.keywords[data], "keyword"];
+        return [this.keywords[data], " keyword"];
         
       case NUMERIC_LITERAL:
-        return [this.numericLiterals[data], "numeric"];
+        return [this.numericLiterals[data], " numeric"];
       
       case STRING_LITERAL:
-        return [this.stringLiterals[data], "string"];
+        return [this.stringLiterals[data], " string"];
       
       case COMMENT:
-        return [this.comments[data], "comment"];
+        return [this.comments[data], " comment"];
       
       default:
-        return [`format\n${format}`, "error"];
+        return [`format\n${format}`, " error"];
     }
   }
   

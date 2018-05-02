@@ -84,36 +84,26 @@ function resizeListener() {
 window.onscroll = function() {
 	firstVisibleRowPosition = Math.floor(window.scrollY / rowHeight);
 	
-	/*
-	if (firstVisibleRowPosition >= firstLoadedRowPosition + loadedRowCount) {
-		firstLoadedRowPosition = firstVisibleRowPosition - loadedRowCount - 2;
-	}
-	
-	if (firstVisibleRowPosition <= firstLoadedRowPosition - loadedRowCount) {
-		firstLoadedRowPosition = firstVisibleRowPosition + loadedRowCount;
-	}
-	/**/
-	
 	//keep a buffer of 2 unseen elements in either direction
 	while ((firstVisibleRowPosition - 4 > firstLoadedRowPosition) && (firstLoadedRowPosition < script.getRowCount() - loadedRowCount)) {
-    let row = loadedRowCount + firstLoadedRowPosition;
+    let position = loadedRowCount + firstLoadedRowPosition;
     
     let firstChild = list.firstChild;
     list.removeChild(firstChild);
     
-    loadRow(row, firstChild);
+    loadRow(position, firstChild);
     list.appendChild(firstChild);
     
 		++firstLoadedRowPosition;
 	}
 	
 	while ((firstVisibleRowPosition - 2 < firstLoadedRowPosition) && (firstLoadedRowPosition > 0)) {
-		let row = firstLoadedRowPosition - 1;
+		let position = firstLoadedRowPosition - 1;
     
     let lastChild = list.childNodes[list.childNodes.length - 1];
     list.removeChild(lastChild);
     
-    loadRow(row, lastChild);
+    loadRow(position, lastChild);
     list.insertBefore(lastChild, list.firstChild);
     
 		--firstLoadedRowPosition;
@@ -249,7 +239,6 @@ function loadRow(row, rowDiv) {
     buttonPool.push(lastChild);
 	}
 	
-	//add new items
 	for (let col = 0; col < itemCount; ++col) {
 	  const [text, style] = script.getItem(row, col);
     
@@ -263,7 +252,7 @@ function loadRow(row, rowDiv) {
       node.onclick = buttonClicked;
     }
     
-    node.className = "item " + style;
+    node.className = "item" + style;
     node.col = col;
     innerRow.appendChild(node);
 	}
@@ -287,16 +276,16 @@ function buttonClicked(event) {
   if (response.instant) {
 	  const [text, style] = response.instant;
     button.firstChild.nodeValue = text;
-	  button.className = "item " + style;
+	  button.className = "item" + style;
   }
 }
 
 
 function updateDebug() {
-	let debugText = ""//"scrollY: " + Math.floor(window.scrollY) + "<br>"
-			+ "loaded: [" + firstLoadedRowPosition + ", " + (firstLoadedRowPosition + loadedRowCount - 1) + "]<br>"
+	let debugText = ""//"scrollY: " + Math.floor(window.scrollY) + "\n"
+			+ "loaded: [" + firstLoadedRowPosition + ", " + (firstLoadedRowPosition + loadedRowCount - 1) + "]\n"
 			+ "visible: [" + firstVisibleRowPosition + ", " + (firstVisibleRowPosition + visibleRowCount - 1) + "]";
-	debug.innerHTML = debugText;
+	debug.textContent = debugText;
 }
 
 

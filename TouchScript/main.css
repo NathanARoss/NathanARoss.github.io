@@ -61,10 +61,6 @@ button {
   color: white;
 }
 
-.default {
-  /* unstyled element.  This must exist so it can be replaced by other stylings */
-}
-
 .global-var {
   color: #9876AA;
 }
@@ -109,6 +105,7 @@ button {
 	padding: 4px;
 	margin: 0px;
 	z-index: 1;
+	white-space: pre;
 }
 
 #run_button {
