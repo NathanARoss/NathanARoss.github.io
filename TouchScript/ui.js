@@ -133,12 +133,12 @@ function createRow() {
   
 	let innerRow = document.createElement("div");
 	innerRow.classList.add("inner-row");
-	innerRow.append(indentation);
-  innerRow.append(append);
+	innerRow.appendChild(indentation);
+  innerRow.appendChild(append);
 	
 	let outerDiv = document.createElement("div");
 	outerDiv.classList.add("outer-row");
-  outerDiv.append(innerRow);
+  outerDiv.appendChild(innerRow);
   return outerDiv;
 }
 
@@ -150,7 +150,6 @@ function prepareForGarbageCollection(div) {
 	for (let i = items.length - 1; i > 1; --i) {
 	  let node = items[i];
 	  innerRow.removeChild(node);
-    node.innerHTML = "";
     buttonPool.push(node);
 	}
 	
@@ -243,49 +242,45 @@ function loadRow(row, rowDiv) {
 	innerRow.row = row;
   let items = innerRow.childNodes;
 	
-	//remove the items of the innerRow beyond the ones it will need
-	//1st node is indentation, 2nd node is append button
+	//remove all the item nodes
+	//[0] is indentation, [1] is append button
 	for (let i = items.length - 1; i > 1; --i) {
 	  let lastChild = items[i];
 	  innerRow.removeChild(lastChild);
-    lastChild.innerHTML = "";
     buttonPool.push(lastChild);
 	}
 	
 	//add new items
 	for (let col = 0; col < itemCount; ++col) {
-	  const [line1, line2, style] = script.getItem(row, col);
+	  const [text, style] = script.getItem(row, col);
     
-    let node = getButton();
+    let node = getButton(text);
     node.col = col;
-    
-    node.append(line1);
-    if (line2) {
-      node.append(document.createElement("br"));
-      node.append(line2);
-    }
 	  
     if (node.classList.length == 2)
       node.classList.remove(node.classList[1]);
     if (style !== null)
       node.classList.add(style);
     
-    innerRow.append(node);
+    innerRow.appendChild(node);
 	}
 	
 	const indentation = script.getIndentation(row);
-	items[0].style.width = Math.max(0, 8 * indentation) + "px";
+	items[0].style.width = 8 * indentation + "px";
 	items[0].style.borderRightWidth =  indentation ? "4px" : "0px";
 }
 
 
-function getButton() {
+function getButton(text) {
   if (buttonPool.length !== 0) {
-    return buttonPool.pop();
+    let node = buttonPool.pop();
+    node.nodeValue = text;
+    return node;
   } else {
     let node = document.createElement("button");
     node.classList.add("item");
     node.onclick = buttonClicked;
+    node.appendChild(document.createTextNode(text));
     return node;
   }
 }
@@ -302,14 +297,8 @@ function buttonClicked(event) {
   
   let response = script.clickItem(row, col);
   if (response.instant) {
-	  const [line1, line2, style, dropDown] = response.instant;
-    
-    button.innerHTML = "";
-    button.append(line1);
-    if (line2) {
-      button.append(document.createElement("br"));
-      button.append(line2);
-    }
+	  const [text, style] = response.instant;
+    button.firstChild.nodeValue = text;
 	  
     if (button.classList.length == 2)
       button.classList.remove(button.classList[1]);
