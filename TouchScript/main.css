@@ -1,6 +1,7 @@
 :root {
   --line-height: 40px;
   user-select: none;
+  moz-user-select: none;
 }
 
 /* Chrome, Safari, Edge, Opera */
@@ -21,16 +22,9 @@ body {
 }
 
 .inner-row {
+  display: flex;
   overflow-x: scroll;
   overflow-y: hidden;
-}
-
-table {
-  width: 100%;
-  height: var(--line-height);
-  white-space: nowrap;
-  border-width: 0;
-  border-collapse: collapse;
 }
 
 /* Desktop Firefox, mobile Firefox (not Firefox Focus), Samsung Browser (oddly) */
@@ -40,53 +34,32 @@ table {
   }
 }
 
-.hidden-select {
-  width: 100%;
+.append, .indentation, .item {
+  background: transparent;
+  border: 0;
   height: var(--line-height);
-  opacity: 0;
-  position: absolute;
-  top: 0;
-  left: 0;
-  border: none;
-}
-
-option {
-  background-color: gray;
-  color: white;
+  box-sizing: border-box;
 }
 
 /* The append button has a minimum size, but grows to fill remaining space. */
 .append {
-  position: relative;
+  order: 999;
+  flex-grow: 1;
   min-width: var(--line-height);
-  margin: 0px;
-  border: none;
-  box-sizing: border-box;
   background: url(ic_subdirectory_arrow_left_white_24px.svg) no-repeat center right;
 }
 
 .indentation {
-  width: 0.001px; /* Webkit treats a width of 0 as a request to fill remaining space */
   padding: 0;
-  border: 0;
   border-color: #444;
   border-style: solid;
-  box-sizing: border-box;
-}
-
-.item, .dropdown {
-  text-align: center;
-  vertical-align: middle;
-  width: 0.0001px;
-  padding: 0 4px;
-  color: white;
-}
-
-.dropdown {
-  position: relative;
 }
 
 .item {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0 4px;
+  color: white;
   cursor: default;
 }
 
@@ -141,15 +114,12 @@ option {
 	font-family: Monospace;
 	font-size: 32px;
 	text-decoration: none;
-	text-align: center; /* horizontal centering */
+	text-align: center;
 	line-height: 50px;
 	color: white;
 
-	border: none;
 	width: 50px;
-	height: 50px;
 	border-radius: 50%;
-	box-sizing: border-box;
 
 	position: fixed;
 	bottom: 10px;

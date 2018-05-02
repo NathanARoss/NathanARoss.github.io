@@ -81,7 +81,7 @@ function Script() {
     col = (col|0) + 1; //col paremeter starts at 0, but script[row][0] contains line metadata like indentation
     
     if (row < 0 || row >= this.data.length || col < 1 || col >= this.data[row].length)
-      return [`${row}`, `${col}`, "error", false];
+      return [`${row}`, `${col}`, "error"];
     
     let item = this.data[row][col];
     let format = item >>> 28; //4 bits
@@ -95,10 +95,10 @@ function Script() {
         let name = this.variableNames[value] || `var${value}`;
         
         if (meta === 0) {
-          return [name, null, null, true];
+          return [name, null, null];
         } else {
           let type = this.classes[meta].name;
-          return [type, name, "keyword-default", true];
+          return [type, name, "keyword-default"];
         }
         break;
       }
@@ -108,10 +108,10 @@ function Script() {
         let func = this.functions[value];
         
         if (meta === 0) {
-          return [func.name, null, "method-definition", true];
+          return [func.name, null, "method-definition"];
         } else {
           let type = this.classes[meta].name;
-          return [type, func.name, "keyword-def", true];
+          return [type, func.name, "keyword-def"];
         }
         break;
       }
@@ -121,37 +121,37 @@ function Script() {
         let func = this.functions[value];
         
         if (meta === 0) {
-          return [func.name, null, "method-call", true];
+          return [func.name, null, "method-call"];
         } else {
           let type = this.classes[meta].name;
-          return [type, func.name, "keyword-call", true];
+          return [type, func.name, "keyword-call"];
         }
         break;
       }
       
       case ARGUMENT_HINT:
-        return [`argument hint`, null, "comment", false];
+        return [`argument hint`, null, "comment"];
       
       case ARGUMENT_LABEL:
-        return [`argument label`, null, "comment", false];
+        return [`argument label`, null, "comment"];
       
       case SYMBOL:
-        return [this.symbols[data], null, null, false];
+        return [this.symbols[data], null, null];
   
       case KEYWORD:
-        return [this.keywords[data], null, "keyword", false];
+        return [this.keywords[data], null, "keyword"];
         
       case NUMERIC_LITERAL:
-        return [this.numericLiterals[data], null, "numeric", true];
+        return [this.numericLiterals[data], null, "numeric"];
       
       case STRING_LITERAL:
-        return [this.stringLiterals[data], null, "string", true];
+        return [this.stringLiterals[data], null, "string"];
       
       case COMMENT:
-        return [this.comments[data], null, "comment", false];
+        return [this.comments[data], null, "comment"];
       
       default:
-        return ["format", '${format}', "error", false];
+        return ["format", '${format}', "error"];
     }
   }
   

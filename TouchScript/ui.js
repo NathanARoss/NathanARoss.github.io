@@ -14,15 +14,12 @@ const canvas = document.getElementById("canvas");
 const editor = document.getElementById("editor_div");
 
 let buttonPool = [];
-let dropdownPool = [];
 
 const context = canvas.getContext("2d", { alpha: false });
 
 let renderLoop = 0;
 let error = null;
 let state = {}; //holds the js version of the script
-
-let touchMoved = false;
 
 const script = new Script();
 
@@ -128,56 +125,34 @@ window.onscroll = function() {
 
 
 function createRow() {
-	let outerDiv = document.createElement("div");
-	outerDiv.classList.add("outer-row");
-	
+	let indentation = document.createElement("button");
+	indentation.classList.add("indentation");
+
+  let append = document.createElement("button");
+  append.classList.add("append");
+  
 	let innerRow = document.createElement("div");
 	innerRow.classList.add("inner-row");
-  
-  let table = document.createElement("table");
+	innerRow.append(indentation);
+  innerRow.append(append);
 	
-	let indentation = document.createElement("td");
-	indentation.classList.add("indentation");
-	table.append(indentation);
-	
-  let select = document.createElement("select");
-  select.classList.add("hidden-select");
-  select.addEventListener('change', appendChanged, true);
-  select.innerHTML =
-`<option disabled selected style="display:none;"></option>
-<option>New line</option>
-<option>Delete line</option>`;
-
-  let dropdown = document.createElement("td");
-  dropdown.classList.add("append");
-  dropdown.append(select);
-	
-	table.append(dropdown);
-	innerRow.append(table);
+	let outerDiv = document.createElement("div");
+	outerDiv.classList.add("outer-row");
   outerDiv.append(innerRow);
-  
   return outerDiv;
 }
 
 /* prepare the div for garbage collection by recycling all it's items */
 function prepareForGarbageCollection(div) {
-  let table = div.firstChild.firstChild;
-  let tableCells = table.childNodes;
+  let innerRow = div.firstChild;
+  let items = innerRow.childNodes;
 	
-	for (let i = tableCells.length - 2; i > 0; --i) {
-	  let node = tableCells[i];
-	  table.removeChild(node);
-	  
-	  if (node.isDropdown) {
-      cleanDropdown(node);
-      dropdownPool.push(node);
-    } else {
-      node.innerHTML = "";
-	    buttonPool.push(node);
-    }
+	for (let i = items.length - 1; i > 1; --i) {
+	  let node = items[i];
+	  innerRow.removeChild(node);
+    node.innerHTML = "";
+    buttonPool.push(node);
 	}
-	
-	tableCells[1].removeEventListener('change', appendChanged);
 	
 	console.log(`recycling div`);
 }
@@ -241,12 +216,12 @@ function deleteRow(row) {
 
 
 
+//tell the rows which position they are
 function updateList(modifiedRow) {
-  //tell the rows which position they are
   let count = list.childNodes.length;
   for (let i = modifiedRow; i < count; ++i) {
-    //update the row property of the outer row's middle row's inner row
-    list.childNodes[i].firstChild.firstChild.row = i + firstLoadedRowPosition;
+    //update the row property of the inner row
+    list.childNodes[i].firstChild.row = i + firstLoadedRowPosition;
   }
   
 	loadedRowCount = Math.min(visibleRowCount + 6, script.getRowCount());
@@ -264,33 +239,24 @@ function loadRow(row, rowDiv) {
 	row = row|0;
 	
 	let itemCount = script.getItemCount(row);
-  let table = rowDiv.firstChild.firstChild;
-	table.row = row;
-  let tableCells = table.childNodes;
-  
-	let appendButton = tableCells[tableCells.length - 1];
-	table.removeChild(appendButton);
+  let innerRow = rowDiv.firstChild;
+	innerRow.row = row;
+  let items = innerRow.childNodes;
 	
-	//remove the items of the table beyond the ones it will need
-	//the first node is the indentation
-	for (let i = tableCells.length - 1; i > 0; --i) {
-	  let lastChild = tableCells[i];
-	  table.removeChild(lastChild);
-	  
-	  if (lastChild.isDropdown) {
-      cleanDropdown(lastChild);
-      dropdownPool.push(lastChild);
-    } else {
-      lastChild.innerHTML = "";
-	    buttonPool.push(lastChild);
-    }
+	//remove the items of the innerRow beyond the ones it will need
+	//1st node is indentation, 2nd node is append button
+	for (let i = items.length - 1; i > 1; --i) {
+	  let lastChild = items[i];
+	  innerRow.removeChild(lastChild);
+    lastChild.innerHTML = "";
+    buttonPool.push(lastChild);
 	}
 	
 	//add new items
 	for (let col = 0; col < itemCount; ++col) {
-	  const [line1, line2, style, dropDown] = script.getItem(row, col);
+	  const [line1, line2, style] = script.getItem(row, col);
     
-    let node = dropDown ? getDropdown() : getButton();
+    let node = getButton();
     node.col = col;
     
     node.append(line1);
@@ -304,14 +270,12 @@ function loadRow(row, rowDiv) {
     if (style !== null)
       node.classList.add(style);
     
-    table.append(node);
+    innerRow.append(node);
 	}
 	
-	table.append(appendButton);
-	
 	const indentation = script.getIndentation(row);
-	tableCells[0].style.minWidth = 8 * indentation + "px";
-	tableCells[0].style.borderRightWidth =  indentation ? "4px" : "0px";
+	items[0].style.width = Math.max(0, 8 * indentation) + "px";
+	items[0].style.borderRightWidth =  indentation ? "4px" : "0px";
 }
 
 
@@ -319,54 +283,11 @@ function getButton() {
   if (buttonPool.length !== 0) {
     return buttonPool.pop();
   } else {
-    let node = document.createElement("td");
-    node.isDropdown = false;
+    let node = document.createElement("button");
     node.classList.add("item");
     node.addEventListener('click', buttonClicked, true);
-    node.addEventListener('touchstart', onTouchStart, true);
-    node.addEventListener('touchmove', onTouchMove, true);
-    node.addEventListener('touchend', onTouchEnd, false);
-    /* node.addEventListener('click', () => {console.log('click')}, true);
-    node.addEventListener('touchstart', () => {console.log('touchstart')}, true);
-    node.addEventListener('touchend', () => {console.log('touchend')}, true);
-    node.addEventListener('touchmove', () => {console.log('touchmove')}, true); */
     return node;
   }
-}
-
-function getDropdown() {
-  if (dropdownPool.length !== 0) {
-    return dropdownPool.pop();
-  } else {
-    let node = document.createElement("td");
-    node.classList.add("dropdown");
-    node.isDropdown = true;
-    
-    let newSelect = document.createElement("select");
-    newSelect.classList.add("hidden-select");
-    newSelect.addEventListener('click', selectClicked, true);
-    newSelect.addEventListener('change', selectChanged, true);
-    /* newSelect.addEventListener('click', () => {console.log('click')}, true);
-    newSelect.addEventListener('touchstart', () => {console.log('touchstart')}, true);
-    newSelect.addEventListener('touchend', (event) => {console.log('touchend'); event.preventDefault()}, true);
-    newSelect.addEventListener('touchmove', () => {console.log('touchmove')}, true); */
-    newSelect.innerHTML = `<option disabled selected style="display:none;"><option>1</option><option>2</option><option>3</option>`;
-    
-    node.append(newSelect);
-    return node;
-  }
-}
-
-/* remove all unnecessary children from the div so loadItem() can immediately populate it*/
-function cleanDropdown(div) {
-  
-  //remove all the text and <br> nodes located after the <select>
-  for (let i = div.childNodes.length - 1; i > 0; --i) {
-    div.removeChild(div.childNodes[i]);
-  }
-  
-  //let select = div.firstChild;
-  //remove all options except the dud at position 0
 }
 
 
@@ -396,67 +317,6 @@ function buttonClicked(event) {
       button.classList.add(style);
   }
 }
-
-function onTouchStart(event) {
-  console.log("touch start");
-  touchMoved = false;
-}
-
-function onTouchMove(event) {
-  console.log("touch move");
-  touchMoved = true;
-}
-
-function onTouchEnd(event) {
-  console.log("touch end");
-  if (!touchMoved) {
-    buttonClicked(event);
-    event.preventDefault();
-  }
-}
-
-function selectClicked(event) {
-  let select = event.currentTarget
-  let button = select.parentElement;
-  
-  let row = button.parentElement.row|0;
-  let col = button.col|0;
-  
-  if (select.used) {
-    console.log("select clicked after selecting item");
-    select.used = false;
-  } else {
-    console.log(`select clicked ${row},${col}`);
-  }
-}
-
-function selectChanged(event) {
-  let select = event.currentTarget;
-  console.log("selectChanged " + select.value);
-  
-  select.value = "";
-  select.used = true;
-}
-
-function appendChanged(event) {
-  let select = event.currentTarget;
-  
-  let row = select.parentElement.row|0;
-  //console.log(`append changed ${row},${select.value},${select.selectedIndex}`);
-  
-  if (select.selectedIndex === 1) {
-    script.insertRow(row + 1);
-    insertRow(row + 1);
-    console.log(`inserting row ${row}`);
-  }
-  if (select.selectedIndex === 2) {
-    script.deleteRow(row);
-    deleteRow(row);
-  }
-  
-  select.value = "";
-}
-
 
 
 function updateDebug() {
