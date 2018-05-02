@@ -285,7 +285,7 @@ function getButton() {
   } else {
     let node = document.createElement("button");
     node.classList.add("item");
-    node.addEventListener('click', buttonClicked, true);
+    node.onclick = buttonClicked;
     return node;
   }
 }
@@ -299,6 +299,7 @@ function buttonClicked(event) {
   let col = button.col|0;
   
   console.log(`button clicked ${row},${col}`);
+  alert(`button clicked ${row},${col}`); //DEBUG
   
   let response = script.clickItem(row, col);
   if (response.instant) {
