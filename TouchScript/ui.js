@@ -299,7 +299,6 @@ function buttonClicked(event) {
   let col = button.col|0;
   
   console.log(`button clicked ${row},${col}`);
-  alert(`button clicked ${row},${col}`); //DEBUG
   
   let response = script.clickItem(row, col);
   if (response.instant) {
