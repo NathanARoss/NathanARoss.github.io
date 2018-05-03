@@ -231,7 +231,6 @@ function loadRow(row, rowDiv) {
   let innerRow = rowDiv.firstChild;
 	innerRow.row = row;
 	
-	//remove all but the first two nodes
 	while (innerRow.childNodes.length > 2) {
     let lastChild = innerRow.lastChild;
     innerRow.removeChild(lastChild);
