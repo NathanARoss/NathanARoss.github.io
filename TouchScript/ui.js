@@ -58,9 +58,9 @@ function resizeListener() {
 	} else if (diff < 0) {
 		diff = -diff;
 		for (let i = 0; i < diff; ++i) {
-			let lastChild = list.childNodes[list.childNodes.length - 1];
+      let lastChild = list.lastChild;
+      list.removeChild(lastChild);
 			prepareForGarbageCollection(lastChild);
-			list.removeChild(lastChild);
 		}
 	}
 	
@@ -100,7 +100,7 @@ window.onscroll = function() {
 	while ((firstVisibleRowPosition - 2 < firstLoadedRowPosition) && (firstLoadedRowPosition > 0)) {
 		let position = firstLoadedRowPosition - 1;
     
-    let lastChild = list.childNodes[list.childNodes.length - 1];
+    let lastChild = list.lastChild;
     list.removeChild(lastChild);
     
     loadRow(position, lastChild);
@@ -230,12 +230,11 @@ function loadRow(row, rowDiv) {
 	let itemCount = script.getItemCount(row);
   let innerRow = rowDiv.firstChild;
 	innerRow.row = row;
-  let items = innerRow.childNodes;
 	
-	//remove all the item nodes. [0] is indentation, [1] is append button
-	for (let i = items.length - 1; i > 1; --i) {
-	  let lastChild = items[i];
-	  innerRow.removeChild(lastChild);
+	//remove all but the first two nodes
+	while (innerRow.childNodes.length > 2) {
+    let lastChild = innerRow.lastChild;
+    innerRow.removeChild(lastChild);
     buttonPool.push(lastChild);
 	}
 	
@@ -258,8 +257,8 @@ function loadRow(row, rowDiv) {
 	}
 	
 	const indentation = script.getIndentation(row);
-	items[0].style.width = 8 * indentation + "px";
-	items[0].style.display =  indentation ? "default" : "none";
+	innerRow.childNodes[0].style.width = 8 * indentation + "px";
+	innerRow.childNodes[0].style.display =  indentation ? "default" : "none";
 }
 
 
