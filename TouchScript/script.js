@@ -47,6 +47,7 @@ class Script {
 
     for (let i = 0; i < tokens.length; ++i) {
       let token = tokens[i];
+      
       //figure out what this token refers to
       if (token === "\n") {
         this.data.push(line);
@@ -203,7 +204,7 @@ class Script {
     col = (col | 0) + 1; //col paremeter starts at 0, but script[row][0] contains line metadata like indentation
 
     if (row < 0 || row >= this.data.length || col < 1 || col >= this.data[row].length)
-      return [`${row}\n${col}`, " error"];
+      return [`${row}\n${col - 1}`, " error"];
 
     let item = this.data[row][col];
     let format = item >>> 28; //4 bits
