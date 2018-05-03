@@ -223,6 +223,14 @@ function updateList(modifiedRow) {
 
 
 
+function updateDebug() {
+  let debugText = ""//"scrollY: " + Math.floor(window.scrollY) + "\n"
+      + "loaded: [" + firstLoadedRowPosition + ", " + (firstLoadedRowPosition + loadedRowCount - 1) + "]\n"
+      + "visible: [" + firstVisibleRowPosition + ", " + (firstVisibleRowPosition + visibleRowCount - 1) + "]";
+  debug.textContent = debugText;
+}
+
+
 
 function loadRow(row, rowDiv) {
   row = row|0;
@@ -276,14 +284,6 @@ function buttonClicked(event) {
     button.firstChild.nodeValue = text;
     button.className = "item" + style;
   }
-}
-
-
-function updateDebug() {
-  let debugText = ""//"scrollY: " + Math.floor(window.scrollY) + "\n"
-      + "loaded: [" + firstLoadedRowPosition + ", " + (firstLoadedRowPosition + loadedRowCount - 1) + "]\n"
-      + "visible: [" + firstVisibleRowPosition + ", " + (firstVisibleRowPosition + visibleRowCount - 1) + "]";
-  debug.textContent = debugText;
 }
 
 
