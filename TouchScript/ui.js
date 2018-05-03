@@ -26,53 +26,53 @@ const script = new Script();
 
 
 function resizeListener() {
-	visibleRowCount = Math.ceil(window.innerHeight / rowHeight);
-	let newloadedRowCount = visibleRowCount + 6;
-	newloadedRowCount = Math.min(newloadedRowCount, script.getRowCount());
-	let diff = newloadedRowCount - loadedRowCount;
-	loadedRowCount = newloadedRowCount;
-	
-	//allow the viewport to scroll past the end of the list
-	if (window.location.hash === "")
-	  document.body.style.height = (script.getRowCount() + visibleRowCount - 2) * rowHeight + "px";
+  visibleRowCount = Math.ceil(window.innerHeight / rowHeight);
+  let newloadedRowCount = visibleRowCount + 6;
+  newloadedRowCount = Math.min(newloadedRowCount, script.getRowCount());
+  let diff = newloadedRowCount - loadedRowCount;
+  loadedRowCount = newloadedRowCount;
+  
+  //allow the viewport to scroll past the end of the list
+  if (window.location.hash === "")
+    document.body.style.height = (script.getRowCount() + visibleRowCount - 2) * rowHeight + "px";
   else
     document.body.style.height = "auto";
-	
-	if (diff > 0) {
-		for(let i = 0; i < diff; ++i) {
+  
+  if (diff > 0) {
+    for(let i = 0; i < diff; ++i) {
       let div = createRow();
       let row = list.childNodes.length + firstLoadedRowPosition;
-			
-			//if the user is scrolled all the way to the bottom, prepend instead of appending
-			if (row < script.getRowCount()) {
-				loadRow(row, div);
-	      list.appendChild(div);
-			} else {
-				let row = firstLoadedRowPosition - 1;
-				loadRow(row, div);
-	      list.insertBefore(div, list.firstChild);
-				--firstLoadedRowPosition;
-				spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
-			}
-		}
-	} else if (diff < 0) {
-		diff = -diff;
-		for (let i = 0; i < diff; ++i) {
+      
+      //if the user is scrolled all the way to the bottom, prepend instead of appending
+      if (row < script.getRowCount()) {
+        loadRow(row, div);
+        list.appendChild(div);
+      } else {
+        let row = firstLoadedRowPosition - 1;
+        loadRow(row, div);
+        list.insertBefore(div, list.firstChild);
+        --firstLoadedRowPosition;
+        spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
+      }
+    }
+  } else if (diff < 0) {
+    diff = -diff;
+    for (let i = 0; i < diff; ++i) {
       let lastChild = list.lastChild;
       list.removeChild(lastChild);
-			prepareForGarbageCollection(lastChild);
-		}
-	}
-	
-	firstVisibleRowPosition = Math.floor(window.scrollY / rowHeight);
-	updateDebug();
+      prepareForGarbageCollection(lastChild);
+    }
+  }
+  
+  firstVisibleRowPosition = Math.floor(window.scrollY / rowHeight);
+  updateDebug();
 
-	//resize canvas as well
-	canvas.width = window.innerWidth * window.devicePixelRatio;
-	canvas.height = window.innerHeight * window.devicePixelRatio;
-	//console.log("canvas resolution: " + canvas.width + "x" + canvas.height);
-	
-	if (state && state.onResize)
+  //resize canvas as well
+  canvas.width = window.innerWidth * window.devicePixelRatio;
+  canvas.height = window.innerHeight * window.devicePixelRatio;
+  //console.log("canvas resolution: " + canvas.width + "x" + canvas.height);
+  
+  if (state && state.onResize)
     state.onResize(canvas.width, canvas.height);
 }
 
@@ -82,10 +82,10 @@ function resizeListener() {
 
 //detect when items need to be loaded in the direction of scroll, take nodes from the back to add to the front
 window.onscroll = function() {
-	firstVisibleRowPosition = Math.floor(window.scrollY / rowHeight);
-	
-	//keep a buffer of 2 unseen elements in either direction
-	while ((firstVisibleRowPosition - 4 > firstLoadedRowPosition) && (firstLoadedRowPosition < script.getRowCount() - loadedRowCount)) {
+  firstVisibleRowPosition = Math.floor(window.scrollY / rowHeight);
+  
+  //keep a buffer of 2 unseen elements in either direction
+  while ((firstVisibleRowPosition - 4 > firstLoadedRowPosition) && (firstLoadedRowPosition < script.getRowCount() - loadedRowCount)) {
     let position = loadedRowCount + firstLoadedRowPosition;
     
     let firstChild = list.firstChild;
@@ -94,11 +94,11 @@ window.onscroll = function() {
     loadRow(position, firstChild);
     list.appendChild(firstChild);
     
-		++firstLoadedRowPosition;
-	}
-	
-	while ((firstVisibleRowPosition - 2 < firstLoadedRowPosition) && (firstLoadedRowPosition > 0)) {
-		let position = firstLoadedRowPosition - 1;
+    ++firstLoadedRowPosition;
+  }
+  
+  while ((firstVisibleRowPosition - 2 < firstLoadedRowPosition) && (firstLoadedRowPosition > 0)) {
+    let position = firstLoadedRowPosition - 1;
     
     let lastChild = list.lastChild;
     list.removeChild(lastChild);
@@ -106,28 +106,28 @@ window.onscroll = function() {
     loadRow(position, lastChild);
     list.insertBefore(lastChild, list.firstChild);
     
-		--firstLoadedRowPosition;
-	}
-	
-	spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
-	updateDebug();
+    --firstLoadedRowPosition;
+  }
+  
+  spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
+  updateDebug();
 }
 
 
 function createRow() {
-	let indentation = document.createElement("button");
-	indentation.classList.add("indentation");
+  let indentation = document.createElement("button");
+  indentation.classList.add("indentation");
 
   let append = document.createElement("button");
   append.classList.add("append");
   
-	let innerRow = document.createElement("div");
-	innerRow.classList.add("inner-row");
-	innerRow.appendChild(indentation);
+  let innerRow = document.createElement("div");
+  innerRow.classList.add("inner-row");
+  innerRow.appendChild(indentation);
   innerRow.appendChild(append);
-	
-	let outerDiv = document.createElement("div");
-	outerDiv.classList.add("outer-row");
+  
+  let outerDiv = document.createElement("div");
+  outerDiv.classList.add("outer-row");
   outerDiv.appendChild(innerRow);
   return outerDiv;
 }
@@ -136,14 +136,14 @@ function createRow() {
 function prepareForGarbageCollection(div) {
   let innerRow = div.firstChild;
   let items = innerRow.childNodes;
-	
-	for (let i = items.length - 1; i > 1; --i) {
-	  let node = items[i];
-	  innerRow.removeChild(node);
+  
+  for (let i = items.length - 1; i > 1; --i) {
+    let node = items[i];
+    innerRow.removeChild(node);
     buttonPool.push(node);
-	}
-	
-	console.log(`recycling div`);
+  }
+  
+  console.log(`recycling div`);
 }
 
 
@@ -187,9 +187,9 @@ function deleteRow(row) {
   
   //move the removed div either above or below the visible list of items unless the entire script is already loaded
   if (lastLoaded + 1 < script.getRowCount()) {
-  	loadRow(row, childToRemove);
-	  list.appendChild(childToRemove);
-	  console.log(`appending deleted div row ${row} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
+    loadRow(row, childToRemove);
+    list.appendChild(childToRemove);
+    console.log(`appending deleted div row ${row} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
   }
   else if (firstLoadedRowPosition > 0) {
     loadRow(row, childToRemove);
@@ -213,7 +213,7 @@ function updateList(modifiedRow) {
     list.childNodes[i].firstChild.row = i + firstLoadedRowPosition;
   }
   
-	loadedRowCount = Math.min(visibleRowCount + 6, script.getRowCount());
+  loadedRowCount = Math.min(visibleRowCount + 6, script.getRowCount());
   
   spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
   document.body.style.height = (script.getRowCount() + visibleRowCount - 2) * rowHeight + "px";
@@ -225,20 +225,20 @@ function updateList(modifiedRow) {
 
 
 function loadRow(row, rowDiv) {
-	row = row|0;
-	
-	let itemCount = script.getItemCount(row);
+  row = row|0;
+  
+  let itemCount = script.getItemCount(row);
   let innerRow = rowDiv.firstChild;
-	innerRow.row = row;
-	
-	while (innerRow.childNodes.length > 2) {
+  innerRow.row = row;
+  
+  while (innerRow.childNodes.length > 2) {
     let lastChild = innerRow.lastChild;
     innerRow.removeChild(lastChild);
     buttonPool.push(lastChild);
-	}
-	
-	for (let col = 0; col < itemCount; ++col) {
-	  const [text, style] = script.getItem(row, col);
+  }
+  
+  for (let col = 0; col < itemCount; ++col) {
+    const [text, style] = script.getItem(row, col);
     
     let node;
     if (buttonPool.length !== 0) {
@@ -253,11 +253,11 @@ function loadRow(row, rowDiv) {
     node.className = "item" + style;
     node.col = col;
     innerRow.appendChild(node);
-	}
-	
-	const indentation = script.getIndentation(row);
-	innerRow.childNodes[0].style.width = 8 * indentation + "px";
-	innerRow.childNodes[0].style.display =  indentation ? "default" : "none";
+  }
+  
+  const indentation = script.getIndentation(row);
+  innerRow.childNodes[0].style.width = 8 * indentation + "px";
+  innerRow.childNodes[0].style.display =  indentation ? "default" : "none";
 }
 
 
@@ -272,18 +272,18 @@ function buttonClicked(event) {
   
   let response = script.clickItem(row, col);
   if (response.instant) {
-	  const [text, style] = response.instant;
+    const [text, style] = response.instant;
     button.firstChild.nodeValue = text;
-	  button.className = "item" + style;
+    button.className = "item" + style;
   }
 }
 
 
 function updateDebug() {
-	let debugText = ""//"scrollY: " + Math.floor(window.scrollY) + "\n"
-			+ "loaded: [" + firstLoadedRowPosition + ", " + (firstLoadedRowPosition + loadedRowCount - 1) + "]\n"
-			+ "visible: [" + firstVisibleRowPosition + ", " + (firstVisibleRowPosition + visibleRowCount - 1) + "]";
-	debug.textContent = debugText;
+  let debugText = ""//"scrollY: " + Math.floor(window.scrollY) + "\n"
+      + "loaded: [" + firstLoadedRowPosition + ", " + (firstLoadedRowPosition + loadedRowCount - 1) + "]\n"
+      + "visible: [" + firstVisibleRowPosition + ", " + (firstVisibleRowPosition + visibleRowCount - 1) + "]";
+  debug.textContent = debugText;
 }
 
 
@@ -320,19 +320,19 @@ function hashListener() {
     
     state = script.getJavaScript(state);
     
-  	if (!state.onDraw) {
-  	  console.log("state.onDraw() is not defined");
-  	  window.location.hash = "";
-  	  return;
-  	}
-  	  	
-  	//onResize function is optional
-  	if (state.onResize)
-  	  state.onResize(canvas.width, canvas.height);
-	  
-  	//initialize function is optional
-  	if (state.initialize)
-  	  state.initialize();
+    if (!state.onDraw) {
+      console.log("state.onDraw() is not defined");
+      window.location.hash = "";
+      return;
+    }
+        
+    //onResize function is optional
+    if (state.onResize)
+      state.onResize(canvas.width, canvas.height);
+    
+    //initialize function is optional
+    if (state.initialize)
+      state.initialize();
     
     document.body.style.height = "auto";
   }
@@ -376,8 +376,8 @@ function drawCircle(x, y, r) {
 function draw(timestamp) {
   context.clearRect(0, 0, canvas.width, canvas.height);
   state.onDraw(timestamp);
-	
-	renderLoop = window.requestAnimationFrame(draw);
+  
+  renderLoop = window.requestAnimationFrame(draw);
 }
 
 resizeListener();

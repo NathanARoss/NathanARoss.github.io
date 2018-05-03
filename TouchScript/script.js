@@ -277,134 +277,134 @@ class Script {
     }
   }
 
-    /*
+  /*
   Generates a Function object from the binary script.
   Run the function with an object argument to attach .initialize(), .onResize(), and .onDraw() to the object
   */
- getJavaScript() {
-  let js = "";
-  for (let row = 0; row < this.data.length; ++row) {
-    let indentation = this.getIndentation(row);
-    js += " ".repeat(indentation);
+  getJavaScript() {
+    let js = "";
+    for (let row = 0; row < this.data.length; ++row) {
+      let indentation = this.getIndentation(row);
+      js += " ".repeat(indentation);
 
-    let needsEndParenthesis = false;
-    let needsCommas = false;
-    let rowData = this.data[row];
+      let needsEndParenthesis = false;
+      let needsCommas = false;
+      let rowData = this.data[row];
 
-    for (let col = 1; col < rowData.length; ++col) {
-      let item = this.data[row][col];
-      let format = item >>> 28;
-      let value = item & 0xFFFF; //least sig 16 bits
+      for (let col = 1; col < rowData.length; ++col) {
+        let item = this.data[row][col];
+        let format = item >>> 28;
+        let value = item & 0xFFFF; //least sig 16 bits
 
-      //if the first item is a keyword that begins a parenthesis
-      if (format === Script.KEYWORD) {
-        let keyword = this.jsKeywords[value];
-        if (keyword && keyword.charAt(keyword.length - 1) === "(") {
-          needsEndParenthesis = true;
+        //if the first item is a keyword that begins a parenthesis
+        if (format === Script.KEYWORD) {
+          let keyword = this.jsKeywords[value];
+          if (keyword && keyword.charAt(keyword.length - 1) === "(") {
+            needsEndParenthesis = true;
+          }
+        }
+
+        //append an end parenthesis to the end of the line
+        switch (format) {
+          case Script.VARIABLE_REFERENCE:
+            if (needsCommas)
+              js += `v${value}, `;
+            else
+              js += `v${value} `;
+
+            break;
+
+          case Script.FUNCTION_DEFINITION:
+          {
+            let func = this.functions[value];
+            let funcName;
+
+            if ("js" in func) {
+              js += `state.${func.js} = function ( `;
+            }
+            else {
+              js += `function f${value} (`;
+            }
+
+            needsEndParenthesis = true;
+            needsCommas = true;
+            break;
+          }
+
+          case Script.FUNCTION_CALL:
+          {
+            let func = this.functions[value];
+            let funcName;
+            if ("js" in func) {
+              funcName = func.js;
+            }
+            else {
+              funcName = `f${value}`;
+            }
+            js += `${funcName} `;
+            break;
+          }
+
+          case Script.ARGUMENT_HINT:
+            return `/*argument hint*/ `;
+
+          case Script.ARGUMENT_LABEL:
+            return `/*argument label*/ `;
+
+          case Script.SYMBOL:
+            js += `${this.symbols[value]} `;
+            break;
+
+          case Script.KEYWORD:
+            if (this.jsKeywords[value] !== null)
+              js += `${this.jsKeywords[value]} `;
+            break;
+
+          case Script.NUMERIC_LITERAL:
+            js += `${this.numericLiterals[value]} `;
+            break;
+
+          case Script.STRING_LITERAL:
+            js += `"${this.stringLiterals[value]}" `;
+            break;
+
+          case Script.COMMENT:
+            js += `/*${this.comments[value]}*/ `;
+            break;
+
+          default:
+            js += `/*format ${format}*/ `;
         }
       }
 
-      //append an end parenthesis to the end of the line
-      switch (format) {
-        case Script.VARIABLE_REFERENCE:
-          if (needsCommas)
-            js += `v${value}, `;
-          else
-            js += `v${value} `;
+      if (needsEndParenthesis)
+        js += ") ";
 
-          break;
+      if (this.isStartingScope(row))
+        js += "{ ";
 
-        case Script.FUNCTION_DEFINITION:
-        {
-          let func = this.functions[value];
-          let funcName;
-
-          if ("js" in func) {
-            js += `state.${func.js} = function ( `;
-          }
-          else {
-            js += `function f${value} (`;
-          }
-
-          needsEndParenthesis = true;
-          needsCommas = true;
-          break;
+      if (row < this.data.length - 1) {
+        let nextIndentation = this.getIndentation(row + 1);
+        let expectedIndentation = indentation + this.isStartingScope(row);
+        if (nextIndentation < expectedIndentation) {
+          js += "}";
         }
-
-        case Script.FUNCTION_CALL:
-        {
-          let func = this.functions[value];
-          let funcName;
-          if ("js" in func) {
-            funcName = func.js;
-          }
-          else {
-            funcName = `f${value}`;
-          }
-          js += `${funcName} `;
-          break;
-        }
-
-        case Script.ARGUMENT_HINT:
-          return `/*argument hint*/ `;
-
-        case Script.ARGUMENT_LABEL:
-          return `/*argument label*/ `;
-
-        case Script.SYMBOL:
-          js += `${this.symbols[value]} `;
-          break;
-
-        case Script.KEYWORD:
-          if (this.jsKeywords[value] !== null)
-            js += `${this.jsKeywords[value]} `;
-          break;
-
-        case Script.NUMERIC_LITERAL:
-          js += `${this.numericLiterals[value]} `;
-          break;
-
-        case Script.STRING_LITERAL:
-          js += `"${this.stringLiterals[value]}" `;
-          break;
-
-        case Script.COMMENT:
-          js += `/*${this.comments[value]}*/ `;
-          break;
-
-        default:
-          js += `/*format ${format}*/ `;
       }
+
+      if (row == this.data.length - 1 && indentation > 0)
+        js += "}".repeat(indentation);
+
+      js += "\n";
     }
 
-    if (needsEndParenthesis)
-      js += ") ";
+    console.log(js);
 
-    if (this.isStartingScope(row))
-      js += "{ ";
-
-    if (row < this.data.length - 1) {
-      let nextIndentation = this.getIndentation(row + 1);
-      let expectedIndentation = indentation + this.isStartingScope(row);
-      if (nextIndentation < expectedIndentation) {
-        js += "}";
-      }
-    }
-
-    if (row == this.data.length - 1 && indentation > 0)
-      js += "}".repeat(indentation);
-
-    js += "\n";
+    //compile the string into a function and attach it to an object
+    let func = new Function("state", js);
+    let state = {};
+    func(state);
+    return state;
   }
-
-  console.log(js);
-
-  //compile the string into a function and attach it to an object
-  let func = new Function("state", js);
-  let state = {};
-  func(state);
-  return state;
-}
 }
 
 /* Static constants  */
