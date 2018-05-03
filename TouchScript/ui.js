@@ -41,15 +41,15 @@ function resizeListener() {
   if (diff > 0) {
     for(let i = 0; i < diff; ++i) {
       let div = createRow();
-      let row = list.childNodes.length + firstLoadedRowPosition;
+      let position = list.childNodes.length + firstLoadedRowPosition;
       
       //if the user is scrolled all the way to the bottom, prepend instead of appending
-      if (row < script.getRowCount()) {
-        loadRow(row, div);
+      if (position < script.getRowCount()) {
+        loadRow(position, div);
         list.appendChild(div);
       } else {
-        let row = firstLoadedRowPosition - 1;
-        loadRow(row, div);
+        let position = firstLoadedRowPosition - 1;
+        loadRow(position, div);
         list.insertBefore(div, list.firstChild);
         --firstLoadedRowPosition;
         spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
@@ -149,7 +149,7 @@ function prepareForGarbageCollection(div) {
 
 
 
-function insertRow(row) {
+function insertRow(position) {
   //grab an offscreen div to modify, or create a new one if the entire script is on screen
   let rowToModify;
   
@@ -168,39 +168,39 @@ function insertRow(row) {
     rowToModify = createRow();
   }
   
-  loadRow(row, rowToModify);
+  loadRow(position, rowToModify);
   
   
-  let positionToInsert = row - firstLoadedRowPosition;
+  let positionToInsert = position - firstLoadedRowPosition;
   list.insertBefore(rowToModify, list.childNodes[positionToInsert]);
   
   updateList(positionToInsert + 1);
 }
 
 /* move the given row off screen and update its content, or garbage collect it if the entire script is on screen */
-function deleteRow(row) {
+function deleteRow(position) {
   let lastLoaded = firstLoadedRowPosition + loadedRowCount - 1;
   let lastVisible = firstVisibleRowPosition + visibleRowCount - 1;
   
-  let childToRemove = list.childNodes[row - firstLoadedRowPosition];
+  let childToRemove = list.childNodes[position - firstLoadedRowPosition];
   list.removeChild(childToRemove);
   
   //move the removed div either above or below the visible list of items unless the entire script is already loaded
   if (lastLoaded + 1 < script.getRowCount()) {
-    loadRow(row, childToRemove);
+    loadRow(position, childToRemove);
     list.appendChild(childToRemove);
-    console.log(`appending deleted div row ${row} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
+    console.log(`appending deleted div row ${position} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
   }
   else if (firstLoadedRowPosition > 0) {
-    loadRow(row, childToRemove);
+    loadRow(position, childToRemove);
     list.insertBefore(childToRemove, list.firstChild);
-    console.log(`prepending deleted div row ${row} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
+    console.log(`prepending deleted div row ${position} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
   } else {
     //if the removed item can't be placed at either end of the list, get rid of it
     prepareForGarbageCollection(childToRemove);
   }
   
-  updateList(row - firstLoadedRowPosition);
+  updateList(position - firstLoadedRowPosition);
 }
 
 
@@ -210,7 +210,7 @@ function updateList(modifiedRow) {
   let count = list.childNodes.length;
   for (let i = modifiedRow; i < count; ++i) {
     //update the row property of the inner row
-    list.childNodes[i].firstChild.row = i + firstLoadedRowPosition;
+    list.childNodes[i].firstChild.position = i + firstLoadedRowPosition;
   }
   
   loadedRowCount = Math.min(visibleRowCount + 6, script.getRowCount());
@@ -232,12 +232,12 @@ function updateDebug() {
 
 
 
-function loadRow(row, rowDiv) {
-  row = row|0;
+function loadRow(position, rowDiv) {
+  position = position|0;
   
-  let itemCount = script.getItemCount(row);
+  let itemCount = script.getItemCount(position);
   let innerRow = rowDiv.firstChild;
-  innerRow.row = row;
+  innerRow.position = position;
   
   while (innerRow.childNodes.length > 2) {
     let lastChild = innerRow.lastChild;
@@ -246,7 +246,7 @@ function loadRow(row, rowDiv) {
   }
   
   for (let col = 0; col < itemCount; ++col) {
-    const [text, style] = script.getItem(row, col);
+    const [text, style] = script.getItem(position, col);
     
     let node;
     if (buttonPool.length !== 0) {
@@ -263,9 +263,11 @@ function loadRow(row, rowDiv) {
     innerRow.appendChild(node);
   }
   
-  const indentation = script.getIndentation(row);
-  innerRow.childNodes[0].style.width = 8 * indentation + "px";
-  innerRow.childNodes[0].style.display =  indentation ? "default" : "none";
+  const indentation = script.getIndentation(position);
+  console.log(`row# ${position} indentation ${indentation} firstChild ${innerRow.firstChild.className}`);
+  
+  innerRow.firstChild.style.width = 8 * indentation + "px";
+  innerRow.firstChild.style.display =  (indentation === 0) ? "none" : "initial";
 }
 
 
@@ -273,12 +275,12 @@ function loadRow(row, rowDiv) {
 function buttonClicked(event) {
   let button = event.currentTarget;
   
-  let row = button.parentElement.row|0;
+  let position = button.parentElement.position|0;
   let col = button.col|0;
   
-  console.log(`button clicked ${row},${col}`);
+  console.log(`button clicked ${position},${col}`);
   
-  let response = script.clickItem(row, col);
+  let response = script.clickItem(position, col);
   if (response.instant) {
     const [text, style] = response.instant;
     button.firstChild.nodeValue = text;
