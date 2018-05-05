@@ -191,10 +191,10 @@ function prepareForGarbageCollection(div) {
     buttonPool.push(lastChild);
   }
   
-  innerRow.onclick = null;
-  div.ontouchstart = null;
-  div.ontouchmove = null;
-  div.ontouchend = null;
+  div.removeEventListener("touchstart", touchStartHandler);
+  div.removeEventListener("touchmove", touchMoveHandler);
+  div.removeEventListener("touchend", touchEndHandler);
+  div.removeEventListener("touchcancel", touchEndHandler);
   console.log(`recycling row`);
 }
 
@@ -202,26 +202,25 @@ function prepareForGarbageCollection(div) {
 
 
 function insertRow(position) {
-  //grab an offscreen div to modify, or create a new one if the entire script is on screen
   let rowToModify;
-  
-  let lastLoaded = firstLoadedRowPosition + loadedRowCount - 1;
-  let lastVisible = firstVisibleRowPosition + visibleRowCount - 1;
   
   if (visibleRowCount + 6 > loadedRowCount) {
     rowToModify = createRow();
+    console.log(`allocating new row`);
   }
-  else if (lastLoaded > lastVisible) {
-    rowToModify = list.childNodes[list.childNodes.length - 1];
-    list.removeChild(rowToModify);
-  }
-  else if (firstLoadedRowPosition < firstVisibleRowPosition) {
+  else if (firstLoadedRowPosition + 2 < firstVisibleRowPosition) {
     rowToModify = list.firstChild;
     list.removeChild(rowToModify);
+    ++firstLoadedRowPosition;
+    console.log(`reusing first row`);
+  }
+  else {
+    rowToModify = list.lastChild;
+    list.removeChild(rowToModify);
+    console.log(`reusing last row`);
   }
   
   loadRow(position, rowToModify);
-  
   
   let positionToInsert = position - firstLoadedRowPosition;
   list.insertBefore(rowToModify, list.childNodes[positionToInsert]);

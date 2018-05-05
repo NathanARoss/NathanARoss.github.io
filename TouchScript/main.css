@@ -46,7 +46,6 @@ body {
 }
 
 #line-number-item {
-  font-style: bold;
   text-align: left;
   width: 80px;
   padding: 0 0.5em;
@@ -77,7 +76,7 @@ body {
   }
   
   #line-number-item {
-    width: calc(3.5em + 80px);
+    width: calc(80px + 3.5em);
   }
   
   .inner-row {
