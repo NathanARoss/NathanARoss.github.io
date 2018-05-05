@@ -301,7 +301,7 @@ function loadRow(position, rowDiv) {
   innerRow.position = position;
   
   //update the line number item of the slide menu
-  innerRow.previousSibling.firstChild.firstChild.nodeValue = String(position + 1000).padStart(4);
+  innerRow.previousSibling.firstChild.firstChild.nodeValue = String(position).padStart(4);
   
   while (innerRow.childNodes.length > 2) {
     let lastChild = innerRow.lastChild;
