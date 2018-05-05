@@ -2,7 +2,7 @@
 
 let loadedRowCount = 0;
 let visibleRowCount = 0;
-let rowHeight = 40;
+const rowHeight = 40;
 let firstLoadedRowPosition = 0;
 let firstVisibleRowPosition = 0;
 
@@ -19,18 +19,18 @@ const context = canvas.getContext("2d", { alpha: false });
 
 let renderLoop = 0;
 let error = null;
-let state = {}; //holds the js version of the script
+let eventHandlers = new Object(null);
 
 const script = new Script();
 
 
 
-function resizeListener() {
+document.body.onresize = function () {
   visibleRowCount = Math.ceil(window.innerHeight / rowHeight);
-  let newloadedRowCount = visibleRowCount + 6;
-  newloadedRowCount = Math.min(newloadedRowCount, script.getRowCount());
-  let diff = newloadedRowCount - loadedRowCount;
-  loadedRowCount = newloadedRowCount;
+  let newLoadedRowCount = visibleRowCount + 6;
+  newLoadedRowCount = Math.min(newLoadedRowCount, script.getRowCount());
+  let diff = newLoadedRowCount - loadedRowCount;
+  loadedRowCount = newLoadedRowCount;
   
   //allow the viewport to scroll past the end of the list
   if (window.location.hash === "")
@@ -72,11 +72,20 @@ function resizeListener() {
   canvas.height = window.innerHeight * window.devicePixelRatio;
   //console.log("canvas resolution: " + canvas.width + "x" + canvas.height);
   
-  if (state && state.onResize)
-    state.onResize(canvas.width, canvas.height);
+  if ("resize" in eventHandlers)
+    eventHandlers.resize(canvas.width, canvas.height);
+};
+document.body.onresize();
+
+
+
+function getWidth() {
+  return window.innerWidth;
 }
 
-
+function getHeight() {
+  return window.innerHeight;
+}
 
 
 
@@ -111,39 +120,70 @@ window.onscroll = function() {
   
   spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
   updateDebug();
-}
+};
 
 
 function createRow() {
+  let lineNumberItem = document.createElement("p");
+  lineNumberItem.classList.add("slide-menu-item");
+  lineNumberItem.id = "line-number-item";
+  
+  let newlineItem = document.createElement("p");
+  newlineItem.classList.add("slide-menu-item");
+  newlineItem.id = "newline-item";
+  
+  let deleteLineItem = document.createElement("p");
+  deleteLineItem.classList.add("slide-menu-item");
+  deleteLineItem.id = "delete-line-item";
+  
+  let slideMenu = document.createElement("div");
+  slideMenu.classList.add("slide-menu");
+  slideMenu.appendChild(lineNumberItem);
+  slideMenu.appendChild(newlineItem);
+  slideMenu.appendChild(deleteLineItem);
+  
   let indentation = document.createElement("button");
   indentation.classList.add("indentation");
 
   let append = document.createElement("button");
   append.classList.add("append");
   
-  let innerRow = document.createElement("div");
-  innerRow.classList.add("inner-row");
-  innerRow.appendChild(indentation);
-  innerRow.appendChild(append);
+  let innerDiv = document.createElement("div");
+  innerDiv.classList.add("inner-row");
+  innerDiv.appendChild(indentation);
+  innerDiv.appendChild(append);
   
   let outerDiv = document.createElement("div");
   outerDiv.classList.add("outer-row");
-  outerDiv.appendChild(innerRow);
+  outerDiv.appendChild(slideMenu);
+  outerDiv.appendChild(innerDiv);
+  
+  innerDiv.onclick = rowClickHandler;
+  
+  outerDiv.touchId = -1;
+  outerDiv.addEventListener("touchstart", touchStartHandler);
+  outerDiv.addEventListener("touchmove", touchMoveHandler);
+  outerDiv.addEventListener("touchend", touchEndHandler);
+  outerDiv.addEventListener("touchcancel", touchEndHandler);
+  
   return outerDiv;
 }
 
 /* prepare the div for garbage collection by recycling all it's items */
 function prepareForGarbageCollection(div) {
-  let innerRow = div.firstChild;
-  let items = innerRow.childNodes;
+  let innerRow = div.childNodes[1];
   
-  for (let i = items.length - 1; i > 1; --i) {
-    let node = items[i];
-    innerRow.removeChild(node);
-    buttonPool.push(node);
+  while (innerRow.childNodes.length > 2) {
+    let lastChild = innerRow.lastChild;
+    innerRow.removeChild(lastChild);
+    buttonPool.push(lastChild);
   }
   
-  console.log(`recycling div`);
+  innerRow.onclick = null;
+  div.ontouchstart = null;
+  div.ontouchmove = null;
+  div.ontouchend = null;
+  console.log(`recycling row`);
 }
 
 
@@ -155,17 +195,17 @@ function insertRow(position) {
   
   let lastLoaded = firstLoadedRowPosition + loadedRowCount - 1;
   let lastVisible = firstVisibleRowPosition + visibleRowCount - 1;
-  if (lastLoaded > lastVisible) {
+  
+  if (visibleRowCount + 6 > loadedRowCount) {
+    rowToModify = createRow();
+  }
+  else if (lastLoaded > lastVisible) {
     rowToModify = list.childNodes[list.childNodes.length - 1];
     list.removeChild(rowToModify);
   }
   else if (firstLoadedRowPosition < firstVisibleRowPosition) {
     rowToModify = list.firstChild;
     list.removeChild(rowToModify);
-    ++firstLoadedRowPosition;
-  } else {
-    //all divs on screen, create a new one
-    rowToModify = createRow();
   }
   
   loadRow(position, rowToModify);
@@ -187,13 +227,15 @@ function deleteRow(position) {
   
   //move the removed div either above or below the visible list of items unless the entire script is already loaded
   if (lastLoaded + 1 < script.getRowCount()) {
-    loadRow(position, childToRemove);
+    loadRow(lastLoaded + 1, childToRemove);
     list.appendChild(childToRemove);
     console.log(`appending deleted div row ${position} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
   }
   else if (firstLoadedRowPosition > 0) {
-    loadRow(position, childToRemove);
+    loadRow(firstLoadedRowPosition - 1, childToRemove);
     list.insertBefore(childToRemove, list.firstChild);
+    --firstLoadedRowPosition;
+    spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
     console.log(`prepending deleted div row ${position} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
   } else {
     //if the removed item can't be placed at either end of the list, get rid of it
@@ -209,8 +251,14 @@ function deleteRow(position) {
 function updateList(modifiedRow) {
   let count = list.childNodes.length;
   for (let i = modifiedRow; i < count; ++i) {
+    let row = list.childNodes[i];
+    let position = i + firstLoadedRowPosition;
+    
+    //update the line number item of the slide menu
+    row.firstChild.firstChild.textContent = position;
+    
     //update the row property of the inner row
-    list.childNodes[i].firstChild.position = i + firstLoadedRowPosition;
+    row.childNodes[1].position = position;
   }
   
   loadedRowCount = Math.min(visibleRowCount + 6, script.getRowCount());
@@ -236,8 +284,11 @@ function loadRow(position, rowDiv) {
   position = position|0;
   
   let itemCount = script.getItemCount(position);
-  let innerRow = rowDiv.firstChild;
+  let innerRow = rowDiv.childNodes[1];
   innerRow.position = position;
+  
+  //update the line number item of the slide menu
+  innerRow.parentElement.firstChild.firstChild.textContent = position;
   
   while (innerRow.childNodes.length > 2) {
     let lastChild = innerRow.lastChild;
@@ -255,7 +306,6 @@ function loadRow(position, rowDiv) {
     } else {
       node = document.createElement("button");
       node.appendChild(document.createTextNode(text));
-      node.onclick = buttonClicked;
     }
     
     node.className = "item" + style;
@@ -264,16 +314,16 @@ function loadRow(position, rowDiv) {
   }
   
   const indentation = script.getIndentation(position);
-  console.log(`row# ${position} indentation ${indentation} firstChild ${innerRow.firstChild.className}`);
-  
   innerRow.firstChild.style.width = 8 * indentation + "px";
-  innerRow.firstChild.style.display =  (indentation === 0) ? "none" : "initial";
+  innerRow.firstChild.style.display =  (indentation === 0) ? "none" : "";
 }
 
 
-
-function buttonClicked(event) {
-  let button = event.currentTarget;
+function rowClickHandler(event) {
+  if (!event.target || !event.target.col)
+    return;
+  
+  let button = event.target;
   
   let position = button.parentElement.position|0;
   let col = button.col|0;
@@ -289,68 +339,122 @@ function buttonClicked(event) {
 }
 
 
+function touchStartHandler(event) {
+  let row = event.currentTarget;
+  
+  if (row.touchId === -1) {
+    row.sliding = false;
+    
+    let touch = event.changedTouches[0];
+    row.touchId = touch.identifier;
+    row.touchStartX = touch.pageX;
+    row.touchStartY = touch.pageY;
+    row.touchCapture = false;
+    
+    let style = window.getComputedStyle(row.firstChild);
+    let width = style.getPropertyValue('min-width');
+    row.slideMenuStartWidth = parseInt(width);
+    row.firstChild.classList.remove("slow-transition");
+  }
+}
+
+function touchMoveHandler(event) {
+  let row = event.currentTarget;
+  
+  let touches = event.changedTouches;
+  for (let touch of touches) {
+    if (touch.identifier === row.touchId) {
+      let offsetX = touch.pageX - row.touchStartX;
+      let offsetY = touch.pageY - row.touchStartY;
+      
+      if (!row.touchCapture && Math.abs(offsetY) < 10 && Math.abs(offsetX) > 10) {
+        row.touchCapture = true;
+      }
+      
+      if (row.touchCapture) {
+        row.firstChild.style.width = row.slideMenuStartWidth + Math.max(0, offsetX) + "px";
+        event.preventDefault();
+      }
+      break;
+    }
+  }
+}
+
+function touchEndHandler(event) {
+  let row = event.currentTarget;
+  
+  let touches = event.changedTouches;
+  for (let touch of touches) {
+    if (touch.identifier === row.touchId) {
+      row.touchId = -1;
+      
+      if (row.touchCapture) {
+        row.firstChild.classList.add("slow-transition");
+        
+        let offsetX = touch.pageX - row.touchStartX;
+        
+        if (offsetX > 160) {
+          script.deleteRow(row.childNodes[1].position);
+          deleteRow(row.childNodes[1].position);
+          row.firstChild.style.width = "100%";
+        }
+        
+        else if (offsetX > 80) {
+          script.insertRow(row.childNodes[1].position + 1);
+          insertRow(row.childNodes[1].position + 1);
+          row.firstChild.style.width = row.slideMenuStartWidth + "px";
+        } else {
+          row.firstChild.style.width = row.slideMenuStartWidth + "px";
+        }
+      }
+      
+      row.touchCapture = false;
+      break;
+    }
+  }
+}
 
 
-function hashListener() {
-  //returning to editor
+
+
+document.body.onhashchange = function () {
   if (window.location.hash === "") {
-    setView(editor);
+    editor.style.display = "";
+    canvas.style.display = "none";
 
-    //stop render loop
     if (renderLoop !== 0) {
       window.cancelAnimationFrame(renderLoop)
       renderLoop = 0;
     }
 
-    //report any errors
     if (error !== null) {
       alert(error);
       error = null;
     }
     
-    state = null;
+    eventHandlers = new Object(null);
     document.body.style.height = (script.getRowCount() + visibleRowCount - 2) * rowHeight + "px";
   }
   
-  //returning to canvas
   else {
-    setView(canvas);
-
-    //start render loop
-    if (renderLoop === 0)
-      renderLoop = window.requestAnimationFrame(draw);
+    editor.style.display = "none";
+    canvas.style.display = "";
     
-    state = script.getJavaScript(state);
+    script.getJavaScript() ();
     
-    if (!state.onDraw) {
-      console.log("state.onDraw() is not defined");
+    if (! ("ondraw" in eventHandlers)) {
+      console.log("draw handler is not defined");
       window.location.hash = "";
       return;
     }
-        
-    //onResize function is optional
-    if (state.onResize)
-      state.onResize(canvas.width, canvas.height);
     
-    //initialize function is optional
-    if (state.initialize)
-      state.initialize();
+    if (renderLoop === 0)
+      renderLoop = window.requestAnimationFrame(draw);
     
     document.body.style.height = "auto";
   }
-}
-hashListener();
-
-
-function setView(view) {
-  if (editor.parentNode === document.body)
-    document.body.removeChild(editor);
-  
-  if (canvas.parentNode === document.body)
-    document.body.removeChild(canvas);
-  
-  document.body.appendChild(view);
-}
+};
+document.body.onhashchange();
 
 
 
@@ -377,9 +481,8 @@ function drawCircle(x, y, r) {
 
 function draw(timestamp) {
   context.clearRect(0, 0, canvas.width, canvas.height);
-  state.onDraw(timestamp);
+  
+  eventHandlers.ondraw(timestamp);
   
   renderLoop = window.requestAnimationFrame(draw);
 }
-
-resizeListener();

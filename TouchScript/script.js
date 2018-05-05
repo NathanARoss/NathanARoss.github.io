@@ -1,18 +1,17 @@
 class Script {
   constructor() {
-    this.nextVariable = 0;
-    this.variableNames = {};
     this.nextNumericLiteral = 0;
-    this.numericLiterals = {};
+    this.numericLiterals = new Map();
     this.nextStringLiteral = 0;
-    this.stringLiterals = {};
+    this.stringLiterals = new Map();
     this.nextComment = 0;
-    this.comments = {};
+    this.comments = new Map();
     this.data = [];
 
-    const [CLASSES, CLASS_MAP, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, SAMPLE_SCRIPT] = getBuiltIns();
+    const [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, SAMPLE_SCRIPT] = getBuiltIns();
     this.classes = CLASSES;
     this.classMap = CLASS_MAP;
+    this.variables = VARIABLES;
     this.functions = FUNCTIONS;
     this.functionMap = FUNCTION_MAP;
     this.symbols = SYMBOLS;
@@ -39,6 +38,7 @@ class Script {
 
   loadScript(sampleScript) {
     //define specific item values to test for later
+    const LET = Script.makeItem(Script.KEYWORD, this.keywordMap.get("let"));
     const FUNC = Script.makeItem(Script.KEYWORD, this.keywordMap.get("func"));
 
     let line = [0];
@@ -66,15 +66,15 @@ class Script {
         line.push(Script.makeItem(Script.STRING_LITERAL, this.nextStringLiteral++));
       }
       else if (token.startsWith("//")) {
-        this.comments[this.nextComment] = token.substring(2);
+        this.comments.set(this.nextComment, token.substring(2));
         line.push(Script.makeItem(Script.COMMENT, this.nextComment++));
       }
       else if (token.startsWith("/*")) {
-        this.comments[this.nextComment] = token.substring(2, token.length - 2);
+        this.comments.set(this.nextComment, token.substring(2, token.length - 2));
         line.push(Script.makeItem(Script.COMMENT, this.nextComment++));
       }
       else if (!isNaN(token)) {
-        this.numericLiterals[this.nextNumericLiteral] = token;
+        this.numericLiterals.set(this.nextNumericLiteral, token);
         line.push(Script.makeItem(Script.NUMERIC_LITERAL, this.nextNumericLiteral++));
       }
       else if (this.symbolMap.has(token)) {
@@ -87,9 +87,15 @@ class Script {
         let funcId = this.functionMap.get(token);
         line.push(Script.makeItemWithMeta(Script.FUNCTION_CALL, this.functions[funcId].scope, funcId));
       }
+      else if (this.classMap.has(token)) {
+        line.push(Script.makeItem(Script.KEYWORD, this.keywordMap.get(token)));
+      }
+      
+      //this token represents a function definition
       else if (line[line.length - 1] === FUNC) {
         let newFunc = {};
         newFunc.scope = 0;
+        
         let indexOf = token.indexOf(":");
         if (indexOf !== -1) {
           newFunc.name = token.substring(0, indexOf);
@@ -99,15 +105,7 @@ class Script {
           newFunc.name = token;
           newFunc.returnType = 0;
         }
-        //detect which functions are called from outside
-        if (newFunc.scope === 0) {
-          switch (newFunc.name) {
-            case "onResize":
-            case "initialize":
-            case "onDraw":
-              newFunc.js = newFunc.name;
-          }
-        }
+        
         //console.log("new function. name: " + newFunc.name + " returnType: " + CLASSES[newFunc.returnType].name + " js: " + newFunc.js);
         //the remaining tokens are parameters
         newFunc.parameters = [];
@@ -119,30 +117,77 @@ class Script {
           newFunc.parameters.push(parameter);
           //console.log("parameter name: " + parameter.name + " type: " + CLASSES[parameter.type].name);
         }
+        
         let funcId = this.functions.length;
         this.functions.push(newFunc);
         let key = newFunc.scope ? `${this.classes[newFunc.scope].name}.${newFunc.name}` : newFunc.name;
         this.functionMap.set(key, funcId);
+        
         line.push(Script.makeItemWithMeta(Script.FUNCTION_DEFINITION, newFunc.returnType, funcId));
       }
-      else {
+      
+      //this token represents a variable declaration or parameter
+      else if (line[line.length - 1] === LET || line[1] == FUNC) {
+        let variable = {};
+        
         let indexOf = token.indexOf(":");
-        let name = (indexOf === -1) ? token : token.substring(0, indexOf);
+        if (indexOf >= 0) {
+          variable.name = token.substring(0, indexOf);
+          variable.type = this.classMap.get(token.substring(indexOf + 1));
+        } else {
+          variable.name = token;
+          variable.type = this.classMap.get("Hidden");
+        }
+        
+        //custom classes don't exist yet
+        variable.scope = this.classMap.get("Hidden");
+        
+        let id = this.variables.length;
+        this.variables.push(variable);
+        
+        ++this.nextVariable;
+        
+        line.push(Script.makeItemWithMeta(Script.VARIABLE_REFERENCE, variable.type, id));
+      }
+      
+      //assume token is a variable reference of some form
+      else {
+        //TODO for now, assume all variables are static variables.  instance fields will come later
+        let name, scope;
+        
+        let indexOf = token.lastIndexOf(".");
+        if (indexOf === -1) {
+          name = token;
+          
+          //TODO this assume current scope is global scope
+          scope = this.classMap.get("Hidden");
+        } else {
+          name = token.substring(indexOf + 1);
+          //console.log(`parsing class name '${token.substring(0, indexOf)}'`);
+          scope = this.classMap.get(token.substring(0, indexOf));
+        }
+        
         let id = -1;
-        for (let i = 0, keys = Object.keys(this.variableNames); i < keys.length; ++i) {
-          if (this.variableNames[i] === name) {
+        for (let i = 0; i < this.variables.length; ++i) {
+          const variable = this.variables[i];
+          //console.log(`comparing {name: ${name}, scope: ${scope}} to {name: ${variable.name}, scope: ${variable.scope}}`);
+          if (name === variable.name && scope == variable.scope) {
             id = i;
             break;
           }
         }
+        
         if (id === -1) {
-          this.variableNames[this.nextVariable] = name;
-          id = this.nextVariable++;
+          this.comments.set(this.nextComment, `unrecognized var\n${name}`);
+          line.push(Script.makeItem(Script.COMMENT, this.nextComment++));
+        } else {
+          let variable = this.variables[id];
+          line.push(Script.makeItemWithMeta(Script.VARIABLE_REFERENCE, scope, id));
         }
-        let type = (indexOf === -1) ? 0 : this.classMap.get(token.substring(indexOf + 1));
-        line.push(Script.makeItemWithMeta(Script.VARIABLE_REFERENCE, type, id));
       }
     }
+    
+    this.data.push(line);
   }
 
   clickItem(row, col) {
@@ -215,7 +260,7 @@ class Script {
     switch (format) {
       case Script.VARIABLE_REFERENCE:
       {
-        let name = this.variableNames[value] || `var${value}`;
+        let name = this.variables[value].name || `var${value}`;
         if (meta === 0) {
           return [name, ""];
         }
@@ -265,13 +310,13 @@ class Script {
         return [this.keywords[data], " keyword"];
 
       case Script.NUMERIC_LITERAL:
-        return [this.numericLiterals[data], " numeric"];
+        return [this.numericLiterals.get(data), " numeric"];
 
       case Script.STRING_LITERAL:
-        return [this.stringLiterals[data], " string"];
+        return [this.stringLiterals.get(data), " string"];
 
       case Script.COMMENT:
-        return [this.comments[data], " comment"];
+        return [this.comments.get(data), " comment"];
 
       default:
         return [`format\n${format}`, " error"];
@@ -308,11 +353,13 @@ class Script {
         //append an end parenthesis to the end of the line
         switch (format) {
           case Script.VARIABLE_REFERENCE:
-            if (needsCommas)
-              js += `v${value}, `;
-            else
-              js += `v${value} `;
-
+            if ("js" in this.variables[value]) {
+              js += this.variables[value].js;
+            } else {
+              js += `v${value}`;
+            }
+            
+            js += (needsCommas) ? ", " : " ";
             break;
 
           case Script.FUNCTION_DEFINITION:
@@ -321,7 +368,7 @@ class Script {
             let funcName;
 
             if ("js" in func) {
-              js += `state.${func.js} = function ( `;
+              js += `${func.js} = function ( `;
             }
             else {
               js += `function f${value} (`;
@@ -362,15 +409,15 @@ class Script {
             break;
 
           case Script.NUMERIC_LITERAL:
-            js += `${this.numericLiterals[value]} `;
+            js += `${this.numericLiterals.get(value)} `;
             break;
 
           case Script.STRING_LITERAL:
-            js += `"${this.stringLiterals[value]}" `;
+            js += `"${this.stringLiterals.get(value)}" `;
             break;
 
           case Script.COMMENT:
-            js += `/*${this.comments[value]}*/ `;
+            js += `/*${this.comments.get(value)}*/ `;
             break;
 
           default:
@@ -400,11 +447,7 @@ class Script {
 
     console.log(js);
 
-    //compile the string into a function and attach it to an object
-    let func = new Function("state", js);
-    let state = {};
-    func(state);
-    return state;
+    return new Function(js);
   }
 }
 

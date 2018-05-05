@@ -15,14 +15,22 @@ function getBuiltIns() {
     {name: "Float", size: 4},
     {name: "Double", size: 8},
     {name: "System", size: 0},
+    {name: "System.Event", size: 0},
     {name: "Math", size: 0},
     {name: "Canvas", size: 0},
+    {name: "Function", size: 0},
   ];
   
   let CLASS_MAP = new Map();
   for (let i = 0; i < CLASSES.length; ++i) {
     CLASS_MAP.set(CLASSES[i].name, i);
   }
+  
+  
+  //static variables of classes only
+  let VARIABLES = [
+    {name: "ondraw", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['ondraw']"}
+  ];
   
   
   function parseFunction(source, js) {
@@ -36,7 +44,9 @@ function getBuiltIns() {
     newFunc.scope = CLASS_MAP.get(tokens[0]);
     newFunc.name = tokens[1];
     newFunc.returnType = CLASS_MAP.get(tokens[tokens.length - 1]);
-    newFunc.js = js;
+    
+    if (js)
+      newFunc.js = js;
     
     newFunc.parameters = [];
     
@@ -49,21 +59,24 @@ function getBuiltIns() {
   
   /* The .js property prepresents the equivalent javascript function to use when translating. */
   let FUNCTIONS = [
-    parseFunction("Int8.Int8(toConvert:Any)->Int8", "Number"),
-    parseFunction("UInt8.UInt8(toConvert:Any)->UInt8", "Number"),
-    parseFunction("Int16.Int16(toConvert:Any)->Int16", "Number"),
-    parseFunction("UInt16.UInt16(toConvert:Any)->UInt16", "Number"),
-    parseFunction("Int32.Int32(toConvert:Any)->Int32", "Number"),
-    parseFunction("UInt32.UInt32(toConvert:Any)->UInt32", "Number"),
-    parseFunction("Int64.Int64(toConvert:Any)->Int64", "Number"),
-    parseFunction("UInt64.UInt64(toConvert:Any)->UInt64", "Number"),
+    parseFunction("Int8.Int8(toConvert:Any) -> Int8", "Number"),
+    parseFunction("UInt8.UInt8(toConvert:Any) -> UInt8", "Number"),
+    parseFunction("Int16.Int16(toConvert:Any) -> Int16", "Number"),
+    parseFunction("UInt16.UInt16(toConvert:Any) -> UInt16", "Number"),
+    parseFunction("Int32.Int32(toConvert:Any) -> Int32", "Number"),
+    parseFunction("UInt32.UInt32(toConvert:Any) -> UInt32", "Number"),
+    parseFunction("Int64.Int64(toConvert:Any) -> Int64", "Number"),
+    parseFunction("UInt64.UInt64(toConvert:Any) -> UInt64", "Number"),
       
     parseFunction("System.print(item:Any)", "console.log"),
     parseFunction("Canvas.drawCircle(x:Double, y:Double, r:Double)", "drawCircle"),
-    parseFunction("Math.cos(theta:Double)->Double", "Math.cos"),
-    parseFunction("Math.sin(theta:Double)->Double", "Math.sin"),
-    parseFunction("Math.min(a:Double, b:Double)->Double", "Math.min"),
-    parseFunction("Math.max(a:Double, b:Double)->Double", "Math.max"),
+    parseFunction("Math.cos(theta:Double) -> Double", "Math.cos"),
+    parseFunction("Math.sin(theta:Double) -> Double", "Math.sin"),
+    parseFunction("Math.min(a:Double, b:Double) -> Double", "Math.min"),
+    parseFunction("Math.max(a:Double, b:Double) -> Double", "Math.max"),
+    parseFunction("System.addEventListener(event:String, handler:Function)", "addEventListener"),
+    parseFunction("System.getWidth() -> Int32", "getWidth"),
+    parseFunction("System.getHeight() -> Int32", "getHeight"),
   ]
   
   let FUNCTION_MAP = new Map();
@@ -72,7 +85,7 @@ function getBuiltIns() {
     let key = FUNCTIONS[i].name;
     if (scope)
       key = `${scope}.${key}`;
-      
+    
     FUNCTION_MAP.set(key, i);
   }
   
@@ -169,72 +182,85 @@ function getBuiltIns() {
   
   
   
-  
-  let sampleScripts = [];
-  
-  sampleScripts[0] =
-  `var width , height , radius
-  var x , y , vX , vY
-  
-  func onResize newWidth:Double newHeight:Double {
-    width = newWidth
-    height = newHeight
-    radius = Math.min ( width , height ) / 16
+  let sampleScript =
+  `func draw time:Double {
+    let seconds = time / 1000
+    Canvas.drawCircle(System.getWidth() / 2, System.getHeight() / 2, seconds)
   }
-  func initialize {
-    x = width / 2
-    y = height / 2
-    vX = width / 40
-    vY = height / 25
-  }
-  func onDraw time:Double {
-    vY += 1
-    x += vX
-    y += vY
-   
-    if x < radius {
-      vX = vX * -0.99
-      x = radius
-    } if y < radius {
-      vY = vY * -0.99
-      y = radius
-    } if x > width - radius {
-      vX = vX * -0.99
-      x = width - radius
-    } if y > height - radius {
-      vY = vY * -0.99
-      y = height - radius
-    }
-    Canvas.drawCircle ( x , y , radius )
-  }`;
   
-  sampleScripts[1] =
-  `var width, height, radius
+  System.Event.ondraw = draw`;
   
-  func pattern x:Double {
-    return Math.sin(x / width * 4) * height / 2 + height / 2
-  }
-  func onResize newWidth:Double newHeight:Double {
-    width = newWidth
-    height = newHeight
-    radius = Math.min(width, height) / 16
-  }
-  func initialize {
-    //nothing needed
-  }
-  func onDraw time:Double {
-    var x = -radius
-    while x < width + radius {
-      let y = pattern(x + time / 1000 * width / 16)
-      Canvas.drawCircle(x, y, radius)
-      x += radius / 4
-    }
-  }`;
+  let longScript =
+  `//line 0
+  //line 1
+  //line 2
+  //line 3
+  //line 4
+  //line 5
+  //line 6
+  //line 7
+  //line 8
+  //line 9
+  //line 10
+  //line 11
+  //line 12
+  //line 13
+  //line 14
+  //line 15
+  //line 16
+  //line 17
+  //line 18
+  //line 19
+  //line 20
+  //line 21
+  //line 22
+  //line 23
+  //line 24
+  //line 25
+  //line 26
+  //line 27
+  //line 28
+  //line 29
+  //line 30
+  //line 31
+  //line 32
+  //line 33
+  //line 34
+  //line 35
+  //line 36
+  //line 37
+  //line 38
+  //line 39
+  //line 40
+  //line 51
+  //line 52
+  //line 53
+  //line 54
+  //line 55
+  //line 56
+  //line 57
+  //line 58
+  //line 59
+  //line 60
+  //line 61
+  //line 62
+  //line 63
+  //line 64
+  //line 65
+  //line 66
+  //line 67
+  //line 68
+  //line 69
+  //line 70
+  //line 71
+  //line 72
+  //line 73
+  //line 74
+  //line 75
+  //line 76
+  //line 77
+  //line 78
+  //line 79`;
   
-  sampleScripts[1] =
-  `let message = "Hello World"
-  System.print(message)
-  `
-  
-  return [CLASSES, CLASS_MAP, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, sampleScripts[0]];
+  return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, sampleScript];
 }
