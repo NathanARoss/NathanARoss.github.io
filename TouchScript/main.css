@@ -79,6 +79,10 @@ body {
   #line-number-item {
     width: calc(3.5em + 80px);
   }
+  
+  .inner-row {
+    width: calc(100% - 3.5em);
+  }
 }
 
 /* Desktop Firefox, mobile Firefox (not Firefox Focus), Samsung Browser (oddly) */
