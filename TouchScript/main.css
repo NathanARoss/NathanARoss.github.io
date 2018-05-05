@@ -1,5 +1,8 @@
 :root {
   --line-height: 40px;
+  --hover-color: #2D3333;
+  --primary-color: #3B3B3B;
+  --secondary-color: DarkSlateGray;
   user-select: none;
   moz-user-select: none;
 }
@@ -20,6 +23,10 @@ body {
   height: var(--line-height);
   overflow: hidden;
   white-space: nowrap;
+}
+
+.outer-row:hover {
+  background-color: var(--hover-color)
 }
 
 .inner-row {
@@ -50,19 +57,19 @@ body {
   width: 80px;
   padding: 0 0.5em;
   line-height: var(--line-height);
-  background-color: gray;
+  background-color: var(--primary-color);
   box-sizing: border-box;
   white-space: pre;
   font-family: monospace;
 }
 
 #newline-item {
-  background: url(ic_subdirectory_arrow_left_white_24px.svg) no-repeat center left DarkSlateGray;
+  background: url(ic_subdirectory_arrow_left_white_24px.svg) no-repeat center left var(--secondary-color);
   width: 120px;
 }
 
 #delete-line-item {
-  background: url(ic_delete_white_24px.svg) no-repeat center left gray;
+  background: url(ic_delete_white_24px.svg) no-repeat center left var(--primary-color);
   flex-grow: 1;
 }
 
@@ -109,7 +116,7 @@ button {
 
 .indentation {
   border-right: 4px;
-  border-color: #444;
+  border-color: var(--primary-color);
   border-style: solid;
 }
 
@@ -156,29 +163,36 @@ button {
 }
 
 #debug {
-  left: 0px;
-  bottom: 0px;
-  padding: 4px;
-  margin: 0px;
+  left: 0;
+  bottom: 0;
+  padding: 0.5em;
+  margin: 0.5em;
+  background-color: var(--primary-color);
   white-space: pre;
+}
+
+@media only screen and (max-width: 400px) {
+  #debug {
+    display: none;
+  }
 }
 
 #run_button {
   bottom: 10px;
   right: 10px;
+  width: 50px;
+  border-radius: 50%;
+  background-color: var(--secondary-color);
   
   font-family: Monospace;
   font-size: 32px;
   text-decoration: none;
   text-align: center;
   line-height: 50px;
-
-  width: 50px;
-  border-radius: 50%;
+  color: white;
 }
 
 #debug, #run_button {
-  background-color: gray;
   position: fixed;
   z-index: 1;
 }

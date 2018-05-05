@@ -215,7 +215,12 @@ class Script {
   }
 
   insertRow(row) {
-    this.data.splice(row, 0, [this.getIndentation(row - 1) + this.isStartingScope(row - 1)]);
+    let line = [this.getIndentation(row - 1) + this.isStartingScope(row - 1)];
+
+    //this.comments.set(this.nextComment, String(this.nextComment));
+    //line.push(Script.makeItem(Script.COMMENT, this.nextComment++));
+
+    this.data.splice(row, 0, line);
   }
 
   deleteRow(row) {

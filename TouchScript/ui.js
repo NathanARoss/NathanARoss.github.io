@@ -5,17 +5,16 @@ let loadedRowCount = 0;
 let visibleRowCount = 0;
 let firstLoadedPosition = 0;
 let firstVisiblePosition = 0;
+let hoverPosition;
 
-const list = document.getElementById("list"); //a div containing all elements
-const spacer = document.getElementById("spacer"); //an empty div that changes height to offset elements
+const list = document.getElementById("list");
+const spacer = document.getElementById("spacer");
 const debug = document.getElementById("debug");
-
 const canvas = document.getElementById("canvas");
 const editor = document.getElementById("editor_div");
+const context = canvas.getContext("2d", { alpha: false });
 
 let buttonPool = [];
-
-const context = canvas.getContext("2d", { alpha: false });
 
 let renderLoop = 0;
 let error = null;
@@ -79,16 +78,6 @@ document.body.onresize();
 
 
 
-function getWidth() {
-  return canvas.width;
-}
-
-function getHeight() {
-  return canvas.height;
-}
-
-
-
 //detect when items need to be loaded in the direction of scroll, take nodes from the back to add to the front
 window.onscroll = function() {
   firstVisiblePosition = Math.floor(window.scrollY / rowHeight);
@@ -133,6 +122,68 @@ window.onscroll = function() {
     row.touchCapturable = false;
   }
 };
+
+
+document.body.onhashchange = function() {
+  if (window.location.hash === "") {
+    editor.style.display = "";
+    canvas.style.display = "none";
+
+    if (renderLoop !== 0) {
+      window.cancelAnimationFrame(renderLoop)
+      renderLoop = 0;
+    }
+
+    if (error !== null) {
+      alert(error);
+      error = null;
+    }
+    
+    eventHandlers = new Object(null);
+    document.body.style.height = (script.getRowCount() + visibleRowCount - 2) * rowHeight + "px";
+  }
+  
+  else {
+    editor.style.display = "none";
+    canvas.style.display = "";
+    
+    script.getJavaScript() ();
+    
+    if (! (eventHandlers.ondraw)) {
+      console.log("draw handler is not defined");
+      window.location.hash = "";
+      return;
+    }
+    
+    if (renderLoop === 0)
+      renderLoop = window.requestAnimationFrame(draw);
+    
+    document.body.style.height = "auto";
+  }
+};
+document.body.onhashchange();
+
+
+document.body.onmousemove = function(event) {
+  hoverPosition = Math.floor(event.clientY / rowHeight);
+};
+
+
+document.body.onkeydown = function(event) {
+  console.log(`${event.key}`);
+
+  switch (event.key) {
+    case "Enter":
+      script.insertRow(hoverPosition + 1);
+      insertRow(hoverPosition + 1);
+      break;
+    
+    case "Delete":
+      script.deleteRow(hoverPosition);
+      deleteRow(hoverPosition);
+      break;
+  }
+}
 
 
 
@@ -438,49 +489,6 @@ function touchEndHandler(event) {
     }
   }
 }
-
-
-
-
-document.body.onhashchange = function () {
-  if (window.location.hash === "") {
-    editor.style.display = "";
-    canvas.style.display = "none";
-
-    if (renderLoop !== 0) {
-      window.cancelAnimationFrame(renderLoop)
-      renderLoop = 0;
-    }
-
-    if (error !== null) {
-      alert(error);
-      error = null;
-    }
-    
-    eventHandlers = new Object(null);
-    document.body.style.height = (script.getRowCount() + visibleRowCount - 2) * rowHeight + "px";
-  }
-  
-  else {
-    editor.style.display = "none";
-    canvas.style.display = "";
-    
-    script.getJavaScript() ();
-    
-    if (! (eventHandlers.ondraw)) {
-      console.log("draw handler is not defined");
-      window.location.hash = "";
-      return;
-    }
-    
-    if (renderLoop === 0)
-      renderLoop = window.requestAnimationFrame(draw);
-    
-    document.body.style.height = "auto";
-  }
-};
-document.body.onhashchange();
-
 
 
 

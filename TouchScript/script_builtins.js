@@ -16,6 +16,7 @@ function getBuiltIns() {
     {name: "Double", size: 8},
     {name: "System", size: 0},
     {name: "System.Event", size: 0},
+    {name: "System.Screen", size: 0},
     {name: "Math", size: 0},
     {name: "Canvas", size: 0},
     {name: "Function", size: 0},
@@ -31,6 +32,8 @@ function getBuiltIns() {
   let VARIABLES = [
     {name: "ondraw", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['ondraw']"},
     {name: "onresize", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['onresize']"},
+    {name: "width", type: CLASS_MAP.get("Int32"), scope: CLASS_MAP.get("System.Screen"), js: "canvas.width"},
+    {name: "height", type: CLASS_MAP.get("Int32"), scope: CLASS_MAP.get("System.Screen"), js: "canvas.height"},
   ];
   
   
@@ -75,9 +78,6 @@ function getBuiltIns() {
     parseFunction("Math.sin(theta:Double) -> Double", "Math.sin"),
     parseFunction("Math.min(a:Double, b:Double) -> Double", "Math.min"),
     parseFunction("Math.max(a:Double, b:Double) -> Double", "Math.max"),
-    parseFunction("System.addEventListener(event:String, handler:Function)", "addEventListener"),
-    parseFunction("System.getWidth() -> Int32", "getWidth"),
-    parseFunction("System.getHeight() -> Int32", "getHeight"),
   ]
   
   let FUNCTION_MAP = new Map();
@@ -187,13 +187,13 @@ function getBuiltIns() {
   `var minDim
   
   func resize {
-    minDim = Math.min( System.getWidth(), System.getHeight() ) / 3
+    minDim = Math.min( System.Screen.width, System.Screen.height ) / 3
   }
   
   func draw time:Double {
     let seconds = time / 1000
     let radius = Math.sin(seconds) * minDim
-    Canvas.drawCircle(System.getWidth() / 2, System.getHeight() / 2, radius)
+    Canvas.drawCircle(System.Screen.width / 2, System.Screen.height / 2, radius)
   }
   
   System.Event.ondraw = draw
