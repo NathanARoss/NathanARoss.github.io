@@ -347,10 +347,11 @@ function touchStartHandler(event) {
     row.touchStartY = touch.pageY;
     row.touchCapture = false;
     
-    let style = window.getComputedStyle(row.firstChild);
-    let width = style.getPropertyValue('min-width');
-    row.slideMenuStartWidth = parseInt(width);
     row.firstChild.classList.remove("slow-transition");
+    row.firstChild.style.width = "";
+    
+    row.slideMenuStartWidth = row.firstChild.offsetWidth;
+    
   }
 }
 
