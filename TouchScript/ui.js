@@ -138,6 +138,7 @@ function createRow() {
   
   let slideMenu = document.createElement("div");
   slideMenu.classList.add("slide-menu");
+  slideMenu.classList.add("slow-transition");
   slideMenu.appendChild(lineNumberItem);
   slideMenu.appendChild(newlineItem);
   slideMenu.appendChild(deleteLineItem);
@@ -348,7 +349,7 @@ function touchStartHandler(event) {
     row.touchCapture = false;
     
     row.firstChild.classList.remove("slow-transition");
-    row.firstChild.style.width = "";
+    row.firstChild.style.width = null;
     
     row.slideMenuStartWidth = row.firstChild.offsetWidth;
     
@@ -399,9 +400,9 @@ function touchEndHandler(event) {
         else if (offsetX > 80) {
           script.insertRow(row.childNodes[1].position + 1);
           insertRow(row.childNodes[1].position + 1);
-          row.firstChild.style.width = row.slideMenuStartWidth + "px";
+          row.firstChild.style.width = null;
         } else {
-          row.firstChild.style.width = row.slideMenuStartWidth + "px";
+          row.firstChild.style.width = null;
         }
       }
       
