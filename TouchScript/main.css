@@ -41,22 +41,25 @@ body {
 .slide-menu-item {
   display: inline-block;
   height: var(--line-height);
-  width: 80px;
   flex-shrink: 0;
   margin: 0;
 }
 
 #line-number-item {
-  padding-right: 1em;
   font-style: bold;
-  text-align: right;
+  text-align: left;
+  width: 80px;
+  padding: 0 0.5em;
   line-height: var(--line-height);
   background-color: gray;
   box-sizing: border-box;
+  white-space: pre;
+  font-family: monospace;
 }
 
 #newline-item {
   background: url(ic_subdirectory_arrow_left_white_24px.svg) no-repeat center left DarkSlateGray;
+  width: 120px;
 }
 
 #delete-line-item {
@@ -70,13 +73,11 @@ body {
 
 @media only screen and (min-width: 400px) {
   .slide-menu {
-    width: 80px;
+    width: 3.5em;
   }
   
   #line-number-item {
-    width: 160px;
-    padding-right: calc(80px + 1em);
-    box-sizing: border-box;
+    width: calc(3.5em + 80px);
   }
 }
 
@@ -174,7 +175,7 @@ button {
 }
 
 #debug, #run_button {
-  background-color: #AAAAAA;
+  background-color: gray;
   position: fixed;
   z-index: 1;
 }

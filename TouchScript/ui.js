@@ -72,7 +72,7 @@ document.body.onresize = function () {
   canvas.height = window.innerHeight * window.devicePixelRatio;
   //console.log("canvas resolution: " + canvas.width + "x" + canvas.height);
   
-  if ("resize" in eventHandlers)
+  if (eventHandlers.resize)
     eventHandlers.resize(canvas.width, canvas.height);
 };
 document.body.onresize();
@@ -80,11 +80,11 @@ document.body.onresize();
 
 
 function getWidth() {
-  return window.innerWidth;
+  return canvas.width;
 }
 
 function getHeight() {
-  return window.innerHeight;
+  return canvas.height;
 }
 
 
@@ -120,6 +120,18 @@ window.onscroll = function() {
   
   spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
   updateDebug();
+  
+  //scrolling overrides slide-out menu
+  for (let row of list.childNodes) {
+    if (row.touchCaptured) {
+        row.touchId = -1;
+        row.firstChild.classList.add("slow-transition");
+        row.firstChild.style.width = null;
+        
+    }
+    
+    row.touchCapturable = false;
+  }
 };
 
 
@@ -127,6 +139,7 @@ function createRow() {
   let lineNumberItem = document.createElement("p");
   lineNumberItem.classList.add("slide-menu-item");
   lineNumberItem.id = "line-number-item";
+  lineNumberItem.appendChild(document.createTextNode(""));
   
   let newlineItem = document.createElement("p");
   newlineItem.classList.add("slide-menu-item");
@@ -254,7 +267,8 @@ function updateList(modifiedRow) {
     let position = i + firstLoadedRowPosition;
     
     //update the line number item of the slide menu
-    row.firstChild.firstChild.textContent = position;
+    //position.toLocaleString('en-US', {minimumIntegerDigits: 4, useGrouping:false});
+    row.firstChild.firstChild.firstChild.nodeValue = String(position).padStart(4);
     
     //update the row property of the inner row
     row.childNodes[1].position = position;
@@ -274,7 +288,7 @@ function updateDebug() {
   let debugText = ""//"scrollY: " + Math.floor(window.scrollY) + "\n"
       + "loaded: [" + firstLoadedRowPosition + ", " + (firstLoadedRowPosition + loadedRowCount - 1) + "]\n"
       + "visible: [" + firstVisibleRowPosition + ", " + (firstVisibleRowPosition + visibleRowCount - 1) + "]";
-  debug.textContent = debugText;
+  debug.firstChild.nodeValue = debugText;
 }
 
 
@@ -287,7 +301,7 @@ function loadRow(position, rowDiv) {
   innerRow.position = position;
   
   //update the line number item of the slide menu
-  innerRow.parentElement.firstChild.firstChild.textContent = position;
+  innerRow.previousSibling.firstChild.firstChild.nodeValue = String(position + 1000).padStart(4);
   
   while (innerRow.childNodes.length > 2) {
     let lastChild = innerRow.lastChild;
@@ -345,8 +359,8 @@ function touchStartHandler(event) {
     let touch = event.changedTouches[0];
     row.touchId = touch.identifier;
     row.touchStartX = touch.pageX;
-    row.touchStartY = touch.pageY;
-    row.touchCapture = false;
+    row.touchCaptured = false;
+    row.touchCapturable = true;
     
     row.firstChild.classList.remove("slow-transition");
     row.firstChild.style.width = null;
@@ -359,20 +373,35 @@ function touchStartHandler(event) {
 function touchMoveHandler(event) {
   let row = event.currentTarget;
   
+  if (!row.touchCapturable) {
+    return;
+  }
+  
   let touches = event.changedTouches;
   for (let touch of touches) {
     if (touch.identifier === row.touchId) {
-      let offsetX = touch.pageX - row.touchStartX;
-      let offsetY = touch.pageY - row.touchStartY;
+      let travel = touch.pageX - row.touchStartX;
+      let scrollX = row.childNodes[1].scrollLeft;
       
-      if (!row.touchCapture && Math.abs(offsetY) < 10 && Math.abs(offsetX) > 10) {
-        row.touchCapture = true;
+      if (scrollX > 0) {
+        row.touchStartX = touch.pageX + scrollX;
+      }
+      else if (!row.touchCaptured && travel > 10) {
+        row.touchCaptured = true;
+        row.touchStartX += 10;
+        travel -= 10;
       }
       
-      if (row.touchCapture) {
-        row.firstChild.style.width = row.slideMenuStartWidth + Math.max(0, offsetX) + "px";
-        event.preventDefault();
+      if (row.touchCaptured) {
+        if (travel < -10) {
+          row.touchCaptured = false;
+          row.firstChild.style.width = null;
+        } else {
+          row.firstChild.style.width = row.slideMenuStartWidth + Math.max(0, travel) + "px";
+          event.preventDefault();
+        }
       }
+      
       break;
     }
   }
@@ -386,27 +415,23 @@ function touchEndHandler(event) {
     if (touch.identifier === row.touchId) {
       row.touchId = -1;
       
-      if (row.touchCapture) {
+      if (row.touchCaptured) {
         row.firstChild.classList.add("slow-transition");
+        row.firstChild.style.width = null;
         
-        let offsetX = touch.pageX - row.touchStartX;
+        let travel = touch.pageX - row.touchStartX;
         
-        if (offsetX > 160) {
+        if (travel > 200) {
           script.deleteRow(row.childNodes[1].position);
           deleteRow(row.childNodes[1].position);
-          row.firstChild.style.width = "100%";
         }
-        
-        else if (offsetX > 80) {
+        else if (travel > 80) {
           script.insertRow(row.childNodes[1].position + 1);
           insertRow(row.childNodes[1].position + 1);
-          row.firstChild.style.width = null;
-        } else {
-          row.firstChild.style.width = null;
         }
       }
       
-      row.touchCapture = false;
+      row.touchCaptured = false;
       break;
     }
   }
@@ -440,7 +465,7 @@ document.body.onhashchange = function () {
     
     script.getJavaScript() ();
     
-    if (! ("ondraw" in eventHandlers)) {
+    if (! (eventHandlers.ondraw)) {
       console.log("draw handler is not defined");
       window.location.hash = "";
       return;
@@ -467,6 +492,8 @@ function drawCircle(x, y, r) {
   if (typeof r !== "number") {
     throw "Error in drawCircle: 3rd parameter must be of type Number";
   }
+  
+  r = Math.abs(r);
 
   context.beginPath();
   context.strokeStyle="#FFFFFF";

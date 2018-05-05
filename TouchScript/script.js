@@ -39,6 +39,7 @@ class Script {
   loadScript(sampleScript) {
     //define specific item values to test for later
     const LET = Script.makeItem(Script.KEYWORD, this.keywordMap.get("let"));
+    const VAR = Script.makeItem(Script.KEYWORD, this.keywordMap.get("var"));
     const FUNC = Script.makeItem(Script.KEYWORD, this.keywordMap.get("func"));
 
     let line = [0];
@@ -62,7 +63,7 @@ class Script {
         line[0] = (line[0] & 0xFFFF0000) | indentation;
       }
       else if (token.startsWith('"')) {
-        this.stringLiterals[this.nextStringLiteral] = token.substring(1, token.length - 1);
+        this.stringLiterals.set(this.nextStringLiteral, token.substring(1, token.length - 1));
         line.push(Script.makeItem(Script.STRING_LITERAL, this.nextStringLiteral++));
       }
       else if (token.startsWith("//")) {
@@ -127,7 +128,7 @@ class Script {
       }
       
       //this token represents a variable declaration or parameter
-      else if (line[line.length - 1] === LET || line[1] == FUNC) {
+      else if (line[line.length - 1] === LET || line[line.length - 1] === VAR || line[1] == FUNC) {
         let variable = {};
         
         let indexOf = token.indexOf(":");

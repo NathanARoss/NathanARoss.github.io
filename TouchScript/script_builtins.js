@@ -29,7 +29,8 @@ function getBuiltIns() {
   
   //static variables of classes only
   let VARIABLES = [
-    {name: "ondraw", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['ondraw']"}
+    {name: "ondraw", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['ondraw']"},
+    {name: "onresize", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['onresize']"},
   ];
   
   
@@ -183,12 +184,24 @@ function getBuiltIns() {
   
   
   let sampleScript =
-  `func draw time:Double {
-    let seconds = time / 1000
-    Canvas.drawCircle(System.getWidth() / 2, System.getHeight() / 2, seconds)
+  `var minDim
+  
+  func resize {
+    minDim = Math.min( System.getWidth(), System.getHeight() ) / 3
   }
   
-  System.Event.ondraw = draw`;
+  func draw time:Double {
+    let seconds = time / 1000
+    let radius = Math.sin(seconds) * minDim
+    Canvas.drawCircle(System.getWidth() / 2, System.getHeight() / 2, radius)
+  }
+  
+  System.Event.ondraw = draw
+  System.Event.onresize = resize
+  
+  resize()
+  
+  /*This is an intentially ridicuously long line created with the intent to test line scrolling.  How well does it do?  Now well, I assume.  Not nearly long enough.*/`;
   
   let longScript =
   `//line 0
