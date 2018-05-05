@@ -1,14 +1,14 @@
 "use strict";
 
+const rowHeight = 40;
 let loadedRowCount = 0;
 let visibleRowCount = 0;
-const rowHeight = 40;
-let firstLoadedRowPosition = 0;
-let firstVisibleRowPosition = 0;
+let firstLoadedPosition = 0;
+let firstVisiblePosition = 0;
 
-let list = document.getElementById("list"); //a div containing all elements
-let spacer = document.getElementById("spacer"); //an empty div that changes height to offset elements
-let debug = document.getElementById("debug");
+const list = document.getElementById("list"); //a div containing all elements
+const spacer = document.getElementById("spacer"); //an empty div that changes height to offset elements
+const debug = document.getElementById("debug");
 
 const canvas = document.getElementById("canvas");
 const editor = document.getElementById("editor_div");
@@ -41,18 +41,18 @@ document.body.onresize = function () {
   if (diff > 0) {
     for(let i = 0; i < diff; ++i) {
       let div = createRow();
-      let position = list.childNodes.length + firstLoadedRowPosition;
+      let position = list.childNodes.length + firstLoadedPosition;
       
       //if the user is scrolled all the way to the bottom, prepend instead of appending
       if (position < script.getRowCount()) {
         loadRow(position, div);
         list.appendChild(div);
       } else {
-        let position = firstLoadedRowPosition - 1;
+        let position = firstLoadedPosition - 1;
         loadRow(position, div);
         list.insertBefore(div, list.firstChild);
-        --firstLoadedRowPosition;
-        spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
+        --firstLoadedPosition;
+        spacer.style.height = firstLoadedPosition * rowHeight + "px";
       }
     }
   } else if (diff < 0) {
@@ -64,7 +64,7 @@ document.body.onresize = function () {
     }
   }
   
-  firstVisibleRowPosition = Math.floor(window.scrollY / rowHeight);
+  firstVisiblePosition = Math.floor(window.scrollY / rowHeight);
   updateDebug();
 
   //resize canvas as well
@@ -91,11 +91,11 @@ function getHeight() {
 
 //detect when items need to be loaded in the direction of scroll, take nodes from the back to add to the front
 window.onscroll = function() {
-  firstVisibleRowPosition = Math.floor(window.scrollY / rowHeight);
+  firstVisiblePosition = Math.floor(window.scrollY / rowHeight);
   
   //keep a buffer of 2 unseen elements in either direction
-  while ((firstVisibleRowPosition - 4 > firstLoadedRowPosition) && (firstLoadedRowPosition < script.getRowCount() - loadedRowCount)) {
-    let position = loadedRowCount + firstLoadedRowPosition;
+  while ((firstVisiblePosition - 4 > firstLoadedPosition) && (firstLoadedPosition < script.getRowCount() - loadedRowCount)) {
+    let position = loadedRowCount + firstLoadedPosition;
     
     let firstChild = list.firstChild;
     list.removeChild(firstChild);
@@ -103,11 +103,11 @@ window.onscroll = function() {
     loadRow(position, firstChild);
     list.appendChild(firstChild);
     
-    ++firstLoadedRowPosition;
+    ++firstLoadedPosition;
   }
   
-  while ((firstVisibleRowPosition - 2 < firstLoadedRowPosition) && (firstLoadedRowPosition > 0)) {
-    let position = firstLoadedRowPosition - 1;
+  while ((firstVisiblePosition - 2 < firstLoadedPosition) && (firstLoadedPosition > 0)) {
+    let position = firstLoadedPosition - 1;
     
     let lastChild = list.lastChild;
     list.removeChild(lastChild);
@@ -115,10 +115,10 @@ window.onscroll = function() {
     loadRow(position, lastChild);
     list.insertBefore(lastChild, list.firstChild);
     
-    --firstLoadedRowPosition;
+    --firstLoadedPosition;
   }
   
-  spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
+  spacer.style.height = firstLoadedPosition * rowHeight + "px";
   updateDebug();
   
   //scrolling overrides slide-out menu
@@ -133,6 +133,9 @@ window.onscroll = function() {
     row.touchCapturable = false;
   }
 };
+
+
+
 
 
 function createRow() {
@@ -208,10 +211,10 @@ function insertRow(position) {
     rowToModify = createRow();
     console.log(`allocating new row`);
   }
-  else if (firstLoadedRowPosition + 2 < firstVisibleRowPosition) {
+  else if (firstLoadedPosition + 2 < firstVisiblePosition) {
     rowToModify = list.firstChild;
     list.removeChild(rowToModify);
-    ++firstLoadedRowPosition;
+    ++firstLoadedPosition;
     console.log(`reusing first row`);
   }
   else {
@@ -222,7 +225,7 @@ function insertRow(position) {
   
   loadRow(position, rowToModify);
   
-  let positionToInsert = position - firstLoadedRowPosition;
+  let positionToInsert = position - firstLoadedPosition;
   list.insertBefore(rowToModify, list.childNodes[positionToInsert]);
   
   updateList(positionToInsert + 1);
@@ -230,10 +233,10 @@ function insertRow(position) {
 
 /* move the given row off screen and update its content, or garbage collect it if the entire script is on screen */
 function deleteRow(position) {
-  let lastLoaded = firstLoadedRowPosition + loadedRowCount - 1;
-  let lastVisible = firstVisibleRowPosition + visibleRowCount - 1;
+  let lastLoaded = firstLoadedPosition + loadedRowCount - 1;
+  let lastVisible = firstVisiblePosition + visibleRowCount - 1;
   
-  let childToRemove = list.childNodes[position - firstLoadedRowPosition];
+  let childToRemove = list.childNodes[position - firstLoadedPosition];
   list.removeChild(childToRemove);
   
   //move the removed div either above or below the visible list of items unless the entire script is already loaded
@@ -242,18 +245,18 @@ function deleteRow(position) {
     list.appendChild(childToRemove);
     console.log(`appending deleted div row ${position} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
   }
-  else if (firstLoadedRowPosition > 0) {
-    loadRow(firstLoadedRowPosition - 1, childToRemove);
+  else if (firstLoadedPosition > 0) {
+    loadRow(firstLoadedPosition - 1, childToRemove);
     list.insertBefore(childToRemove, list.firstChild);
-    --firstLoadedRowPosition;
-    spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
+    --firstLoadedPosition;
+    spacer.style.height = firstLoadedPosition * rowHeight + "px";
     console.log(`prepending deleted div row ${position} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
   } else {
     //if the removed item can't be placed at either end of the list, get rid of it
     prepareForGarbageCollection(childToRemove);
   }
   
-  updateList(position - firstLoadedRowPosition);
+  updateList(position - firstLoadedPosition);
 }
 
 
@@ -263,7 +266,7 @@ function updateList(modifiedRow) {
   let count = list.childNodes.length;
   for (let i = modifiedRow; i < count; ++i) {
     let row = list.childNodes[i];
-    let position = i + firstLoadedRowPosition;
+    let position = i + firstLoadedPosition;
     
     //update the line number item of the slide menu
     //position.toLocaleString('en-US', {minimumIntegerDigits: 4, useGrouping:false});
@@ -275,7 +278,7 @@ function updateList(modifiedRow) {
   
   loadedRowCount = Math.min(visibleRowCount + 6, script.getRowCount());
   
-  spacer.style.height = firstLoadedRowPosition * rowHeight + "px";
+  spacer.style.height = firstLoadedPosition * rowHeight + "px";
   document.body.style.height = (script.getRowCount() + visibleRowCount - 2) * rowHeight + "px";
   
   updateDebug();
@@ -285,8 +288,8 @@ function updateList(modifiedRow) {
 
 function updateDebug() {
   let debugText = ""//"scrollY: " + Math.floor(window.scrollY) + "\n"
-      + "loaded: [" + firstLoadedRowPosition + ", " + (firstLoadedRowPosition + loadedRowCount - 1) + "]\n"
-      + "visible: [" + firstVisibleRowPosition + ", " + (firstVisibleRowPosition + visibleRowCount - 1) + "]";
+      + "loaded: [" + firstLoadedPosition + ", " + (firstLoadedPosition + loadedRowCount - 1) + "]\n"
+      + "visible: [" + firstVisiblePosition + ", " + (firstVisiblePosition + visibleRowCount - 1) + "]";
   debug.firstChild.nodeValue = debugText;
 }
 
@@ -328,7 +331,7 @@ function loadRow(position, rowDiv) {
   
   const indentation = script.getIndentation(position);
   innerRow.firstChild.style.width = 8 * indentation + "px";
-  innerRow.firstChild.style.display =  (indentation === 0) ? "none" : "";
+  innerRow.firstChild.style.display = (indentation === 0) ? "none" : null;
 }
 
 
