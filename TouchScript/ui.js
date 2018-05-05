@@ -158,8 +158,6 @@ function createRow() {
   outerDiv.appendChild(slideMenu);
   outerDiv.appendChild(innerDiv);
   
-  innerDiv.onclick = rowClickHandler;
-  
   outerDiv.touchId = -1;
   outerDiv.addEventListener("touchstart", touchStartHandler);
   outerDiv.addEventListener("touchmove", touchMoveHandler);
@@ -306,6 +304,7 @@ function loadRow(position, rowDiv) {
     } else {
       node = document.createElement("button");
       node.appendChild(document.createTextNode(text));
+      node.onclick = buttonClickHandler;
     }
     
     node.className = "item" + style;
@@ -319,10 +318,7 @@ function loadRow(position, rowDiv) {
 }
 
 
-function rowClickHandler(event) {
-  if (!event.target || !event.target.col)
-    return;
-  
+function buttonClickHandler(event) {
   let button = event.target;
   
   let position = button.parentElement.position|0;
