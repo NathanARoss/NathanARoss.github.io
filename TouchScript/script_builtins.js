@@ -200,13 +200,8 @@ function getBuiltIns() {
   }
 
   func tap tapX:Double tapY:Double id:Int32 {
-    System.print("tap: " + tapX + ", " + tapY)
     vX += Math.random() * 10
     vY += Math.random() * 10 - 20
-  }
-
-  func click _x:Double _y:Double button:Int32 {
-    tap(_x, _y, 0)
   }
 
   func draw time:Double {
@@ -245,7 +240,7 @@ function getBuiltIns() {
   System.Event.ondraw = draw
   System.Event.onresize = resize
   System.Event.ontouchstart = tap
-  System.Event.onmousedown = click`
+  System.Event.onmousedown = tap`
   
   return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, sampleScript];
 }
