@@ -107,7 +107,7 @@ window.onscroll();
 
 document.body.onhashchange = function() {
   if (window.location.hash === "") {
-    editor.style.display = "";
+    editor.style.display = null;
     canvas.style.display = "none";
 
     if (renderLoop !== 0) {
@@ -126,9 +126,15 @@ document.body.onhashchange = function() {
   
   else {
     editor.style.display = "none";
-    canvas.style.display = "";
+    canvas.style.display = null;
     
-    script.getJavaScript() ();
+    try {
+      script.getJavaScript() ();
+    } catch (e) {
+      error = e;
+      window.location.hash = "";
+    }
+    
     
     if (! (eventHandlers.ondraw)) {
       console.log("draw handler is not defined");
@@ -428,9 +434,9 @@ function drawCircle(x, y, r) {
   r = Math.abs(r);
 
   context.beginPath();
-  context.strokeStyle="#FFFFFF";
+  context.fillStyle="#FFFFFF";
   context.arc(x,y,r, 0,2*Math.PI);
-  context.stroke();
+  context.fill();
 }
 
 

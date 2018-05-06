@@ -199,9 +199,7 @@ function getBuiltIns() {
   System.Event.ondraw = draw
   System.Event.onresize = resize
   
-  resize()
-  
-  /*This is an intentially ridicuously long line created with the intent to test line scrolling.  How well does it do?  Now well, I assume.  Not nearly long enough.*/`;
+  resize()`
   
   return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, sampleScript];
 }
