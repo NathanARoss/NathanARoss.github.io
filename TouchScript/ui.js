@@ -1,11 +1,10 @@
 "use strict";
 
 const rowHeight = 40;
-let loadedRowCount = 0;
-let visibleRowCount = 0;
+const bufferCount = 10;
+const forwardBufferCount = 4;
+let loadedCount = 0;
 let firstLoadedPosition = 0;
-let firstVisiblePosition = 0;
-let hoverPosition;
 
 const list = document.getElementById("list");
 const spacer = document.getElementById("spacer");
@@ -25,51 +24,29 @@ const script = new Script();
 
 
 document.body.onresize = function () {
-  visibleRowCount = Math.ceil(window.innerHeight / rowHeight);
-  let newLoadedRowCount = visibleRowCount + 6;
-  newLoadedRowCount = Math.min(newLoadedRowCount, script.getRowCount());
-  let diff = newLoadedRowCount - loadedRowCount;
-  loadedRowCount = newLoadedRowCount;
+  let newLoadedCount = Math.ceil(window.innerHeight / rowHeight) + bufferCount;
+  let diff = newLoadedCount - loadedCount;
+  loadedCount = newLoadedCount;
   
-  //allow the viewport to scroll past the end of the list
+  //allow the viewport to scroll past the currently loaded rows
   if (window.location.hash === "")
-    document.body.style.height = (script.getRowCount() + visibleRowCount - 2) * rowHeight + "px";
-  else
-    document.body.style.height = "auto";
+    document.body.style.height = getRowCount() * rowHeight + "px";
   
-  if (diff > 0) {
-    for(let i = 0; i < diff; ++i) {
-      let div = createRow();
-      let position = list.childNodes.length + firstLoadedPosition;
-      
-      //if the user is scrolled all the way to the bottom, prepend instead of appending
-      if (position < script.getRowCount()) {
-        loadRow(position, div);
-        list.appendChild(div);
-      } else {
-        let position = firstLoadedPosition - 1;
-        loadRow(position, div);
-        list.insertBefore(div, list.firstChild);
-        --firstLoadedPosition;
-        spacer.style.height = firstLoadedPosition * rowHeight + "px";
-      }
-    }
-  } else if (diff < 0) {
-    diff = -diff;
-    for (let i = 0; i < diff; ++i) {
-      let lastChild = list.lastChild;
-      list.removeChild(lastChild);
-      prepareForGarbageCollection(lastChild);
-    }
+  for(let i = 0; i < diff; ++i) {
+    let div = createRow();
+    let position = list.childNodes.length + firstLoadedPosition;
+    loadRow(position, div);
+    list.appendChild(div);
   }
-  
-  firstVisiblePosition = Math.floor(window.scrollY / rowHeight);
-  updateDebug();
 
-  //resize canvas as well
+  for (let i = diff; i < 0; ++i) {
+    let lastChild = list.lastChild;
+    list.removeChild(lastChild);
+    prepareForGarbageCollection(lastChild);
+  }
+
   canvas.width = window.innerWidth * window.devicePixelRatio;
   canvas.height = window.innerHeight * window.devicePixelRatio;
-  //console.log("canvas resolution: " + canvas.width + "x" + canvas.height);
   
   if (eventHandlers.resize)
     eventHandlers.resize(canvas.width, canvas.height);
@@ -80,35 +57,32 @@ document.body.onresize();
 
 //detect when items need to be loaded in the direction of scroll, take nodes from the back to add to the front
 window.onscroll = function() {
-  firstVisiblePosition = Math.floor(window.scrollY / rowHeight);
+  let firstVisiblePosition = Math.floor(window.scrollY / rowHeight);
   
   //keep a buffer of 2 unseen elements in either direction
-  while ((firstVisiblePosition - 4 > firstLoadedPosition) && (firstLoadedPosition < script.getRowCount() - loadedRowCount)) {
-    let position = loadedRowCount + firstLoadedPosition;
-    
+  while ((firstVisiblePosition - bufferCount + forwardBufferCount > firstLoadedPosition) && (firstLoadedPosition + loadedCount < getRowCount())) {
     let firstChild = list.firstChild;
     list.removeChild(firstChild);
     
-    loadRow(position, firstChild);
+    loadRow(firstLoadedPosition + loadedCount, firstChild);
     list.appendChild(firstChild);
     
     ++firstLoadedPosition;
   }
   
-  while ((firstVisiblePosition - 2 < firstLoadedPosition) && (firstLoadedPosition > 0)) {
-    let position = firstLoadedPosition - 1;
-    
+  while ((firstVisiblePosition - forwardBufferCount < firstLoadedPosition) && (firstLoadedPosition > 0)) {
     let lastChild = list.lastChild;
     list.removeChild(lastChild);
     
-    loadRow(position, lastChild);
+    loadRow(firstLoadedPosition - 1, lastChild);
     list.insertBefore(lastChild, list.firstChild);
     
     --firstLoadedPosition;
   }
   
   spacer.style.height = firstLoadedPosition * rowHeight + "px";
-  updateDebug();
+
+  debug.firstChild.nodeValue = `[${firstLoadedPosition}, ${(firstLoadedPosition + loadedCount - 1)}]`;
   
   //scrolling overrides slide-out menu
   for (let row of list.childNodes) {
@@ -116,12 +90,13 @@ window.onscroll = function() {
         row.touchId = -1;
         row.firstChild.classList.add("slow-transition");
         row.firstChild.style.width = null;
-        
     }
     
     row.touchCapturable = false;
   }
 };
+window.onscroll();
+
 
 
 document.body.onhashchange = function() {
@@ -140,7 +115,7 @@ document.body.onhashchange = function() {
     }
     
     eventHandlers = new Object(null);
-    document.body.style.height = (script.getRowCount() + visibleRowCount - 2) * rowHeight + "px";
+    document.body.style.height = getRowCount() * rowHeight + "px";
   }
   
   else {
@@ -164,34 +139,17 @@ document.body.onhashchange = function() {
 document.body.onhashchange();
 
 
-document.body.onmousemove = function(event) {
-  hoverPosition = Math.floor(event.clientY / rowHeight);
-};
 
-
-document.body.onkeydown = function(event) {
-  console.log(`${event.key}`);
-
-  switch (event.key) {
-    case "Enter":
-      script.insertRow(hoverPosition + 1);
-      insertRow(hoverPosition + 1);
-      break;
-    
-    case "Delete":
-      script.deleteRow(hoverPosition);
-      deleteRow(hoverPosition);
-      break;
-  }
+function getRowCount() {
+  return script.getRowCount() + loadedCount - bufferCount - 2;
 }
-
-
 
 
 
 function createRow() {
   let lineNumberItem = document.createElement("p");
   lineNumberItem.classList.add("slide-menu-item");
+  lineNumberItem.classList.add("no-select");
   lineNumberItem.id = "line-number-item";
   lineNumberItem.appendChild(document.createTextNode(""));
   
@@ -209,6 +167,9 @@ function createRow() {
   slideMenu.appendChild(lineNumberItem);
   slideMenu.appendChild(newlineItem);
   slideMenu.appendChild(deleteLineItem);
+  slideMenu.addEventListener("mousedown", slideMenuClickHandler);
+  slideMenu.addEventListener("contextmenu", preventDefault);
+  slideMenu.addEventListener("touchstart", preventDefault);
   
   let indentation = document.createElement("button");
   indentation.classList.add("indentation");
@@ -245,10 +206,6 @@ function prepareForGarbageCollection(div) {
     buttonPool.push(lastChild);
   }
   
-  div.removeEventListener("touchstart", touchStartHandler);
-  div.removeEventListener("touchmove", touchMoveHandler);
-  div.removeEventListener("touchend", touchEndHandler);
-  div.removeEventListener("touchcancel", touchEndHandler);
   console.log(`recycling row`);
 }
 
@@ -256,92 +213,54 @@ function prepareForGarbageCollection(div) {
 
 
 function insertRow(position) {
-  let rowToModify;
-  
-  if (visibleRowCount + 6 > loadedRowCount) {
-    rowToModify = createRow();
-    console.log(`allocating new row`);
-  }
-  else if (firstLoadedPosition + 2 < firstVisiblePosition) {
-    rowToModify = list.firstChild;
-    list.removeChild(rowToModify);
-    ++firstLoadedPosition;
-    console.log(`reusing first row`);
-  }
-  else {
-    rowToModify = list.lastChild;
-    list.removeChild(rowToModify);
-    console.log(`reusing last row`);
-  }
-  
-  loadRow(position, rowToModify);
-  
-  let positionToInsert = position - firstLoadedPosition;
-  list.insertBefore(rowToModify, list.childNodes[positionToInsert]);
-  
-  updateList(positionToInsert + 1);
+  let pos = Math.min(script.getRowCount()|0, position|0);
+
+  do {
+    script.insertRow(pos);
+
+    let node = list.lastChild;
+    list.removeChild(node);
+    
+    loadRow(pos, node);
+    
+    let rowIndex = pos - firstLoadedPosition;
+    list.insertBefore(node, list.childNodes[rowIndex]);
+    
+    updateLineNumbers(rowIndex + 1);
+    document.body.style.height = getRowCount() * rowHeight + "px";
+
+    ++pos;
+  } while (position > script.getRowCount());
 }
 
-/* move the given row off screen and update its content, or garbage collect it if the entire script is on screen */
+
+
 function deleteRow(position) {
-  let lastLoaded = firstLoadedPosition + loadedRowCount - 1;
-  let lastVisible = firstVisiblePosition + visibleRowCount - 1;
+  script.deleteRow(position);
+
+  let rowIndex = position - firstLoadedPosition;
+  let node = list.childNodes[rowIndex];
+  list.removeChild(node);
   
-  let childToRemove = list.childNodes[position - firstLoadedPosition];
-  list.removeChild(childToRemove);
+  let newPosition = firstLoadedPosition + loadedCount;
+  loadRow(newPosition, node);
+  list.appendChild(node);
   
-  //move the removed div either above or below the visible list of items unless the entire script is already loaded
-  if (lastLoaded + 1 < script.getRowCount()) {
-    loadRow(lastLoaded + 1, childToRemove);
-    list.appendChild(childToRemove);
-    console.log(`appending deleted div row ${position} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
-  }
-  else if (firstLoadedPosition > 0) {
-    loadRow(firstLoadedPosition - 1, childToRemove);
-    list.insertBefore(childToRemove, list.firstChild);
-    --firstLoadedPosition;
-    spacer.style.height = firstLoadedPosition * rowHeight + "px";
-    console.log(`prepending deleted div row ${position} rowCount ${script.getRowCount()} lastLoaded ${lastLoaded}`);
-  } else {
-    //if the removed item can't be placed at either end of the list, get rid of it
-    prepareForGarbageCollection(childToRemove);
-  }
-  
-  updateList(position - firstLoadedPosition);
+  updateLineNumbers(rowIndex);
+  document.body.style.height = getRowCount() * rowHeight + "px";
 }
 
 
 
-//tell the rows which position they are
-function updateList(modifiedRow) {
+function updateLineNumbers(modifiedRow) {
   let count = list.childNodes.length;
   for (let i = modifiedRow; i < count; ++i) {
     let row = list.childNodes[i];
     let position = i + firstLoadedPosition;
     
-    //update the line number item of the slide menu
-    //position.toLocaleString('en-US', {minimumIntegerDigits: 4, useGrouping:false});
     row.firstChild.firstChild.firstChild.nodeValue = String(position).padStart(4);
-    
-    //update the row property of the inner row
     row.childNodes[1].position = position;
   }
-  
-  loadedRowCount = Math.min(visibleRowCount + 6, script.getRowCount());
-  
-  spacer.style.height = firstLoadedPosition * rowHeight + "px";
-  document.body.style.height = (script.getRowCount() + visibleRowCount - 2) * rowHeight + "px";
-  
-  updateDebug();
-}
-
-
-
-function updateDebug() {
-  let debugText = ""//"scrollY: " + Math.floor(window.scrollY) + "\n"
-      + "loaded: [" + firstLoadedPosition + ", " + (firstLoadedPosition + loadedRowCount - 1) + "]\n"
-      + "visible: [" + firstVisiblePosition + ", " + (firstVisiblePosition + visibleRowCount - 1) + "]";
-  debug.firstChild.nodeValue = debugText;
 }
 
 
@@ -386,6 +305,27 @@ function loadRow(position, rowDiv) {
 }
 
 
+
+function preventDefault(e) {
+  e.preventDefault();
+}
+
+function slideMenuClickHandler(event) {
+  let slideMenu = event.currentTarget;
+  let position = slideMenu.nextSibling.position;
+  
+  switch (event.button) {
+    case 0:
+      insertRow(position + 1);
+      break;
+    
+    case 2:
+      deleteRow(position);
+      break;
+  }
+}
+
+
 function buttonClickHandler(event) {
   let button = event.target;
   
@@ -422,6 +362,7 @@ function touchStartHandler(event) {
     
   }
 }
+
 
 function touchMoveHandler(event) {
   let row = event.currentTarget;
@@ -460,6 +401,7 @@ function touchMoveHandler(event) {
   }
 }
 
+
 function touchEndHandler(event) {
   let row = event.currentTarget;
   
@@ -475,11 +417,9 @@ function touchEndHandler(event) {
         let travel = touch.pageX - row.touchStartX;
         
         if (travel > 200) {
-          script.deleteRow(row.childNodes[1].position);
           deleteRow(row.childNodes[1].position);
         }
         else if (travel > 80) {
-          script.insertRow(row.childNodes[1].position + 1);
           insertRow(row.childNodes[1].position + 1);
         }
       }

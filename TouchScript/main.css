@@ -3,13 +3,18 @@
   --hover-color: #2D3333;
   --primary-color: #3B3B3B;
   --secondary-color: DarkSlateGray;
-  user-select: none;
-  moz-user-select: none;
 }
 
 /* Chrome, Safari, Edge, Opera */
 ::-webkit-scrollbar {
     display: none;
+}
+
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 body {
@@ -163,8 +168,9 @@ button {
 }
 
 #debug {
-  left: 0;
+  left: 50%;
   bottom: 0;
+  transform: translateX(-50%);
   padding: 0.5em;
   margin: 0.5em;
   background-color: var(--primary-color);

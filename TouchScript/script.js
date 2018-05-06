@@ -217,8 +217,8 @@ class Script {
   insertRow(row) {
     let line = [this.getIndentation(row - 1) + this.isStartingScope(row - 1)];
 
-    //this.comments.set(this.nextComment, String(this.nextComment));
-    //line.push(Script.makeItem(Script.COMMENT, this.nextComment++));
+    this.comments.set(this.nextComment, String(this.nextComment));
+    line.push(Script.makeItem(Script.COMMENT, this.nextComment++));
 
     this.data.splice(row, 0, line);
   }
@@ -234,7 +234,6 @@ class Script {
   getItemCount(row) {
     row = row | 0;
     if (row < 0 || row >= this.data.length) {
-      console.log(`attempting to get item count of row ${row}`);
       return 0;
     }
     return this.data[row].length - 1;
@@ -242,11 +241,17 @@ class Script {
 
   getIndentation(row) {
     row |= 0;
+    if (row < 0 || row >= this.data.length) {
+      return 0;
+    }
     return this.data[row][0] & 0xFFFF;
   }
 
   isStartingScope(row) {
     row |= 0;
+    if (row < 0 || row >= this.data.length) {
+      return 0;
+    }
     return this.data[row][0] >>> 31;
   }
 
