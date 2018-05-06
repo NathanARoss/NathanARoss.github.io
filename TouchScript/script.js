@@ -128,7 +128,7 @@ class Script {
       }
       
       //this token represents a variable declaration or parameter
-      else if (line[line.length - 1] === LET || line[line.length - 1] === VAR || line[1] == FUNC) {
+      else if (line[1] === LET || line[1] === VAR || line[1] == FUNC) {
         let variable = {};
         
         let indexOf = token.indexOf(":");

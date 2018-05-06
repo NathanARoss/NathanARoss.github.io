@@ -32,6 +32,12 @@ function getBuiltIns() {
   let VARIABLES = [
     {name: "ondraw", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['ondraw']"},
     {name: "onresize", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['onresize']"},
+    {name: "ontouchstart", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['ontouchstart']"},
+    {name: "ontouchmove", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['ontouchmove']"},
+    {name: "ontouchend", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['ontouchend']"},
+    {name: "onmousedown", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['onmousedown']"},
+    {name: "onmousemove", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['onmousemove']"},
+    {name: "onmouseup", type: CLASS_MAP.get("Function"), scope: CLASS_MAP.get("System.Event"), js: "eventHandlers['onmouseup']"},
     {name: "width", type: CLASS_MAP.get("Int32"), scope: CLASS_MAP.get("System.Screen"), js: "canvas.width"},
     {name: "height", type: CLASS_MAP.get("Int32"), scope: CLASS_MAP.get("System.Screen"), js: "canvas.height"},
   ];
@@ -78,6 +84,7 @@ function getBuiltIns() {
     parseFunction("Math.sin(theta:Double) -> Double", "Math.sin"),
     parseFunction("Math.min(a:Double, b:Double) -> Double", "Math.min"),
     parseFunction("Math.max(a:Double, b:Double) -> Double", "Math.max"),
+    parseFunction("Math.random() -> Double", "Math.random"),
   ]
   
   let FUNCTION_MAP = new Map();
@@ -184,22 +191,61 @@ function getBuiltIns() {
   
   
   let sampleScript =
-  `var minDim
+  `var minDim, radius, x, y, vX, vY
+  
   
   func resize {
     minDim = Math.min( System.Screen.width, System.Screen.height ) / 3
+    radius = minDim / 16
   }
-  
+
+  func tap tapX:Double tapY:Double id:Int32 {
+    System.print("tap: " + tapX + ", " + tapY)
+    vX += Math.random() * 10
+    vY += Math.random() * 10 - 20
+  }
+
+  func click _x:Double _y:Double button:Int32 {
+    tap(_x, _y, 0)
+  }
+
   func draw time:Double {
-    let seconds = time / 1000
-    let radius = Math.sin(seconds) * minDim
-    Canvas.drawCircle(System.Screen.width / 2, System.Screen.height / 2, radius)
+    vY += 1
+    x += vX
+    y += vY
+
+    if (x > System.Screen.width - radius) {
+      x = System.Screen.width - radius
+      vX = -vX * 0.9
+    }
+    if (x <  radius) {
+      x = radius
+      vX = -vX * 0.9
+    }
+
+    if (y > System.Screen.height - radius) {
+      y = System.Screen.height - radius
+      vY = -vY * 0.9
+    }
+    if (y <  radius) {
+      y = radius
+      vY = -vY * 0.9
+    }
+
+    Canvas.drawCircle(x, y, radius)
   }
+
+  resize()
+
+  x = System.Screen.width / 2
+  y = System.Screen.height / 2
+  vX = 0
+  vY = 0
   
   System.Event.ondraw = draw
   System.Event.onresize = resize
-  
-  resize()`
+  System.Event.ontouchstart = tap
+  System.Event.onmousedown = click`
   
   return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, sampleScript];
 }

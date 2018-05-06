@@ -23,6 +23,56 @@ const script = new Script();
 
 
 
+canvas.addEventListener("touchstart", function(event) {
+  if (eventHandlers.ontouchstart) {
+  
+    for (const touch of event.changedTouches[0])
+      eventHandlers.ontouchstart(touch.pageX * window.devicePixelRatio, touch.pageY * window.devicePixelRatio, touch.identifier);
+  }
+
+  event.preventDefault();
+});
+
+canvas.addEventListener("touchmove", function(event) {
+  if (eventHandlers.ontouchmove) {
+  
+    for (const touch of event.changedTouches[0])
+      eventHandlers.ontouchmove(touch.pageX * window.devicePixelRatio, touch.pageY * window.devicePixelRatio, touch.identifier);
+  }
+
+  event.preventDefault();
+});
+
+canvas.addEventListener("touchend", function(event) {
+  if (eventHandlers.ontouchend) {
+  
+    for (const touch of event.changedTouches[0])
+      eventHandlers.ontouchend(touch.pageX * window.devicePixelRatio, touch.pageY * window.devicePixelRatio, touch.identifier);
+  }
+});
+
+canvas.addEventListener("mousedown", function(event) {
+  if (eventHandlers.onmousedown) {
+    eventHandlers.onmousedown(event.x * window.devicePixelRatio, event.y * window.devicePixelRatio, event.button);
+  }
+});
+
+canvas.addEventListener("mousemove", function(event) {
+  if (eventHandlers.onmousemove) {
+  
+    eventHandlers.onmousemove(event.x * window.devicePixelRatio, event.y * window.devicePixelRatio, event.movementX * window.devicePixelRatio, event.movementY * window.devicePixelRatio);
+  }
+});
+
+canvas.addEventListener("mouseup", function(event) {
+  if (eventHandlers.onmouseup) {
+  
+    eventHandlers.onmouseup(event.x * window.devicePixelRatio, event.y * window.devicePixelRatio, event.button);
+  }
+});
+
+
+
 document.body.onresize = function () {
   let newLoadedCount = Math.ceil(window.innerHeight / rowHeight) + bufferCount;
   let diff = newLoadedCount - loadedCount;
