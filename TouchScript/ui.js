@@ -42,7 +42,13 @@ document.body.onresize = function () {
   for (let i = diff; i < 0; ++i) {
     let lastChild = list.lastChild;
     list.removeChild(lastChild);
-    prepareForGarbageCollection(lastChild);
+
+    let innerRow = div.childNodes[1];
+  
+    while (innerRow.childNodes.length > 2) {
+      buttonPool.push(innerRow.lastChild);
+      innerRow.removeChild(innerRow.lastChild);
+    }
   }
 
   canvas.width = window.innerWidth * window.devicePixelRatio;
@@ -196,19 +202,6 @@ function createRow() {
   return outerDiv;
 }
 
-/* prepare the div for garbage collection by recycling all it's items */
-function prepareForGarbageCollection(div) {
-  let innerRow = div.childNodes[1];
-  
-  while (innerRow.childNodes.length > 2) {
-    let lastChild = innerRow.lastChild;
-    innerRow.removeChild(lastChild);
-    buttonPool.push(lastChild);
-  }
-  
-  console.log(`recycling row`);
-}
-
 
 
 
@@ -220,17 +213,17 @@ function insertRow(position) {
 
     let node = list.lastChild;
     list.removeChild(node);
-    
     loadRow(pos, node);
     
     let rowIndex = pos - firstLoadedPosition;
     list.insertBefore(node, list.childNodes[rowIndex]);
     
-    updateLineNumbers(rowIndex + 1);
-    document.body.style.height = getRowCount() * rowHeight + "px";
-
     ++pos;
   } while (position > script.getRowCount());
+
+  let rowIndex = position - firstLoadedPosition;
+  updateLineNumbers(rowIndex + 1);
+  document.body.style.height = getRowCount() * rowHeight + "px";
 }
 
 
@@ -276,9 +269,8 @@ function loadRow(position, rowDiv) {
   innerRow.previousSibling.firstChild.firstChild.nodeValue = String(position).padStart(4);
   
   while (innerRow.childNodes.length > 2) {
-    let lastChild = innerRow.lastChild;
-    innerRow.removeChild(lastChild);
-    buttonPool.push(lastChild);
+    buttonPool.push(innerRow.lastChild);
+    innerRow.removeChild(innerRow.lastChild);
   }
   
   for (let col = 0; col < itemCount; ++col) {
