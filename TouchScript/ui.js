@@ -54,8 +54,8 @@ document.body.onresize = function () {
   canvas.width = window.innerWidth * window.devicePixelRatio;
   canvas.height = window.innerHeight * window.devicePixelRatio;
   
-  if (eventHandlers.resize)
-    eventHandlers.resize(canvas.width, canvas.height);
+  if (eventHandlers.onresize)
+    eventHandlers.onresize(canvas.width, canvas.height);
 };
 document.body.onresize();
 
@@ -425,16 +425,6 @@ function touchEndHandler(event) {
 
 
 function drawCircle(x, y, r) {
-  if (typeof x !== "number") {
-    throw "Error in drawCircle: 1st parameter must be of type Number";
-  }
-  if (typeof y !== "number") {
-    throw "Error in drawCircle: 2nd parameter must be of type Number";
-  }
-  if (typeof r !== "number") {
-    throw "Error in drawCircle: 3rd parameter must be of type Number";
-  }
-  
   r = Math.abs(r);
 
   context.beginPath();
