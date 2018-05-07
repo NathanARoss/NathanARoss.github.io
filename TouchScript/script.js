@@ -109,7 +109,6 @@ class Script {
       
       //this token represents a function definition
       else if (line.peek() === FUNC) {
-        //all remaining unrecognized tokens are treated as parameters
         isFuncDef = true;
 
         let newFunc = {};
@@ -134,7 +133,6 @@ class Script {
           parameter.name = tokens[j].substring(0, indexOf);
           parameter.type = this.classMap.get(tokens[j].substring(indexOf + 1));
           newFunc.parameters.push(parameter);
-          //console.log("parameter name: " + parameter.name + " type: " + CLASSES[parameter.type].name);
         }
         
         let funcId = this.functions.length;
@@ -158,7 +156,6 @@ class Script {
           variable.type = this.classMap.get("Hidden");
         }
         
-        //custom classes don't exist yet
         variable.scope = this.classMap.get("Hidden");
         
         let id = this.variables.length;
@@ -171,26 +168,21 @@ class Script {
       
       //assume token is a variable reference of some form
       else {
-        //TODO for now, assume all variables are static variables.  instance fields will come later
         let name, scope;
         
         let indexOf = token.lastIndexOf(".");
         if (indexOf === -1) {
           name = token;
-          
-          //TODO this assume current scope is global scope
           scope = this.classMap.get("Hidden");
         } else {
           name = token.substring(indexOf + 1);
-          //console.log(`parsing class name '${token.substring(0, indexOf)}'`);
           scope = this.classMap.get(token.substring(0, indexOf));
         }
         
         let id = -1;
         for (let i = 0; i < this.variables.length; ++i) {
           const variable = this.variables[i];
-          //console.log(`comparing {name: ${name}, scope: ${scope}} to {name: ${variable.name}, scope: ${variable.scope}}`);
-          if (name === variable.name && scope == variable.scope) {
+          if (name === variable.name && scope === variable.scope) {
             id = i;
             break;
           }
