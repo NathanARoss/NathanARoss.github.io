@@ -121,7 +121,7 @@ button {
 
 .indentation {
   border-right: 4px;
-  border-color: var(--primary-color);
+  border-color: var(--secondary-color);
   border-style: solid;
 }
 
