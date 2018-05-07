@@ -1,3 +1,7 @@
+Array.prototype.peek = function() {
+  return this[this.length - 1];
+}
+
 class Script {
   constructor() {
     this.nextNumericLiteral = 0;
@@ -41,9 +45,14 @@ class Script {
     const LET = Script.makeItem(Script.KEYWORD, this.keywordMap.get("let"));
     const VAR = Script.makeItem(Script.KEYWORD, this.keywordMap.get("var"));
     const FUNC = Script.makeItem(Script.KEYWORD, this.keywordMap.get("func"));
+    const COMMA = Script.makeItem(Script.SYMBOL, this.symbolMap.get(","));
+    const START_PARENTHESIS = Script.makeItem(Script.SYMBOL, this.symbolMap.get("("));
+    const END_PARENTHESIS = Script.makeItem(Script.SYMBOL, this.symbolMap.get(")"));
 
     let line = [0];
     let indentation = 0;
+    let isFuncDef = false;
+    let parenthesisCount = 0;
     let tokens = sampleScript.match(/(?:\/\*(?:[^*]|(?:\*+(?:[^*\/])))*\*+\/)|(?:\/\/.*)|(?:[^\s(,)=+\-*\/"]+|"[^"]*")+|[\n,()]|[=+\-\*\/]+/g);
 
     for (let i = 0; i < tokens.length; ++i) {
@@ -51,8 +60,9 @@ class Script {
       
       //figure out what this token refers to
       if (token === "\n") {
-        this.data.push(line);
+        this.data.push(Int32Array.from(line));
         line = [indentation];
+        isFuncDef = false;
       }
       else if (token === "{") {
         ++indentation;
@@ -80,6 +90,11 @@ class Script {
       }
       else if (this.symbolMap.has(token)) {
         line.push(Script.makeItem(Script.SYMBOL, this.symbolMap.get(token)));
+        let last = line.peek();
+        if (last == START_PARENTHESIS)
+          ++parenthesisCount;
+        else if (last == END_PARENTHESIS)
+          --parenthesisCount;
       }
       else if (this.keywordMap.has(token)) {
         line.push(Script.makeItem(Script.KEYWORD, this.keywordMap.get(token)));
@@ -93,7 +108,10 @@ class Script {
       }
       
       //this token represents a function definition
-      else if (line[line.length - 1] === FUNC) {
+      else if (line.peek() === FUNC) {
+        //all remaining unrecognized tokens are treated as parameters
+        isFuncDef = true;
+
         let newFunc = {};
         newFunc.scope = 0;
         
@@ -107,7 +125,7 @@ class Script {
           newFunc.returnType = 0;
         }
         
-        //console.log("new function. name: " + newFunc.name + " returnType: " + CLASSES[newFunc.returnType].name + " js: " + newFunc.js);
+        //console.log("new function. name: " + newFunc.name + " returnType: " + this.classes[newFunc.returnType].name + " js: " + newFunc.js);
         //the remaining tokens are parameters
         newFunc.parameters = [];
         for (let j = i + 1; tokens[j] !== "\n"; ++j) {
@@ -128,7 +146,7 @@ class Script {
       }
       
       //this token represents a variable declaration or parameter
-      else if (line[1] === LET || line[1] === VAR || line[1] == FUNC) {
+      else if (isFuncDef || line.peek() === LET || line.peek() === VAR || (parenthesisCount === 0 && line.peek() === COMMA)) {
         let variable = {};
         
         let indexOf = token.indexOf(":");
@@ -179,7 +197,7 @@ class Script {
         }
         
         if (id === -1) {
-          this.comments.set(this.nextComment, `unrecognized var\n${name}`);
+          this.comments.set(this.nextComment, `unrecognized token\n${token}`);
           line.push(Script.makeItem(Script.COMMENT, this.nextComment++));
         } else {
           let variable = this.variables[id];

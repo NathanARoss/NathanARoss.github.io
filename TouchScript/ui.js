@@ -26,7 +26,7 @@ const script = new Script();
 canvas.addEventListener("touchstart", function(event) {
   if (eventHandlers.ontouchstart) {
   
-    for (const touch of event.changedTouches[0])
+    for (const touch of event.changedTouches)
       eventHandlers.ontouchstart(touch.pageX * window.devicePixelRatio, touch.pageY * window.devicePixelRatio, touch.identifier);
   }
 
@@ -36,7 +36,7 @@ canvas.addEventListener("touchstart", function(event) {
 canvas.addEventListener("touchmove", function(event) {
   if (eventHandlers.ontouchmove) {
   
-    for (const touch of event.changedTouches[0])
+    for (const touch of event.changedTouches)
       eventHandlers.ontouchmove(touch.pageX * window.devicePixelRatio, touch.pageY * window.devicePixelRatio, touch.identifier);
   }
 
@@ -46,7 +46,7 @@ canvas.addEventListener("touchmove", function(event) {
 canvas.addEventListener("touchend", function(event) {
   if (eventHandlers.ontouchend) {
   
-    for (const touch of event.changedTouches[0])
+    for (const touch of event.changedTouches)
       eventHandlers.ontouchend(touch.pageX * window.devicePixelRatio, touch.pageY * window.devicePixelRatio, touch.identifier);
   }
 });
@@ -93,7 +93,7 @@ document.body.onresize = function () {
     let lastChild = list.lastChild;
     list.removeChild(lastChild);
 
-    let innerRow = div.childNodes[1];
+    let innerRow = lastChild.childNodes[1];
   
     while (innerRow.childNodes.length > 2) {
       buttonPool.push(innerRow.lastChild);
@@ -480,13 +480,19 @@ function touchEndHandler(event) {
 
 
 
-function drawCircle(x, y, r) {
+function drawCircle(x, y, r, color) {
   r = Math.abs(r);
 
   context.beginPath();
-  context.fillStyle="#FFFFFF";
+  context.fillStyle = color;
   context.arc(x,y,r, 0,2*Math.PI);
   context.fill();
+}
+
+
+function drawRectangle(x, y, w, h, color) {
+  context.fillStyle = color;
+  context.fillRect(x, y, w, h); 
 }
 
 

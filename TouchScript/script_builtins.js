@@ -79,12 +79,15 @@ function getBuiltIns() {
     parseFunction("UInt64.UInt64(toConvert:Any) -> UInt64", "Number"),
       
     parseFunction("System.print(item:Any)", "console.log"),
-    parseFunction("Canvas.drawCircle(x:Double, y:Double, r:Double)", "drawCircle"),
+    parseFunction("Canvas.drawCircle(x:Double, y:Double, r:Double, color:String)", "drawCircle"),
+    parseFunction("Canvas.drawRect(x:Double, y:Double, w:Double, h:Double, color:String)", "drawRectangle"),
     parseFunction("Math.cos(theta:Double) -> Double", "Math.cos"),
     parseFunction("Math.sin(theta:Double) -> Double", "Math.sin"),
     parseFunction("Math.min(a:Double, b:Double) -> Double", "Math.min"),
     parseFunction("Math.max(a:Double, b:Double) -> Double", "Math.max"),
     parseFunction("Math.random() -> Double", "Math.random"),
+    parseFunction("Math.abs() -> Double", "Math.abs"),
+    parseFunction("Math.sign() -> Double", "Math.sign"),
   ]
   
   let FUNCTION_MAP = new Map();
@@ -200,7 +203,7 @@ function getBuiltIns() {
   }
 
   func tap tapX:Double tapY:Double id:Int32 {
-    vX += Math.random() * 10
+    vX += Math.random() * 10 - 5
     vY += Math.random() * 10 - 20
   }
 
@@ -221,13 +224,16 @@ function getBuiltIns() {
     if (y > System.Screen.height - radius) {
       y = System.Screen.height - radius
       vY = -vY * 0.9
+      vX = Math.max(0, Math.abs(vX * 0.99) - 0.1) * Math.sign(vX)
     }
     if (y <  radius) {
       y = radius
       vY = -vY * 0.9
+      vX = Math.max(0, Math.abs(vX * 0.99) - 0.1) * Math.sign(vX)
     }
 
-    Canvas.drawCircle(x, y, radius)
+    //Canvas.drawCircle(x, y, radius, "white")
+    Canvas.drawRect(x - radius, y - radius, radius * 2, radius * 2, "yellow")
   }
 
   resize()
@@ -240,7 +246,67 @@ function getBuiltIns() {
   System.Event.ondraw = draw
   System.Event.onresize = resize
   System.Event.ontouchstart = tap
-  System.Event.onmousedown = tap`
+  System.Event.onmousedown = tap`;
+
+
+
+  let pong =
+  `var paddleX, paddleWidth, paddleHeight
+  var ballX, ballY, vX, vY, ballSize
   
-  return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, sampleScript];
+  
+  func resize {
+    paddleWidth = System.Screen.width * 0.33
+  }
+
+  func touchMoved __x:Double __y:Double id:Int32 {
+    let x = Math.max(paddleWidth / 2, Math.min( System.Screen.width - paddleWidth / 2, __x))
+    paddleX = x - paddleWidth / 2
+  }
+
+  func cursorMoved _x:Double _y:Double prevX:Double prevY:Double {
+    touchMoved(_x, _y, 0)
+  }
+
+  func draw time:Double {
+    ballX += vX
+    ballY += vY
+
+    if (ballX < 0) {
+      ballX = -ballX
+      vX = -vX
+    }
+    if (ballX > System.Screen.width - ballSize) {
+      ballX = 2 * (System.Screen.width - ballSize) - ballX
+      vX = -vX
+    }
+
+    if (ballY < ballSize) {
+      ballY = 2 * ballSize - ballY
+      vY = -vY
+    }
+    if (ballY > System.Screen.height - 2 * ballSize) {
+      ballY = 2 * (System.Screen.height - 2 * ballSize) - ballY
+      vY = -vY
+    }
+
+    Canvas.drawRect(ballX, ballY, ballSize, ballSize, "yellow")
+    Canvas.drawRect(paddleX, 0, paddleWidth, ballSize, "white")
+    Canvas.drawRect(paddleX, System.Screen.height - ballSize, paddleWidth, ballSize, "white")
+  }
+
+  resize()
+
+  ballX = System.Screen.width / 2
+  ballY = System.Screen.height / 2
+  ballSize = 20
+  vX = 10
+  vY = 10
+  
+  System.Event.ondraw = draw
+  System.Event.onresize = resize
+  System.Event.onmousemove = cursorMoved
+  System.Event.ontouchmove = touchMoved`;
+  
+  return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, pong];
 }
