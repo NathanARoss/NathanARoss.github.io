@@ -11,6 +11,7 @@ const spacer = document.getElementById("spacer");
 const debug = document.getElementById("debug");
 const canvas = document.getElementById("canvas");
 const editor = document.getElementById("editor_div");
+const modalContainer = document.getElementById("modal-container");
 const context = canvas.getContext("2d", { alpha: false });
 
 let buttonPool = [];
@@ -22,6 +23,19 @@ let eventHandlers = new Object(null);
 const script = new Script();
 
 
+
+modalContainer.style.display = "none";
+modalContainer.addEventListener("click", (event) => {
+  modalContainer.style.display = "none";
+  event.stopPropagation();
+});
+modalContainer.addEventListener("touchstart", (event) => {
+  modalContainer.style.display = "none";
+  event.stopPropagation();
+  event.preventDefault();
+});
+
+canvas.addEventListener("contextmenu", preventDefault);
 
 canvas.addEventListener("touchstart", function(event) {
   if (eventHandlers.ontouchstart) {
@@ -69,6 +83,8 @@ canvas.addEventListener("mouseup", function(event) {
   
     eventHandlers.onmouseup(event.x * window.devicePixelRatio, event.y * window.devicePixelRatio, event.button);
   }
+
+  event.preventDefault;
 });
 
 
@@ -157,7 +173,7 @@ window.onscroll();
 
 document.body.onhashchange = function() {
   if (window.location.hash === "") {
-    editor.style.display = null;
+    editor.style.display = "";
     canvas.style.display = "none";
 
     if (renderLoop !== 0) {
@@ -176,7 +192,7 @@ document.body.onhashchange = function() {
   
   else {
     editor.style.display = "none";
-    canvas.style.display = null;
+    canvas.style.display = "";
     
     try {
       script.getJavaScript() ();
@@ -349,7 +365,7 @@ function loadRow(position, rowDiv) {
   
   const indentation = script.getIndentation(position);
   innerRow.firstChild.style.width = 8 * indentation + "px";
-  innerRow.firstChild.style.display = (indentation === 0) ? "none" : null;
+  innerRow.firstChild.style.display = (indentation === 0) ? "none" : "";
 }
 
 
@@ -387,6 +403,8 @@ function buttonClickHandler(event) {
     const [text, style] = response.instant;
     button.firstChild.nodeValue = text;
     button.className = "item" + style;
+  } else {
+    modalContainer.style.display = "";
   }
 }
 
