@@ -12,6 +12,7 @@ const debug = document.getElementById("debug");
 const canvas = document.getElementById("canvas");
 const editor = document.getElementById("editor_div");
 const modalContainer = document.getElementById("modal-container");
+const modalContent = document.getElementById("modal-content");
 const context = canvas.getContext("2d", { alpha: false });
 
 let buttonPool = [];
@@ -25,15 +26,8 @@ const script = new Script();
 
 
 modalContainer.style.display = "none";
-modalContainer.addEventListener("click", (event) => {
-  modalContainer.style.display = "none";
-  event.stopPropagation();
-});
-modalContainer.addEventListener("touchstart", (event) => {
-  modalContainer.style.display = "none";
-  event.stopPropagation();
-  event.preventDefault();
-});
+modalContainer.addEventListener("click", modalContainerClicked);
+modalContainer.addEventListener("touchstart", modalContainerClicked);
 
 canvas.addEventListener("contextmenu", preventDefault);
 
@@ -131,24 +125,16 @@ document.body.onresize();
 window.onscroll = function() {
   let firstVisiblePosition = Math.floor(window.scrollY / rowHeight);
   
-  //keep a buffer of 2 unseen elements in either direction
+  //keep a number of rows prepared for both direction
   while ((firstVisiblePosition - bufferCount + forwardBufferCount > firstLoadedPosition) && (firstLoadedPosition + loadedCount < getRowCount())) {
-    let firstChild = list.firstChild;
-    list.removeChild(firstChild);
-    
-    loadRow(firstLoadedPosition + loadedCount, firstChild);
-    list.appendChild(firstChild);
-    
+    loadRow(firstLoadedPosition + loadedCount, list.firstChild);
+    list.appendChild(list.firstChild);
     ++firstLoadedPosition;
   }
   
   while ((firstVisiblePosition - forwardBufferCount < firstLoadedPosition) && (firstLoadedPosition > 0)) {
-    let lastChild = list.lastChild;
-    list.removeChild(lastChild);
-    
-    loadRow(firstLoadedPosition - 1, lastChild);
-    list.insertBefore(lastChild, list.firstChild);
-    
+    loadRow(firstLoadedPosition - 1, list.lastChild);
+    list.insertBefore(list.lastChild, list.firstChild);
     --firstLoadedPosition;
   }
   
@@ -254,6 +240,7 @@ function createRow() {
 
   let append = document.createElement("button");
   append.classList.add("append");
+  append.onclick = appendClicked;
   
   let innerDiv = document.createElement("div");
   innerDiv.classList.add("inner-row");
@@ -348,30 +335,47 @@ function loadRow(position, rowDiv) {
   for (let col = 0; col < itemCount; ++col) {
     const [text, style] = script.getItem(position, col);
     
-    let node;
-    if (buttonPool.length !== 0) {
-      node = buttonPool.pop();
-      node.firstChild.nodeValue = text;
-    } else {
-      node = document.createElement("button");
-      node.appendChild(document.createTextNode(text));
-      node.onclick = buttonClickHandler;
-    }
-    
+    let node = getItem(text);
     node.className = "item" + style;
-    node.col = col;
+    node.position = col;
     innerRow.appendChild(node);
   }
   
   const indentation = script.getIndentation(position);
-  innerRow.firstChild.style.width = 8 * indentation + "px";
+  innerRow.firstChild.style.width = 6 * indentation + "px";
   innerRow.firstChild.style.display = (indentation === 0) ? "none" : "";
+}
+
+
+
+function getItem(text) {
+  if (buttonPool.length !== 0) {
+    let node = buttonPool.pop();
+    node.firstChild.nodeValue = text;
+    return node;
+  } else {
+    let node = document.createElement("button");
+    node.appendChild(document.createTextNode(text));
+    node.onclick = itemClickHandler;
+    return node;
+  }
 }
 
 
 
 function preventDefault(e) {
   e.preventDefault();
+}
+
+function modalContainerClicked(event) {
+  modalContainer.style.display = "none";
+  event.stopPropagation();
+  event.preventDefault();
+
+  while (modalContent.hasChildNodes()) {
+    buttonPool.push(modalContent.lastChild);
+    modalContent.removeChild(modalContent.lastChild);
+  }
 }
 
 function slideMenuClickHandler(event) {
@@ -389,21 +393,45 @@ function slideMenuClickHandler(event) {
   }
 }
 
+function appendClicked(event) {
+  let row = event.currentTarget.parentElement.position|0;
+  
+  let options = script.appendClicked(row);
+  for (let i = 0; i < options.length; i += 2) {
+    let button = getItem(options[i]);
+    button.className = "item " + options[i + 1];
+    button.position = i;
+    modalContent.appendChild(button);
+  }
 
-function buttonClickHandler(event) {
+  modalContainer.style.display = "";
+}
+
+function itemClickHandler(event) {
   let button = event.target;
+
+  if (button.parentElement === modalContent) {
+    console.log(`menu item ${button.position} clicked`);
+    return;
+  }
   
-  let position = button.parentElement.position|0;
-  let col = button.col|0;
+  let row = button.parentElement.position|0;
+  let col = button.position|0;
   
-  console.log(`button clicked ${position},${col}`);
+  console.log(`button clicked ${row},${col}`);
   
-  let response = script.clickItem(position, col);
-  if (response.instant) {
-    const [text, style] = response.instant;
-    button.firstChild.nodeValue = text;
-    button.className = "item" + style;
-  } else {
+  let options = script.itemClicked(row, col);
+  if (options.length == 2) {
+    button.firstChild.nodeValue = options[0];
+    button.className = "item" + options[1];
+  } else if (options.length > 0) {
+    for (let i = 0; i < options.length; i += 2) {
+      let button = getItem(options[i]);
+      button.className = "item " + options[i + 1];
+      button.position = i;
+      modalContent.appendChild(button);
+    }
+
     modalContainer.style.display = "";
   }
 }

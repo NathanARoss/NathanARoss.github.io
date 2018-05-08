@@ -120,7 +120,7 @@ button {
 }
 
 .indentation {
-  border-right: 4px;
+  border-right: 6px;
   border-color: var(--secondary-color);
   border-style: solid;
 }
@@ -218,18 +218,19 @@ canvas, #modal-container {
 }
 
 #modal-container {
-  background-color: rgb(1, 1, 1, 0.25);
+  background-color: rgb(1, 1, 1, 0.5);
   z-index: 2;
   margin: 0;
+  text-align: center;
 }
 
 #modal-content {
+  display: inline-flex;
   position: absolute;
-  top: var(--line-height);
-  width: 100%;
   min-height: var(--line-height);
-  padding: 1em;
-  margin: 0;
+  margin: 0.5em auto;
+  transform: translateX(-50%);
   z-index: 3;
-  background-color: gray;
+  background-color: var(--primary-color);
+  box-sizing: border-box;
 }

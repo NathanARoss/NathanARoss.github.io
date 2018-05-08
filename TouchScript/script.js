@@ -24,6 +24,14 @@ class Script {
     this.jsKeywords = JS_KEYWORDS;
     this.keywordMap = KEYWORD_MAP;
 
+    const LET = Script.makeItem(Script.KEYWORD, this.keywordMap.get("let"));
+    const VAR = Script.makeItem(Script.KEYWORD, this.keywordMap.get("var"));
+    const WHILE = Script.makeItem(Script.KEYWORD, this.keywordMap.get("while"));
+    const UNTIL = Script.makeItem(Script.KEYWORD, this.keywordMap.get("until"));
+    const DEFAULT = Script.makeItem(Script.KEYWORD, this.keywordMap.get("default"));
+    const BREAK = Script.makeItem(Script.KEYWORD, this.keywordMap.get("break"));
+    this.toggles = [LET, VAR, WHILE, UNTIL, DEFAULT, BREAK];
+
     this.loadScript(SAMPLE_SCRIPT);
   }
 
@@ -201,27 +209,26 @@ class Script {
     this.data.push(line);
   }
 
-  clickItem(row, col) {
-    row = row | 0;
-    col = col | 0;
-    const item = this.data[row][col + 1];
-
-    const LET = Script.makeItem(Script.KEYWORD, this.keywordMap.get("let"));
-    const VAR = Script.makeItem(Script.KEYWORD, this.keywordMap.get("var"));
-    const WHILE = Script.makeItem(Script.KEYWORD, this.keywordMap.get("while"));
-    const UNTIL = Script.makeItem(Script.KEYWORD, this.keywordMap.get("until"));
-    const DEFAULT = Script.makeItem(Script.KEYWORD, this.keywordMap.get("default"));
-    const BREAK = Script.makeItem(Script.KEYWORD, this.keywordMap.get("break"));
-    const toggles = [LET, VAR, WHILE, UNTIL, DEFAULT, BREAK];
+  itemClicked(row, col) {
+    row = row|0;
+    col = (col|0) + 1;
+    const item = this.data[row][col];
     
-    for (let i = 0; i < toggles.length; ++i) {
-      if (item === toggles[i]) {
-        this.data[row][col + 1] = toggles[i ^ 1];
-        return { instant: this.getItem(row, col) };
+    for (let i = 0; i < this.toggles.length; ++i) {
+      if (item === this.toggles[i]) {
+        this.data[row][col] = this.toggles[i ^ 1];
+        return this.getItem(row, col - 1);
       }
     }
 
-    return {};
+    return ["item clicked", "comment", "please ignore", "keyword"];
+
+    return [];
+  }
+
+  appendClicked(row) {
+    let options = ["test", "comment", "System\nprint", "keyword-default"];
+    return options;
   }
 
   insertRow(row) {
