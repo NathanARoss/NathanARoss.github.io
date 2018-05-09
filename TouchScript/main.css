@@ -227,6 +227,7 @@ canvas, #modal {
   justify-content: center;
   align-items: center;
   align-content: center;
+  flex-wrap: wrap;
   background-color: rgb(1, 1, 1, 0.5);
   z-index: 2;
 }
