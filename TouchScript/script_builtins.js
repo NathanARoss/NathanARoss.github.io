@@ -251,8 +251,14 @@ function getBuiltIns() {
 
 
   let pong =
-  `var paddleX, paddleWidth, paddleHeight
-  var ballX, ballY, vX, vY, ballSize
+  `var paddleX
+  var paddleWidth
+  var paddleHeight
+  var ballX
+  var ballY
+  var vX
+  var vY
+  var ballSize
   
   
   func resize {
@@ -321,5 +327,5 @@ function getBuiltIns() {
     }
   }`;
   
-  return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, null];
+  return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, pong];
 }
