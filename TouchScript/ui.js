@@ -25,7 +25,7 @@ const script = new Script();
 
 
 modal.style.display = "none";
-modal.addEventListener("click", modalContainerClicked);
+modal.onclick = modalContainerClicked;
 
 canvas.addEventListener("contextmenu", preventDefault);
 
@@ -579,7 +579,7 @@ function drawCircle(x, y, r, color) {
 
 function drawRectangle(x, y, w, h, color) {
   context.fillStyle = color;
-  context.fillRect(x, y, w, h); 
+  context.fillRect(x, y, w, h);
 }
 
 
