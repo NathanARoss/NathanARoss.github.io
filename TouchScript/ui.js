@@ -414,41 +414,66 @@ function appendClicked(event) {
   configureModal(options, row, 0);
 }
 
+function menuItemClicked(payload) {
+  while (modal.hasChildNodes()) {
+    buttonPool.push(modal.lastChild);
+    modal.removeChild(modal.lastChild);
+  }
+
+  let response = script.menuItemClicked(modal.row, modal.col, payload);
+
+  if (typeof response === 'number') {
+    if (response >= 2) {
+      let rowIndex = modal.row - firstLoadedPosition;
+      loadRow(modal.row, list.childNodes[rowIndex]);
+
+      if (response === 3) {
+        insertRow(modal.row + 1);
+        insertRow(modal.row + 2);
+      }
+
+      //configuring a row out of bounds inserts additional rows
+      document.body.style.height = getRowCount() * rowHeight + "px";
+    } else if (response === 1) {
+      //menuItemClicked(response[0].payload);
+      //TODO update the contents of just the modified item
+      let rowIndex = modal.row - firstLoadedPosition;
+      loadRow(modal.row, list.childNodes[rowIndex]);
+    }
+  }
+  else if (Array.isArray(response) && response.length > 0) {
+    //if there is only one option, select it and skip the UI
+    if (response.length === 1) {
+      menuItemClicked(response[0].payload);
+    } else {
+      configureModal(response, modal.row, modal.col);
+      return;
+    }
+  }
+
+  modal.style.display = "none";
+}
+
 function itemClickHandler(event) {
   event.stopPropagation();
   let button = event.target;
 
+  let row = button.parentElement.position|0;
+  let col = button.position|0;
+
   if (button.parentElement === modal) {
-    let response = script.menuItemClicked(modal.row, modal.col, button.position);
-    console.log(`menu item payload ${button.position}.  Response ${response}`);
-
-    if (response == 2) {
-      let rowIndex = modal.row - firstLoadedPosition;
-      loadRow(modal.row, list.childNodes[rowIndex]);
-
-      modal.style.display = "none";
-      while (modal.hasChildNodes()) {
-        buttonPool.push(modal.lastChild);
-        modal.removeChild(modal.lastChild);
-      }
-
-      document.body.style.height = getRowCount() * rowHeight + "px";
-    }
-
+    menuItemClicked(button.position);
     return;
   }
   
-  let row = button.parentElement.position|0;
-  let col = button.position|0;
-  
-  console.log(`button clicked ${row},${col}`);
-  
   let options = script.itemClicked(row, col);
-  if (options.length == 1) {
-    button.firstChild.nodeValue = options[0].text;
-    button.className = "item" + options[0].style;
-  } else if (options.length > 0) {
-    configureModal(options, row, col);
+  if (Array.isArray(options)) {
+    if (options.length > 0)
+      configureModal(options, row, col);
+  }
+  else {
+    button.firstChild.nodeValue = options.text;
+    button.className = "item " + options.style;
   }
 }
 
