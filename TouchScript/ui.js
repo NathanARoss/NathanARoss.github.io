@@ -26,7 +26,6 @@ const script = new Script();
 
 modal.style.display = "none";
 modal.addEventListener("click", modalContainerClicked);
-modal.addEventListener("touchstart", modalContainerClicked);
 
 canvas.addEventListener("contextmenu", preventDefault);
 
