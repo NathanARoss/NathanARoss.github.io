@@ -319,7 +319,6 @@ function updateLineNumbers(modifiedRow) {
 function loadRow(position, rowDiv) {
   position = position|0;
   
-  let itemCount = script.getItemCount(position);
   let innerRow = rowDiv.childNodes[1];
   innerRow.position = position;
   
@@ -330,8 +329,14 @@ function loadRow(position, rowDiv) {
     buttonPool.push(innerRow.lastChild);
     innerRow.removeChild(innerRow.lastChild);
   }
+
+  if (position >= script.getRowCount()) {
+    innerRow.firstChild.style.display = "none";
+    return;
+  }
   
-  for (let col = 0; col < itemCount; ++col) {
+  let itemCount = script.getItemCount(position);
+  for (let col = 1; col < itemCount; ++col) {
     const [text, style] = script.getItem(position, col);
     
     let node = getItem(text);
@@ -395,15 +400,17 @@ function modalContainerClicked(event) {
 function slideMenuClickHandler(event) {
   let slideMenu = event.currentTarget;
   let position = slideMenu.nextSibling.position;
-  
-  switch (event.button) {
-    case 0:
-      insertRow(position + 1);
-      break;
-    
-    case 2:
-      deleteRow(position);
-      break;
+
+  if (position < script.getRowCount()) {
+    switch (event.button) {
+      case 0:
+        insertRow(position + 1);
+        break;
+      
+      case 2:
+        deleteRow(position);
+        break;
+    }
   }
 }
 
@@ -547,15 +554,17 @@ function touchEndHandler(event) {
       
       if (row.touchCaptured) {
         row.firstChild.classList.add("slow-transition");
-        row.firstChild.style.width = null;
+        row.firstChild.style.width = "";
         
-        let travel = touch.pageX - row.touchStartX;
-        
-        if (travel > 200) {
-          deleteRow(row.childNodes[1].position);
-        }
-        else if (travel > 80) {
-          insertRow(row.childNodes[1].position + 1);
+        if (row < script.getRowCount()) {
+          let travel = touch.pageX - row.touchStartX;
+          
+          if (travel > 200) {
+            deleteRow(row.childNodes[1].position);
+          }
+          else if (travel > 80) {
+            insertRow(row.childNodes[1].position + 1);
+          }
         }
       }
       

@@ -84,6 +84,7 @@ class Script {
     let line = [0];
     let indentation = 0;
     let isFuncDef = false;
+    let hasEndBracket = false;
     let parenthesisCount = 0;
     let tokens = sampleScript.match(/(?:\/\*(?:[^*]|(?:\*+(?:[^*\/])))*\*+\/)|(?:\/\/.*)|(?:[^\s(,)=+\-*\/"]+|"[^"]*")+|[\n,()]|[=+\-\*\/]+/g);
 
@@ -92,9 +93,13 @@ class Script {
       
       //figure out what this token refers to
       if (token === "\n") {
-        this.data.push(line);
-        line = [indentation];
-        isFuncDef = false;
+        if (hasEndBracket)
+          hasEndBracket = false;
+        else {
+          this.data.push(line);
+          line = [indentation];
+          isFuncDef = false;
+        }
       }
       else if (token === "{") {
         ++indentation;
@@ -102,6 +107,7 @@ class Script {
       }
       else if (token === "}") {
         --indentation;
+        hasEndBracket = true;
         line[0] = (line[0] & 0xFFFF0000) | indentation;
       }
       else if (token.startsWith('"')) {
@@ -228,18 +234,19 @@ class Script {
       }
     }
     
-    this.data.push(line);
+    if (line.length > 1)
+      this.data.push(line);
   }
 
   itemClicked(row, col) {
-    row = row|0;
-    col = (col|0) + 1;
+    row = row | 0;
+    col = col | 0;
     const item = this.data[row][col];
     
     for (let i = 0; i < this.toggles.length; ++i) {
       if (item === this.toggles[i]) {
         this.data[row][col] = this.toggles[i ^ 1];
-        const [text, style] = this.getItem(row, col - 1);
+        const [text, style] = this.getItem(row, col);
         return {text, style, payload: 0};
       }
     }
@@ -249,15 +256,16 @@ class Script {
   }
 
   appendClicked(row) {
-    if (this.getItemCount(row) === 0) {
+    const rowCount = this.getRowCount();
+    if (row >= rowCount || this.getItemCount(row) === 1) {
       let options;
 
       const FUNCTION_CALL = Script.makeItem(Script.FUNCTION_CALL, 0);
       const FUNCTION_DEFINITION = Script.makeItem(Script.FUNCTION_DEFINITION, 0);
 
-      let indentation = this.getIndentation(row);
-      let enclosingScopeType = 0;
-      for (let r = row - 1; r >= 0; --r) {
+      const indentation = (row < rowCount) ? this.getIndentation(row) : 0;
+      const enclosingScopeType = 0;
+      for (let r = Math.min(rowCount, row) - 1; r >= 0; --r) {
         if (this.getIndentation(r) === indentation - 1) {
           enclosingScopeType = this.data[r][1];
           break;
@@ -300,7 +308,12 @@ class Script {
 
   //0 -> no change, 1 -> click item changed, 2-> row changed, 3 -> row(s) inserted
   menuItemClicked(row, col, payload) {
-    let indentation = this.getIndentation(row - 1) + this.isStartingScope(row - 1);
+    let indentation;
+    if (row < this.getRowCount())
+      indentation = this.getIndentation(row - 1) + this.isStartingScope(row - 1);
+    else
+      indentation = 0;
+    
     while (row >= this.data.length) {
       this.data.push([indentation]);
     }
@@ -421,35 +434,20 @@ class Script {
   }
 
   getItemCount(row) {
-    row = row | 0;
-    if (row < 0 || row >= this.data.length) {
-      return 0;
-    }
-    return this.data[row].length - 1;
+    return this.data[row].length;
   }
 
   getIndentation(row) {
-    row |= 0;
-    if (row < 0 || row >= this.data.length) {
-      return 0;
-    }
     return this.data[row][0] & 0xFFFF;
   }
 
   isStartingScope(row) {
-    row |= 0;
-    if (row < 0 || row >= this.data.length) {
-      return 0;
-    }
     return this.data[row][0] >>> 31;
   }
 
   getItem(row, col) {
     row = row | 0;
-    col = (col | 0) + 1; //col paremeter starts at 0, but script[row][0] contains line metadata like indentation
-
-    if (row < 0 || row >= this.data.length || col < 1 || col >= this.data[row].length)
-      return [`${row}\n${col - 1}`, "error"];
+    col = col | 0;
 
     let item = this.data[row][col];
     let format = item >>> 28; //4 bits
