@@ -110,6 +110,11 @@ button {
   padding: 0;
   margin: 0;
   height: var(--line-height);
+
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 /* The append button has a minimum size, but grows to fill remaining space. */
@@ -155,11 +160,11 @@ button {
   color: #808080;
 }
 
-.method-definition, .keyword-def {
+.function-definition, .keyword-def {
   color: #FFC66D;
 }
 
-.method-call, .keyword-call {
+.function-call, .keyword-call {
   color: #A9B7C6;
 }
 
@@ -209,7 +214,7 @@ button {
 
 /* I set this so the Canvas does not cause scroll bars to appear*/
 /* I still manually modify the resolution in onresize() */
-canvas, #modal-container {
+canvas, #modal {
   position: fixed;
   left: 0;
   top: 0;
@@ -217,20 +222,19 @@ canvas, #modal-container {
   height: 100%;
 }
 
-#modal-container {
+#modal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
   background-color: rgb(1, 1, 1, 0.5);
   z-index: 2;
-  margin: 0;
-  text-align: center;
 }
 
-#modal-content {
-  display: inline-flex;
-  position: absolute;
-  min-height: var(--line-height);
-  margin: 0.5em auto;
-  transform: translateX(-50%);
-  z-index: 3;
+.modal-item {
+  min-width: var(--line-height);
+  padding: 0.5em;
+  margin: 0.5em;
   background-color: var(--primary-color);
-  box-sizing: border-box;
+  box-sizing: content-box;
 }

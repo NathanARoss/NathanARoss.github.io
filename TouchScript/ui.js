@@ -11,8 +11,7 @@ const spacer = document.getElementById("spacer");
 const debug = document.getElementById("debug");
 const canvas = document.getElementById("canvas");
 const editor = document.getElementById("editor_div");
-const modalContainer = document.getElementById("modal-container");
-const modalContent = document.getElementById("modal-content");
+const modal = document.getElementById("modal");
 const context = canvas.getContext("2d", { alpha: false });
 
 let buttonPool = [];
@@ -25,9 +24,9 @@ const script = new Script();
 
 
 
-modalContainer.style.display = "none";
-modalContainer.addEventListener("click", modalContainerClicked);
-modalContainer.addEventListener("touchstart", modalContainerClicked);
+modal.style.display = "none";
+modal.addEventListener("click", modalContainerClicked);
+modal.addEventListener("touchstart", modalContainerClicked);
 
 canvas.addEventListener("contextmenu", preventDefault);
 
@@ -183,7 +182,8 @@ document.body.onhashchange = function() {
     try {
       script.getJavaScript() ();
     } catch (e) {
-      error = e;
+      //error = e;
+      console.log(e);
       window.location.hash = "";
     }
     
@@ -336,7 +336,7 @@ function loadRow(position, rowDiv) {
     const [text, style] = script.getItem(position, col);
     
     let node = getItem(text);
-    node.className = "item" + style;
+    node.className = "item " + style;
     node.position = col;
     innerRow.appendChild(node);
   }
@@ -363,18 +363,33 @@ function getItem(text) {
 
 
 
+function configureModal(options, row, col) {
+  for (const option of options) {
+    let button = getItem(option.text);
+    button.className = "item modal-item " + option.style;
+    button.position = option.payload;
+    modal.appendChild(button);
+  }
+
+  modal.row = row;
+  modal.col = col;
+  modal.style.display = "";
+}
+
+
+
 function preventDefault(e) {
   e.preventDefault();
 }
 
 function modalContainerClicked(event) {
-  modalContainer.style.display = "none";
+  modal.style.display = "none";
   event.stopPropagation();
   event.preventDefault();
 
-  while (modalContent.hasChildNodes()) {
-    buttonPool.push(modalContent.lastChild);
-    modalContent.removeChild(modalContent.lastChild);
+  while (modal.hasChildNodes()) {
+    buttonPool.push(modal.lastChild);
+    modal.removeChild(modal.lastChild);
   }
 }
 
@@ -397,21 +412,30 @@ function appendClicked(event) {
   let row = event.currentTarget.parentElement.position|0;
   
   let options = script.appendClicked(row);
-  for (let i = 0; i < options.length; i += 2) {
-    let button = getItem(options[i]);
-    button.className = "item " + options[i + 1];
-    button.position = i;
-    modalContent.appendChild(button);
-  }
-
-  modalContainer.style.display = "";
+  configureModal(options, row, 0);
 }
 
 function itemClickHandler(event) {
+  event.stopPropagation();
   let button = event.target;
 
-  if (button.parentElement === modalContent) {
-    console.log(`menu item ${button.position} clicked`);
+  if (button.parentElement === modal) {
+    let response = script.menuItemClicked(modal.row, modal.col, button.position);
+    console.log(`menu item payload ${button.position}.  Response ${response}`);
+
+    if (response == 2) {
+      let rowIndex = modal.row - firstLoadedPosition;
+      loadRow(modal.row, list.childNodes[rowIndex]);
+
+      modal.style.display = "none";
+      while (modal.hasChildNodes()) {
+        buttonPool.push(modal.lastChild);
+        modal.removeChild(modal.lastChild);
+      }
+
+      document.body.style.height = getRowCount() * rowHeight + "px";
+    }
+
     return;
   }
   
@@ -421,18 +445,11 @@ function itemClickHandler(event) {
   console.log(`button clicked ${row},${col}`);
   
   let options = script.itemClicked(row, col);
-  if (options.length == 2) {
-    button.firstChild.nodeValue = options[0];
-    button.className = "item" + options[1];
+  if (options.length == 1) {
+    button.firstChild.nodeValue = options[0].text;
+    button.className = "item" + options[0].style;
   } else if (options.length > 0) {
-    for (let i = 0; i < options.length; i += 2) {
-      let button = getItem(options[i]);
-      button.className = "item " + options[i + 1];
-      button.position = i;
-      modalContent.appendChild(button);
-    }
-
-    modalContainer.style.display = "";
+    configureModal(options, row, col);
   }
 }
 

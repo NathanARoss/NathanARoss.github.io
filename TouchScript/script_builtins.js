@@ -168,7 +168,7 @@ function getBuiltIns() {
   ]
   
   const JS_KEYWORDS = [
-    null,
+    "",
     "const",
     "let",
     "if (",
@@ -306,7 +306,20 @@ function getBuiltIns() {
   System.Event.ondraw = draw
   System.Event.onresize = resize
   System.Event.onmousemove = cursorMoved
-  System.Event.ontouchmove = touchMoved`;
+  System.Event.ontouchmove = touchMoved
   
-  return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, pong];
+  let cond = 1
+  switch cond {
+    case 1 {
+      break
+    }
+    case 2 {
+      break
+    }
+    default {
+      break
+    }
+  }`;
+  
+  return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, null];
 }

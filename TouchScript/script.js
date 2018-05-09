@@ -24,15 +24,27 @@ class Script {
     this.jsKeywords = JS_KEYWORDS;
     this.keywordMap = KEYWORD_MAP;
 
-    const LET = Script.makeItem(Script.KEYWORD, this.keywordMap.get("let"));
-    const VAR = Script.makeItem(Script.KEYWORD, this.keywordMap.get("var"));
-    const WHILE = Script.makeItem(Script.KEYWORD, this.keywordMap.get("while"));
-    const UNTIL = Script.makeItem(Script.KEYWORD, this.keywordMap.get("until"));
-    const DEFAULT = Script.makeItem(Script.KEYWORD, this.keywordMap.get("default"));
-    const BREAK = Script.makeItem(Script.KEYWORD, this.keywordMap.get("break"));
-    this.toggles = [LET, VAR, WHILE, UNTIL, DEFAULT, BREAK];
+    function getKeywordItem(text) {
+      return Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get(text));
+    }
 
-    this.loadScript(SAMPLE_SCRIPT);
+    this.items = {};
+    this.items.FUNC     = getKeywordItem("func");
+    this.items.LET      = getKeywordItem("let");
+    this.items.VAR      = getKeywordItem("var");
+    this.items.SWITCH   = getKeywordItem("switch");
+    this.items.CASE     = getKeywordItem("case");
+    this.items.DEFAULT  = getKeywordItem("defaut");
+    this.items.BREAK    = getKeywordItem("break");
+    this.items.IF       = getKeywordItem("if");
+    this.items.FOR      = getKeywordItem("for");
+    this.items.IN       = getKeywordItem("in");
+    this.items.WHILE    = getKeywordItem("while");
+    this.items.RETURN   = getKeywordItem("return");
+    this.toggles = [this.items.LET, this.items.VAR, this.items.WHILE, this.items.UNTIL, this.items.DEFAULT, this.items.BREAK];
+
+    if (SAMPLE_SCRIPT)
+      this.loadScript(SAMPLE_SCRIPT);
   }
 
   static makeItemWithMeta(format, meta, value) {
@@ -48,11 +60,13 @@ class Script {
     return format << 28 | value;
   }
 
+  makeCommentItem(text) {
+    this.comments.set(this.nextComment, text);
+    return Script.makeItem(Script.COMMENT, this.nextComment++);
+  }
+
   loadScript(sampleScript) {
     //define specific item values to test for later
-    const LET = Script.makeItem(Script.KEYWORD, this.keywordMap.get("let"));
-    const VAR = Script.makeItem(Script.KEYWORD, this.keywordMap.get("var"));
-    const FUNC = Script.makeItem(Script.KEYWORD, this.keywordMap.get("func"));
     const COMMA = Script.makeItem(Script.SYMBOL, this.symbolMap.get(","));
     const START_PARENTHESIS = Script.makeItem(Script.SYMBOL, this.symbolMap.get("("));
     const END_PARENTHESIS = Script.makeItem(Script.SYMBOL, this.symbolMap.get(")"));
@@ -68,7 +82,7 @@ class Script {
       
       //figure out what this token refers to
       if (token === "\n") {
-        this.data.push(Int32Array.from(line));
+        this.data.push(line);
         line = [indentation];
         isFuncDef = false;
       }
@@ -85,12 +99,10 @@ class Script {
         line.push(Script.makeItem(Script.STRING_LITERAL, this.nextStringLiteral++));
       }
       else if (token.startsWith("//")) {
-        this.comments.set(this.nextComment, token.substring(2));
-        line.push(Script.makeItem(Script.COMMENT, this.nextComment++));
+        line.push(makeCommentItemtoken.substring(2));
       }
       else if (token.startsWith("/*")) {
-        this.comments.set(this.nextComment, token.substring(2, token.length - 2));
-        line.push(Script.makeItem(Script.COMMENT, this.nextComment++));
+        line.push(makeCommentItemtoken.substring(2, token.length - 2));
       }
       else if (!isNaN(token)) {
         this.numericLiterals.set(this.nextNumericLiteral, token);
@@ -116,7 +128,7 @@ class Script {
       }
       
       //this token represents a function definition
-      else if (line.peek() === FUNC) {
+      else if (line.peek() === this.items.FUNC) {
         isFuncDef = true;
 
         let newFunc = {};
@@ -152,7 +164,7 @@ class Script {
       }
       
       //this token represents a variable declaration or parameter
-      else if (isFuncDef || line.peek() === LET || line.peek() === VAR || (parenthesisCount === 0 && line.peek() === COMMA)) {
+      else if (isFuncDef || line.peek() === this.items.LET || line.peek() === this.items.VAR || (parenthesisCount === 0 && line.peek() === COMMA)) {
         let variable = {};
         
         let indexOf = token.indexOf(":");
@@ -217,26 +229,82 @@ class Script {
     for (let i = 0; i < this.toggles.length; ++i) {
       if (item === this.toggles[i]) {
         this.data[row][col] = this.toggles[i ^ 1];
-        return this.getItem(row, col - 1);
+        const [text, style] = this.getItem(row, col - 1);
+        return {text, style, payload: 0};
       }
     }
-
-    return ["item clicked", "comment", "please ignore", "keyword"];
 
     return [];
   }
 
   appendClicked(row) {
-    let options = ["test", "comment", "System\nprint", "keyword-default"];
-    return options;
+    if (this.getItemCount(row) === 0) {
+      let options;
+
+      const FUNCTION_CALL = Script.makeItem(Script.FUNCTION_CALL, 0);
+      const FUNCTION_DEFINITION = Script.makeItem(Script.FUNCTION_DEFINITION, 0);
+
+      let indentation = this.getIndentation(row);
+      let enclosingScopeType = 0;
+      for (let r = row - 1; r >= 0; --r) {
+        if (this.getIndentation(r) === indentation - 1) {
+          enclosingScopeType = this.data[r][1];
+          break;
+        }
+      }
+
+      if (enclosingScopeType === this.items.SWITCH) {
+        options = [
+          {text: "case", style: "keyword", payload: this.items.CASE}, 
+          {text: "default", style: "keyword", payload: this.items.DEFAULT}
+        ];
+      } else {
+        options = [
+          {text: "f(x)", style: "function-call", payload: FUNCTION_CALL},
+          {text: "func", style: "keyword", payload: FUNCTION_DEFINITION},
+          {text: "let", style: "keyword", payload: this.items.LET},
+          {text: "if", style: "keyword", payload: this.items.IF},
+          {text: "for", style: "keyword", payload: this.items.FOR},
+          {text: "while", style: "keyword", payload: this.items.WHILE},
+          {text: "switch", style: "keyword", payload: this.items.SWITCH}
+        ];
+
+        if (enclosingScopeType !== 0) {
+          options.push(
+            {text: "return", style: "keyword", payload: this.items.RETURN}
+          );
+        }
+      }
+
+      return options;
+    }
+
+    return [];
+  }
+
+  menuItemClicked(row, col, payload) {
+    if (payload >>> 28 === Script.KEYWORD) {
+      switch (payload) {
+        case this.items.FOR:
+          let indentation = this.getIndentation(row - 1) + this.isStartingScope(row - 1);
+          while (row >= this.data.length) {
+            this.data.push([indentation]);
+          }
+
+          this.data[row].push(payload, this.makeCommentItem("item"), this.items.IN, this.makeCommentItem("collection"));
+          return 2;
+          break;
+        
+      }
+
+      
+    }
+
+    return 0;
   }
 
   insertRow(row) {
     let line = [this.getIndentation(row - 1) + this.isStartingScope(row - 1)];
-
-    this.comments.set(this.nextComment, String(this.nextComment));
-    line.push(Script.makeItem(Script.COMMENT, this.nextComment++));
-
     this.data.splice(row, 0, line);
   }
 
@@ -277,7 +345,7 @@ class Script {
     col = (col | 0) + 1; //col paremeter starts at 0, but script[row][0] contains line metadata like indentation
 
     if (row < 0 || row >= this.data.length || col < 1 || col >= this.data[row].length)
-      return [`${row}\n${col - 1}`, " error"];
+      return [`${row}\n${col - 1}`, "error"];
 
     let item = this.data[row][col];
     let format = item >>> 28; //4 bits
@@ -294,7 +362,7 @@ class Script {
         }
         else {
           let type = this.classes[meta].name;
-          return [type + '\n' + name, " keyword-default"];
+          return [type + '\n' + name, "keyword-default"];
         }
         break;
       }
@@ -303,11 +371,11 @@ class Script {
       {
         let func = this.functions[value];
         if (meta === 0) {
-          return [func.name, " method-definition"];
+          return [func.name, "function-definition"];
         }
         else {
           let type = this.classes[meta].name;
-          return [type + '\n' + func.name, " keyword-def"];
+          return [type + '\n' + func.name, "keyword-def"];
         }
         break;
       }
@@ -316,38 +384,38 @@ class Script {
       {
         let func = this.functions[value];
         if (meta === 0) {
-          return [func.name, " method-call"];
+          return [func.name, "function-call"];
         }
         else {
           let type = this.classes[meta].name;
-          return [type + '\n' + func.name, " keyword-call"];
+          return [type + '\n' + func.name, "keyword-call"];
         }
         break;
       }
 
       case Script.ARGUMENT_HINT:
-        return [`argument hint`, " comment"];
+        return [`argument hint`, "comment"];
 
       case Script.ARGUMENT_LABEL:
-        return [`argument label`, " comment"];
+        return [`argument label`, "comment"];
 
       case Script.SYMBOL:
         return [this.symbols[data], ""];
 
       case Script.KEYWORD:
-        return [this.keywords[data], " keyword"];
+        return [this.keywords[data], "keyword"];
 
       case Script.NUMERIC_LITERAL:
-        return [this.numericLiterals.get(data), " numeric"];
+        return [this.numericLiterals.get(data), "numeric"];
 
       case Script.STRING_LITERAL:
-        return [this.stringLiterals.get(data), " string"];
+        return [this.stringLiterals.get(data), "string"];
 
       case Script.COMMENT:
-        return [this.comments.get(data), " comment"];
+        return [this.comments.get(data), "comment"];
 
       default:
-        return [`format\n${format}`, " error"];
+        return [`format\n${format}`, "error"];
     }
   }
 
@@ -361,22 +429,25 @@ class Script {
       let indentation = this.getIndentation(row);
       js += " ".repeat(indentation);
 
-      let needsEndParenthesis = false;
-      let needsCommas = false;
       let rowData = this.data[row];
 
+      let needsEndParenthesis = false;
+      let needsEndColon = false;
+      let needsCommas = false;
+
+      //check the first symbol
+      if (rowData[1] === this.items.CASE || rowData[1] === this.items.DEFAULT) {
+        needsEndColon = true;
+      } else if ((rowData[1] >>> 28) === Script.KEYWORD) {
+        if (this.jsKeywords[(rowData[1] & 0xFFFF)].endsWith("(")) {
+          needsEndParenthesis = true;
+        }
+      }
+
       for (let col = 1; col < rowData.length; ++col) {
-        let item = this.data[row][col];
+        let item = rowData[col];
         let format = item >>> 28;
         let value = item & 0xFFFF; //least sig 16 bits
-
-        //if the first item is a keyword that begins a parenthesis
-        if (format === Script.KEYWORD) {
-          let keyword = this.jsKeywords[value];
-          if (keyword && keyword.charAt(keyword.length - 1) === "(") {
-            needsEndParenthesis = true;
-          }
-        }
 
         //append an end parenthesis to the end of the line
         switch (format) {
@@ -456,6 +527,9 @@ class Script {
       if (needsEndParenthesis)
         js += ") ";
 
+      if (needsEndColon)
+        js += ": ";
+
       if (this.isStartingScope(row))
         js += "{ ";
 
@@ -480,13 +554,13 @@ class Script {
 }
 
 /* Static constants  */
-Object.defineProperty(Script, 'VARIABLE_REFERENCE',  {value: 0, writable : false});
-Object.defineProperty(Script, 'FUNCTION_DEFINITION', {value: 1, writable : false});
-Object.defineProperty(Script, 'FUNCTION_CALL',       {value: 2, writable : false});
-Object.defineProperty(Script, 'ARGUMENT_HINT',       {value: 3, writable : false});
-Object.defineProperty(Script, 'ARGUMENT_LABEL',      {value: 4, writable : false});
-Object.defineProperty(Script, 'SYMBOL',              {value: 5, writable : false});
-Object.defineProperty(Script, 'KEYWORD',             {value: 6, writable : false});
-Object.defineProperty(Script, 'NUMERIC_LITERAL',     {value: 7, writable : false});
-Object.defineProperty(Script, 'STRING_LITERAL',      {value: 8, writable : false});
-Object.defineProperty(Script, 'COMMENT',             {value: 9, writable : false});
+Script.VARIABLE_REFERENCE   = 0;
+Script.FUNCTION_DEFINITION  = 1;
+Script.FUNCTION_CALL        = 2;
+Script.ARGUMENT_HINT        = 3;
+Script.ARGUMENT_LABEL       = 4;
+Script.SYMBOL               = 5;
+Script.KEYWORD              = 6;
+Script.NUMERIC_LITERAL      = 7;
+Script.STRING_LITERAL       = 8;
+Script.COMMENT              = 9;
