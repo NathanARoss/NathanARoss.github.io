@@ -31,7 +31,6 @@ canvas.addEventListener("contextmenu", preventDefault);
 
 canvas.addEventListener("touchstart", function(event) {
   if (eventHandlers.ontouchstart) {
-  
     for (const touch of event.changedTouches)
       eventHandlers.ontouchstart(touch.pageX * window.devicePixelRatio, touch.pageY * window.devicePixelRatio, touch.identifier);
   }
@@ -41,17 +40,13 @@ canvas.addEventListener("touchstart", function(event) {
 
 canvas.addEventListener("touchmove", function(event) {
   if (eventHandlers.ontouchmove) {
-  
     for (const touch of event.changedTouches)
       eventHandlers.ontouchmove(touch.pageX * window.devicePixelRatio, touch.pageY * window.devicePixelRatio, touch.identifier);
   }
-
-  event.preventDefault();
 });
 
 canvas.addEventListener("touchend", function(event) {
   if (eventHandlers.ontouchend) {
-  
     for (const touch of event.changedTouches)
       eventHandlers.ontouchend(touch.pageX * window.devicePixelRatio, touch.pageY * window.devicePixelRatio, touch.identifier);
   }
@@ -65,14 +60,12 @@ canvas.addEventListener("mousedown", function(event) {
 
 canvas.addEventListener("mousemove", function(event) {
   if (eventHandlers.onmousemove) {
-  
     eventHandlers.onmousemove(event.x * window.devicePixelRatio, event.y * window.devicePixelRatio, event.movementX * window.devicePixelRatio, event.movementY * window.devicePixelRatio);
   }
 });
 
 canvas.addEventListener("mouseup", function(event) {
   if (eventHandlers.onmouseup) {
-  
     eventHandlers.onmouseup(event.x * window.devicePixelRatio, event.y * window.devicePixelRatio, event.button);
   }
 
@@ -188,7 +181,6 @@ document.body.onhashchange = function() {
     
     
     if (! (eventHandlers.ondraw)) {
-      console.log("draw handler is not defined");
       window.location.hash = "";
       return;
     }
@@ -450,12 +442,15 @@ function menuItemClicked(payload) {
   }
   else if (Array.isArray(response) && response.length > 0) {
     //if there is only one option, select it and skip the UI
-    if (response.length === 1) {
+    /*if (response.length === 1) {
       menuItemClicked(response[0].payload);
     } else {
       configureModal(response, modal.row, modal.col);
       return;
-    }
+    }*/
+
+    configureModal(response, modal.row, modal.col);
+    return;
   }
 
   modal.style.display = "none";

@@ -24,34 +24,41 @@ class Script {
     this.jsKeywords = JS_KEYWORDS;
     this.keywordMap = KEYWORD_MAP;
 
-    function getKeywordItem(text) {
-      return Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get(text));
-    }
-
     this.ITEMS = {};
-    this.ITEMS.FUNC     = getKeywordItem("func");
-    this.ITEMS.LET      = getKeywordItem("let");
-    this.ITEMS.VAR      = getKeywordItem("var");
-    this.ITEMS.SWITCH   = getKeywordItem("switch");
-    this.ITEMS.CASE     = getKeywordItem("case");
-    this.ITEMS.DEFAULT  = getKeywordItem("default");
-    this.ITEMS.BREAK    = getKeywordItem("break");
-    this.ITEMS.IF       = getKeywordItem("if");
-    this.ITEMS.FOR      = getKeywordItem("for");
-    this.ITEMS.IN       = getKeywordItem("in");
-    this.ITEMS.WHILE    = getKeywordItem("while");
-    this.ITEMS.RETURN   = getKeywordItem("return");
-    this.ITEMS.EQUALS   = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get("="));
+    this.ITEMS.FUNC     = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("func"));
+    this.ITEMS.LET      = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("let"));
+    this.ITEMS.VAR      = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("var"));
+    this.ITEMS.SWITCH   = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("switch"));
+    this.ITEMS.CASE     = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("case"));
+    this.ITEMS.DEFAULT  = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("default"));
+    this.ITEMS.BREAK    = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("break"));
+    this.ITEMS.IF       = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("if"));
+    this.ITEMS.FOR      = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("for"));
+    this.ITEMS.IN       = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("in"));
+    this.ITEMS.WHILE    = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("while"));
+    this.ITEMS.RETURN   = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("return"));
     this.toggles = [this.ITEMS.LET, this.ITEMS.VAR, this.ITEMS.WHILE, this.ITEMS.UNTIL, this.ITEMS.DEFAULT, this.ITEMS.BREAK];
 
+    this.ITEMS.EQUALS            = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get("="));
+    this.ITEMS.START_PARENTHESIS = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get("("));
+    this.ITEMS.END_PARENTHESIS   = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get(")"));
+    this.ITEMS.START_BRACKET     = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get("["));
+    this.ITEMS.END_BRACKET       = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get("]"));
+    this.ITEMS.DOT               = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get("."));
+    this.ITEMS.COMMA             = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get(","));
+    this.NOT_OPERANDS = [this.ITEMS.END_PARENTHESIS, this.ITEMS.END_BRACKET, this.ITEMS.DOT, this.ITEMS.COMMA];
+
     this.HINTS = {};
-    this.HINTS.item = this.makeCommentItem("item");
-    this.HINTS.collection = this.makeCommentItem("collection");
-    this.HINTS.value = this.makeCommentItem("value");
-    this.HINTS.condition = this.makeCommentItem("condition");
-    this.HINTS.expression = this.makeCommentItem("expression");
-    this.HINTS.controlExpression = this.makeCommentItem("control expression");
-    this.HINTS.variable = this.makeCommentItem("variable");
+    this.HINTS.ITEM = this.makeCommentItem("item");
+    this.HINTS.COLLECTION = this.makeCommentItem("collection");
+    this.HINTS.VALUE = this.makeCommentItem("value");
+    this.HINTS.CONDITION = this.makeCommentItem("condition");
+    this.HINTS.EXPRESSION = this.makeCommentItem("expression");
+    this.HINTS.CONTROL_EXPRESSION = this.makeCommentItem("control expression");
+
+    this.PAYLOADS = {};
+    this.PAYLOADS.MUTABLE_VARIABLES = Script.makeItem(15, 0x0FFFFFFF);
+    this.PAYLOADS.VAR_OPTIONS = Script.makeItem(15, 0x0FFFFFFE);
     
     if (SAMPLE_SCRIPT)
       this.loadScript(SAMPLE_SCRIPT);
@@ -76,11 +83,6 @@ class Script {
   }
 
   loadScript(sampleScript) {
-    //define specific item values to test for later
-    const COMMA = Script.makeItem(Script.SYMBOL, this.symbolMap.get(","));
-    const START_PARENTHESIS = Script.makeItem(Script.SYMBOL, this.symbolMap.get("("));
-    const END_PARENTHESIS = Script.makeItem(Script.SYMBOL, this.symbolMap.get(")"));
-
     let line = [0];
     let indentation = 0;
     let isFuncDef = false;
@@ -127,9 +129,9 @@ class Script {
       else if (this.symbolMap.has(token)) {
         line.push(Script.makeItem(Script.SYMBOL, this.symbolMap.get(token)));
         let last = line.peek();
-        if (last == START_PARENTHESIS)
+        if (last == this.ITEMS.START_PARENTHESIS)
           ++parenthesisCount;
-        else if (last == END_PARENTHESIS)
+        else if (last == this.ITEMS.END_PARENTHESIS)
           --parenthesisCount;
       }
       else if (this.keywordMap.has(token)) {
@@ -180,7 +182,7 @@ class Script {
       }
       
       //this token represents a variable declaration or parameter
-      else if (isFuncDef || line.peek() === this.ITEMS.LET || line.peek() === this.ITEMS.VAR || (parenthesisCount === 0 && line.peek() === COMMA)) {
+      else if (isFuncDef || line.peek() === this.ITEMS.LET || line.peek() === this.ITEMS.VAR || (parenthesisCount === 0 && line.peek() === this.ITEMS.COMMA)) {
         let variable = {};
         
         let indexOf = token.indexOf(":");
@@ -251,20 +253,45 @@ class Script {
       }
     }
 
+    if (this.data[row][col - 1] >>> 28 === Script.SYMBOL) {
+      if (! this.NOT_OPERANDS.includes(this.data[row][col - 1])) {
+        let options = [];
+
+        let indentation = this.getIndentation(row);
+        for (let r = row - 1; r >= 0; --r) {
+          if (this.getIndentation(r) <= indentation && this.data[r].length > 1) {
+            if (this.data[r][1] === this.ITEMS.VAR || this.data[r][1] === this.ITEMS.LET) {
+              let col = 2;
+              do {
+                let varId = this.data[r][col] & 0xFFFF;
+                const [text, style] = this.getItem(r, col);
+                options.push({text, style, payload: (Script.VARIABLE_REFERENCE << 28) | varId});
+                col += 2;
+              } while (this.data[r][col - 1] === this.ITEMS.COMMA)
+            }
+          }
+        }
+
+        return options;
+      }
+    }
+
     //TODO provide menu items for existing items
     return [];
   }
 
   appendClicked(row) {
     const rowCount = this.getRowCount();
-    if (row >= rowCount || this.getItemCount(row) === 1) {
+    const itemCount = (row < rowCount) ? this.getItemCount(row) : 1;
+
+    if (itemCount === 1) {
       let options;
 
       const FUNCTION_CALL = Script.makeItem(Script.FUNCTION_CALL, 0);
       const FUNCTION_DEFINITION = Script.makeItem(Script.FUNCTION_DEFINITION, 0);
 
       const indentation = (row < rowCount) ? this.getIndentation(row) : 0;
-      const enclosingScopeType = 0;
+      let enclosingScopeType = 0;
       for (let r = Math.min(rowCount, row) - 1; r >= 0; --r) {
         if (this.getIndentation(r) === indentation - 1) {
           enclosingScopeType = this.data[r][1];
@@ -279,10 +306,11 @@ class Script {
         ];
       } else {
         options = [
-          {text: "=", style: "", payload: Script.makeItem(Script.VARIABLE_REFERENCE, 0x0FFFFFFF)},
+          {text: "=", style: "", payload: this.PAYLOADS.MUTABLE_VARIABLES},
           {text: "f(x)", style: "function-call", payload: FUNCTION_CALL},
           {text: "func", style: "keyword", payload: FUNCTION_DEFINITION},
           {text: "let", style: "keyword", payload: this.ITEMS.LET},
+          {text: "var", style: "keyword", payload: this.PAYLOADS.VAR_OPTIONS},
           {text: "if", style: "keyword", payload: this.ITEMS.IF},
           {text: "for", style: "keyword", payload: this.ITEMS.FOR},
           {text: "while", style: "keyword", payload: this.ITEMS.WHILE},
@@ -299,9 +327,36 @@ class Script {
       return options;
     }
 
-    // if (this.data[row][1] === LET || this.data[row][1] === VAR) {
+    if (this.data[row][1] === this.ITEMS.VAR) {
+      if (itemCount === 3) {
+        return [
+          {text: "=", style: "", payload: this.ITEMS.EQUALS},
+          {text: ",", style: "", payload: this.ITEMS.COMMA}
+        ];
+      }
 
+      if (this.data[row][3] === this.ITEMS.COMMA) {
+        return [
+          {text: ",", style: "", payload: this.ITEMS.COMMA}
+        ];
+      }
+    }
+
+    // if (this.data[row][1] === this.ITEMS.VAR || this.data[row][1] === this.ITEMS.LET) {
+    //   //append additional var references
     // }
+
+    if (this.data[row][1] === this.ITEMS.FUNC) {
+      let options = [];
+
+      for (let i = 2; i < this.classes.length; ++i) {
+        const c = this.classes[i];
+        if (c.size > 0)
+          options.push({text: c.name, style: "keyword", payload: Script.makeItemWithMeta(Script.ARGUMENT_LABEL, i, 0)});
+      }
+
+      return options;
+    }
 
     return [];
   }
@@ -324,7 +379,7 @@ class Script {
     switch (payload) {
       case this.ITEMS.CASE:
         this.data[row][0] |= 1 << 31;
-        this.data[row].push(payload, this.HINTS.value);
+        this.data[row].push(payload, this.HINTS.VALUE);
         return 3;
 
       case this.ITEMS.DEFAULT:
@@ -333,28 +388,42 @@ class Script {
         return 3;
       
       case this.ITEMS.LET:
+      case this.ITEMS.VAR: {
         let varId = this.variables.length;
         this.variables.push({name: `var${varId}`, type: 0});
-        this.data[row].push(payload, Script.makeItem(Script.VARIABLE_REFERENCE, varId), this.ITEMS.EQUALS, this.HINTS.expression);
+        this.data[row].push(payload, Script.makeItem(Script.VARIABLE_REFERENCE, varId), this.ITEMS.EQUALS, this.HINTS.EXPRESSION);
         return 2;
+      }
+
+      case this.PAYLOADS.VAR_OPTIONS: {
+        let options = [{text: "= expression", style: "comment", payload: this.ITEMS.VAR}];
+
+        for (let i = 2; i < this.classes.length; ++i) {
+          const c = this.classes[i];
+          if (c.size > 0)
+            options.push({text: c.name, style: "keyword", payload: Script.makeItemWithMeta(Script.COMMENT, i, 0)});
+        }
+
+        return options;
+      }
       
       case this.ITEMS.IF:
       case this.ITEMS.WHILE:
         this.data[row][0] |= 1 << 31;
-        this.data[row].push(payload, this.HINTS.condition);
+        this.data[row].push(payload, this.HINTS.CONDITION);
         return 3;
 
       case this.ITEMS.FOR:
         this.data[row][0] |= 1 << 31;
-        this.data[row].push(payload, this.HINTS.item, this.ITEMS.IN, this.HINTS.collection);
+        this.data[row].push(payload, this.HINTS.ITEM, this.ITEMS.IN, this.HINTS.COLLECTION);
         return 3;
 
       case this.ITEMS.SWITCH:
         this.data[row][0] |= 1 << 31;
-        this.data[row].push(payload, this.HINTS.controlExpression);
+        this.data[row].push(payload, this.HINTS.CONTROL_EXPRESSION);
         return 3;
       
-      case this.ITEMS.RETURN:
+      case this.ITEMS.RETURN: {
         let returnType = 0;
         for (let r = row - 1; r >= 0; --r) {
           if (this.data[row][1] === this.ITEMS.FUNC) {
@@ -365,9 +434,10 @@ class Script {
 
         this.data[row].push(payload);
         if (returnType > 0)
-          this.data[row].push(this.HINTS.expression);
+          this.data[row].push(this.HINTS.EXPRESSION);
         
         return 2;
+      }
 
       case FUNCTION_DEFINITION: {
         let funcId = this.functions.length;
@@ -377,44 +447,79 @@ class Script {
         this.data[row].push(this.ITEMS.FUNC, Script.makeItemWithMeta(Script.FUNCTION_DEFINITION, newFunc.returnType, funcId));
         return 3;
       }
-    }
 
-    //look for variable references that are valid from the current row
-    if (payload === Script.makeItem(Script.VARIABLE_REFERENCE, 0x0FFFFFFF)) {
-      let options = [];
+      case this.ITEMS.EQUALS:
+        this.data[row].push(this.ITEMS.EQUALS, this.HINTS.EXPRESSION);
+        return 2;
 
-      let indentation = this.getIndentation(row);
-      for (let r = row - 1; r >= 0; --r) {
-        if (this.getIndentation(r) <= indentation && this.data[r].length > 1) {
-          if (this.data[r][1] === this.ITEMS.VAR) {
-            let varId = this.data[r][2] & 0xFFFF;
-            const [text, style] = this.getItem(r, 1);
-            options.push({text, style, payload: Script.makeItemWithMeta(Script.VARIABLE_REFERENCE, 0, varId)});
-          }
-        }
+      case this.ITEMS.COMMA: {
+        let varId = this.variables.length;
+        let type = (this.data[row].peek() >>> 16) & 0x0FFF;
+        this.variables.push({name: `var${varId}`, type: type});
+        this.data[row].push(this.ITEMS.COMMA, Script.makeItemWithMeta(Script.VARIABLE_REFERENCE, type, varId));
+        return 2;
       }
 
-      return options;
+      case this.PAYLOADS.MUTABLE_VARIABLES: {
+        let options = [];
+  
+        let indentation = this.getIndentation(row);
+        for (let r = row - 1; r >= 0; --r) {
+          if (this.getIndentation(r) <= indentation && this.data[r].length > 1) {
+            if (this.data[r][1] === this.ITEMS.VAR) {
+              let col = 2;
+              do {
+                let varId = this.data[r][col] & 0xFFFF;
+                const [text, style] = this.getItem(r, col);
+                options.push({text, style, payload: (Script.VARIABLE_REFERENCE << 28) | varId});
+                col += 2;
+              } while (this.data[r][col - 1] === this.ITEMS.COMMA);
+            }
+          }
+        }
+  
+        return options;
+      }
     }
 
-    //if a specific variable reference is provided
     let format = payload >>> 28;
+    let meta = (payload >>> 16) & 0x0FFF;
+    let data = payload & 0xFFFF;
+
+    //if a specific variable reference is provided
     if (format === Script.VARIABLE_REFERENCE) {
       let varId = payload & 0xFFFF;
       let variable = this.variables[varId];
-      this.data[row].push(
-        Script.makeItemWithMeta(Script.VARIABLE_REFERENCE, variable.type, varId)
-      );
-
-      if (this.data[row].length === 2) {
+      
+      if (this.data[row].length === 1) {
         this.data[row].push(
+          Script.makeItemWithMeta(Script.VARIABLE_REFERENCE, variable.type, varId),
           this.ITEMS.EQUALS,
-          this.HINTS.expression
+          this.HINTS.EXPRESSION
         );
         return 2;
       }
 
+      this.data[row][col] = payload;
       return 1;
+    }
+
+    //user choose a type for a variable declaration
+    if (format === Script.COMMENT) {
+      let varId = this.variables.length;
+      let type = meta;
+      this.variables.push({name: `var${varId}`, type: meta});
+      this.data[row].push(this.ITEMS.VAR, Script.makeItemWithMeta(Script.VARIABLE_REFERENCE, type, varId));
+      return 2;
+    }
+
+    //appending additional parameters
+    if (format === Script.ARGUMENT_LABEL) {
+      let varId = this.variables.length;
+      let type = meta;
+      this.variables.push({name: `var${varId}`, type: meta});
+      this.data[row].push(Script.makeItemWithMeta(Script.VARIABLE_REFERENCE, type, varId));
+      return 2;
     }
 
     return 0;
