@@ -144,7 +144,7 @@ button {
   color: #A9B7C6;
 }
 
-.keyword, .keyword-default::first-line, .keyword-call::first-line, .keyword-def::first-line {
+.keyword::first-line, .keyword-call::first-line, .keyword-def::first-line, .keyword-declaration::first-line {
   color: #CC7832;
 }
 
@@ -162,6 +162,10 @@ button {
 
 .function-definition, .keyword-def {
   color: #FFC66D;
+}
+
+.keyword-declaration, .declaration {
+  color: rgb(204, 189, 166);
 }
 
 .function-call, .keyword-call {

@@ -32,12 +32,13 @@ class Script {
     this.ITEMS.CASE     = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("case"));
     this.ITEMS.DEFAULT  = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("default"));
     this.ITEMS.BREAK    = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("break"));
+    this.ITEMS.CONTINUE = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("continue"));
     this.ITEMS.IF       = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("if"));
     this.ITEMS.FOR      = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("for"));
     this.ITEMS.IN       = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("in"));
     this.ITEMS.WHILE    = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("while"));
     this.ITEMS.RETURN   = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("return"));
-    this.toggles = [this.ITEMS.LET, this.ITEMS.VAR, this.ITEMS.WHILE, this.ITEMS.UNTIL, this.ITEMS.DEFAULT, this.ITEMS.BREAK];
+    this.toggles = [this.ITEMS.VAR, this.ITEMS.LET, this.ITEMS.WHILE, this.ITEMS.UNTIL, this.ITEMS.CONTINUE, this.ITEMS.BREAK];
 
     this.ITEMS.EQUALS            = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get("="));
     this.ITEMS.START_PARENTHESIS = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get("("));
@@ -46,7 +47,7 @@ class Script {
     this.ITEMS.END_BRACKET       = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get("]"));
     this.ITEMS.DOT               = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get("."));
     this.ITEMS.COMMA             = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get(","));
-    this.NOT_OPERANDS = [this.ITEMS.END_PARENTHESIS, this.ITEMS.END_BRACKET, this.ITEMS.DOT, this.ITEMS.COMMA];
+    this.NOT_OPERANDS = [this.ITEMS.END_PARENTHESIS, this.ITEMS.END_BRACKET, this.ITEMS.DOT];
 
     this.HINTS = {};
     this.HINTS.ITEM = this.makeCommentItem("item");
@@ -59,6 +60,8 @@ class Script {
     this.PAYLOADS = {};
     this.PAYLOADS.MUTABLE_VARIABLES = Script.makeItem(15, 0x0FFFFFFF);
     this.PAYLOADS.VAR_OPTIONS = Script.makeItem(15, 0x0FFFFFFE);
+    this.PAYLOADS.FUNCTION_DEFINITION = Script.makeItem(15, 0x0FFFFFFD);
+    this.PAYLOADS.FUNCTION_REFERENCE = Script.makeItem(15, 0x0FFFFFFC);
     
     if (SAMPLE_SCRIPT)
       this.loadScript(SAMPLE_SCRIPT);
@@ -139,7 +142,7 @@ class Script {
       }
       else if (this.functionMap.has(token)) {
         let funcId = this.functionMap.get(token);
-        line.push(Script.makeItemWithMeta(Script.FUNCTION_CALL, this.functions[funcId].scope, funcId));
+        line.push(Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, this.functions[funcId].scope, funcId));
       }
       else if (this.classMap.has(token)) {
         line.push(Script.makeItem(Script.KEYWORD, this.keywordMap.get(token)));
@@ -201,7 +204,7 @@ class Script {
         
         ++this.nextVariable;
         
-        line.push(Script.makeItemWithMeta(Script.VARIABLE_REFERENCE, variable.type, id));
+        line.push(Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, variable.type, id));
       }
       
       //assume token is a variable reference of some form
@@ -247,6 +250,9 @@ class Script {
     
     for (let i = 0; i < this.toggles.length; ++i) {
       if (item === this.toggles[i]) {
+        if (item === this.ITEMS.VAR && this.data[row][3] !== this.ITEMS.EQUALS)
+          break;
+
         this.data[row][col] = this.toggles[i ^ 1];
         const [text, style] = this.getItem(row, col);
         return {text, style, payload: 0};
@@ -259,15 +265,16 @@ class Script {
 
         let indentation = this.getIndentation(row);
         for (let r = row - 1; r >= 0; --r) {
-          if (this.getIndentation(r) <= indentation && this.data[r].length > 1) {
-            if (this.data[r][1] === this.ITEMS.VAR || this.data[r][1] === this.ITEMS.LET) {
-              let col = 2;
-              do {
+          let itemCount = this.data[r].length;
+          let lineIndentation = this.getIndentation(r);
+          if (lineIndentation + this.isStartingScope(r) <= indentation && this.data[r].length > 1) {
+            indentation = Math.min(indentation, lineIndentation);
+            for (let col = 2; col < itemCount; ++col) {
+              if (this.data[r][col] >>> 28 === Script.VARIABLE_DEFINITION) {
                 let varId = this.data[r][col] & 0xFFFF;
                 const [text, style] = this.getItem(r, col);
                 options.push({text, style, payload: (Script.VARIABLE_REFERENCE << 28) | varId});
-                col += 2;
-              } while (this.data[r][col - 1] === this.ITEMS.COMMA)
+              }
             }
           }
         }
@@ -287,9 +294,6 @@ class Script {
     if (itemCount === 1) {
       let options;
 
-      const FUNCTION_CALL = Script.makeItem(Script.FUNCTION_CALL, 0);
-      const FUNCTION_DEFINITION = Script.makeItem(Script.FUNCTION_DEFINITION, 0);
-
       const indentation = (row < rowCount) ? this.getIndentation(row) : 0;
       let enclosingScopeType = 0;
       for (let r = Math.min(rowCount, row) - 1; r >= 0; --r) {
@@ -307,8 +311,8 @@ class Script {
       } else {
         options = [
           {text: "=", style: "", payload: this.PAYLOADS.MUTABLE_VARIABLES},
-          {text: "f(x)", style: "function-call", payload: FUNCTION_CALL},
-          {text: "func", style: "keyword", payload: FUNCTION_DEFINITION},
+          //{text: "f(x)", style: "function-call", payload: Script.FUNCTION_REFERENCE << 28},
+          {text: "func", style: "keyword", payload: this.PAYLOADS.FUNCTION_DEFINITION},
           {text: "let", style: "keyword", payload: this.ITEMS.LET},
           {text: "var", style: "keyword", payload: this.PAYLOADS.VAR_OPTIONS},
           {text: "if", style: "keyword", payload: this.ITEMS.IF},
@@ -373,9 +377,6 @@ class Script {
       this.data.push([indentation]);
     }
 
-    const FUNCTION_CALL = Script.makeItem(Script.FUNCTION_CALL, 0);
-    const FUNCTION_DEFINITION = Script.makeItem(Script.FUNCTION_DEFINITION, 0);
-
     switch (payload) {
       case this.ITEMS.CASE:
         this.data[row][0] |= 1 << 31;
@@ -401,7 +402,7 @@ class Script {
         for (let i = 2; i < this.classes.length; ++i) {
           const c = this.classes[i];
           if (c.size > 0)
-            options.push({text: c.name, style: "keyword", payload: Script.makeItemWithMeta(Script.COMMENT, i, 0)});
+            options.push({text: c.name, style: "keyword", payload: Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, i, 0)});
         }
 
         return options;
@@ -439,7 +440,7 @@ class Script {
         return 2;
       }
 
-      case FUNCTION_DEFINITION: {
+      case this.PAYLOADS.FUNCTION_DEFINITION: {
         let funcId = this.functions.length;
         let newFunc = {name: `f${funcId}`, returnType: 0, parameters: []};
         this.functions.push(newFunc);
@@ -456,7 +457,7 @@ class Script {
         let varId = this.variables.length;
         let type = (this.data[row].peek() >>> 16) & 0x0FFF;
         this.variables.push({name: `var${varId}`, type: type});
-        this.data[row].push(this.ITEMS.COMMA, Script.makeItemWithMeta(Script.VARIABLE_REFERENCE, type, varId));
+        this.data[row].push(this.ITEMS.COMMA, Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
         return 2;
       }
 
@@ -465,15 +466,18 @@ class Script {
   
         let indentation = this.getIndentation(row);
         for (let r = row - 1; r >= 0; --r) {
-          if (this.getIndentation(r) <= indentation && this.data[r].length > 1) {
+          let lineIndentation = this.getIndentation(r);
+          if (lineIndentation + this.isStartingScope(r) <= indentation && this.data[r].length > 1) {
+            indentation = Math.min(indentation, lineIndentation);
             if (this.data[r][1] === this.ITEMS.VAR) {
-              let col = 2;
-              do {
-                let varId = this.data[r][col] & 0xFFFF;
-                const [text, style] = this.getItem(r, col);
-                options.push({text, style, payload: (Script.VARIABLE_REFERENCE << 28) | varId});
-                col += 2;
-              } while (this.data[r][col - 1] === this.ITEMS.COMMA);
+              let itemCount = this.data[r].length;
+              for (let col = 1; col < itemCount; ++col) {
+                if (this.data[r][col] >>> 28 === Script.VARIABLE_DEFINITION) {
+                  let varId = this.data[r][col] & 0xFFFF;
+                  const [text, style] = this.getItem(r, col);
+                  options.push({text, style, payload: (Script.VARIABLE_REFERENCE << 28) | varId});
+                }
+              }
             }
           }
         }
@@ -505,11 +509,11 @@ class Script {
     }
 
     //user choose a type for a variable declaration
-    if (format === Script.COMMENT) {
+    if (format === Script.VARIABLE_DEFINITION) {
       let varId = this.variables.length;
       let type = meta;
       this.variables.push({name: `var${varId}`, type: meta});
-      this.data[row].push(this.ITEMS.VAR, Script.makeItemWithMeta(Script.VARIABLE_REFERENCE, type, varId));
+      this.data[row].push(this.ITEMS.VAR, Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
       return 2;
     }
 
@@ -518,7 +522,7 @@ class Script {
       let varId = this.variables.length;
       let type = meta;
       this.variables.push({name: `var${varId}`, type: meta});
-      this.data[row].push(Script.makeItemWithMeta(Script.VARIABLE_REFERENCE, type, varId));
+      this.data[row].push(Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
       return 2;
     }
 
@@ -561,43 +565,40 @@ class Script {
     let value = item & 0xFFFF; //16 bits
 
     switch (format) {
+      case Script.VARIABLE_DEFINITION:
+      {
+        let name = this.variables[value].name || `var${value}`;
+        if (meta === 0)
+          return [name, "declaration"];
+        else
+          return [this.classes[meta].name + '\n' + name, "keyword-declaration"];
+      }
+
       case Script.VARIABLE_REFERENCE:
       {
         let name = this.variables[value].name || `var${value}`;
-        if (meta === 0) {
+        if (meta === 0)
           return [name, ""];
-        }
-        else {
-          let type = this.classes[meta].name;
-          return [type + '\n' + name, "keyword-default"];
-        }
-        break;
+        else
+          return [this.classes[meta].name + '\n' + name, "keyword"];
       }
 
       case Script.FUNCTION_DEFINITION:
       {
         let func = this.functions[value];
-        if (meta === 0) {
+        if (meta === 0)
           return [func.name, "function-definition"];
-        }
-        else {
-          let type = this.classes[meta].name;
-          return [type + '\n' + func.name, "keyword-def"];
-        }
-        break;
+        else
+          return [this.classes[meta].name + '\n' + func.name, "keyword-def"];
       }
 
-      case Script.FUNCTION_CALL:
+      case Script.FUNCTION_REFERENCE:
       {
         let func = this.functions[value];
-        if (meta === 0) {
+        if (meta === 0)
           return [func.name, "function-call"];
-        }
-        else {
-          let type = this.classes[meta].name;
-          return [type + '\n' + func.name, "keyword-call"];
-        }
-        break;
+        else
+          return [this.classes[meta].name + '\n' + func.name, "keyword-call"];
       }
 
       case Script.ARGUMENT_HINT:
@@ -662,6 +663,7 @@ class Script {
 
         //append an end parenthesis to the end of the line
         switch (format) {
+          case Script.VARIABLE_DEFINITION:
           case Script.VARIABLE_REFERENCE:
             if ("js" in this.variables[value]) {
               js += this.variables[value].js;
@@ -689,7 +691,7 @@ class Script {
             break;
           }
 
-          case Script.FUNCTION_CALL:
+          case Script.FUNCTION_REFERENCE:
           {
             let func = this.functions[value];
             let funcName;
@@ -765,13 +767,14 @@ class Script {
 }
 
 /* Static constants  */
-Script.VARIABLE_REFERENCE   = 0;
-Script.FUNCTION_DEFINITION  = 1;
-Script.FUNCTION_CALL        = 2;
-Script.ARGUMENT_HINT        = 3;
-Script.ARGUMENT_LABEL       = 4;
-Script.SYMBOL               = 5;
-Script.KEYWORD              = 6;
-Script.NUMERIC_LITERAL      = 7;
-Script.STRING_LITERAL       = 8;
-Script.COMMENT              = 9;
+Script.VARIABLE_DEFINITION  = 0;
+Script.VARIABLE_REFERENCE   = 1;
+Script.FUNCTION_DEFINITION  = 2;
+Script.FUNCTION_REFERENCE   = 3;
+Script.ARGUMENT_HINT        = 4;
+Script.ARGUMENT_LABEL       = 5;
+Script.SYMBOL               = 6;
+Script.KEYWORD              = 7;
+Script.NUMERIC_LITERAL      = 8;
+Script.STRING_LITERAL       = 9;
+Script.COMMENT              = 10;

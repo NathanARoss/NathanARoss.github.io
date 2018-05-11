@@ -251,8 +251,8 @@ function getBuiltIns() {
 
 
   let pong =
-  `var paddleX, paddleWidth, paddleHeight
-  var ballX, ballY, vX, vY, ballSize
+  `var paddleX:Double, paddleWidth:Double, paddleHeight:Double
+  var ballX:Double, ballY:Double, vX:Double, vY:Double, ballSize:Double
   
   
   func resize {
