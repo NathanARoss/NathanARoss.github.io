@@ -261,25 +261,7 @@ class Script {
 
     if (this.data[row][col - 1] >>> 28 === Script.SYMBOL) {
       if (! this.NOT_OPERANDS.includes(this.data[row][col - 1])) {
-        let options = [];
-
-        let indentation = this.getIndentation(row);
-        for (let r = row - 1; r >= 0; --r) {
-          let itemCount = this.data[r].length;
-          let lineIndentation = this.getIndentation(r);
-          if (lineIndentation + this.isStartingScope(r) <= indentation && this.data[r].length > 1) {
-            indentation = Math.min(indentation, lineIndentation);
-            for (let col = 2; col < itemCount; ++col) {
-              if (this.data[r][col] >>> 28 === Script.VARIABLE_DEFINITION) {
-                let varId = this.data[r][col] & 0xFFFF;
-                const [text, style] = this.getItem(r, col);
-                options.push({text, style, payload: (Script.VARIABLE_REFERENCE << 28) | varId});
-              }
-            }
-          }
-        }
-
-        return options;
+        return this.getVisibleVariables(row, false);
       }
     }
 
@@ -462,27 +444,7 @@ class Script {
       }
 
       case this.PAYLOADS.MUTABLE_VARIABLES: {
-        let options = [];
-  
-        let indentation = this.getIndentation(row);
-        for (let r = row - 1; r >= 0; --r) {
-          let lineIndentation = this.getIndentation(r);
-          if (lineIndentation + this.isStartingScope(r) <= indentation && this.data[r].length > 1) {
-            indentation = Math.min(indentation, lineIndentation);
-            if (this.data[r][1] === this.ITEMS.VAR) {
-              let itemCount = this.data[r].length;
-              for (let col = 1; col < itemCount; ++col) {
-                if (this.data[r][col] >>> 28 === Script.VARIABLE_DEFINITION) {
-                  let varId = this.data[r][col] & 0xFFFF;
-                  const [text, style] = this.getItem(r, col);
-                  options.push({text, style, payload: (Script.VARIABLE_REFERENCE << 28) | varId});
-                }
-              }
-            }
-          }
-        }
-  
-        return options;
+        return this.getVisibleVariables(row, true);
       }
     }
 
@@ -527,6 +489,30 @@ class Script {
     }
 
     return 0;
+  }
+
+  getVisibleVariables(row, requiresMutable) {
+    let options = [];
+
+    let indentation = this.getIndentation(row);
+    for (let r = row - 1; r >= 0; --r) {
+      let lineIndentation = this.getIndentation(r);
+      if (lineIndentation + this.isStartingScope(r) <= indentation && this.data[r].length > 1) {
+        indentation = Math.min(indentation, lineIndentation);
+        if (!requiresMutable || this.data[r][1] === this.ITEMS.VAR) {
+          let itemCount = this.data[r].length;
+          for (let col = 1; col < itemCount; ++col) {
+            if (this.data[r][col] >>> 28 === Script.VARIABLE_DEFINITION) {
+              let varId = this.data[r][col] & 0xFFFF;
+              const [text, style] = this.getItem(r, col);
+              options.push({text, style, payload: (Script.VARIABLE_REFERENCE << 28) | varId});
+            }
+          }
+        }
+      }
+    }
+
+    return options;
   }
 
   insertRow(row) {
