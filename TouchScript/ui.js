@@ -410,7 +410,7 @@ function appendClicked(event) {
   let row = event.currentTarget.parentElement.position|0;
   
   let options = script.appendClicked(row);
-  configureModal(options, row, 0);
+  configureModal(options, row, -1);
 }
 
 function menuItemClicked(payload) {

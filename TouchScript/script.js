@@ -62,6 +62,13 @@ class Script {
     this.PAYLOADS.VAR_OPTIONS = Script.makeItem(15, 0x0FFFFFFE);
     this.PAYLOADS.FUNCTION_DEFINITION = Script.makeItem(15, 0x0FFFFFFD);
     this.PAYLOADS.FUNCTION_REFERENCE = Script.makeItem(15, 0x0FFFFFFC);
+
+    function includes(i) {
+      return i >= this.start && i < this.end;
+    }
+
+    this.BINARY_OPERATORS = {start: 9, end: 27, includes};
+    this.UNARY_OPERATORS = {start: 27, end: 31, includes};
     
     if (SAMPLE_SCRIPT)
       this.loadScript(SAMPLE_SCRIPT);
@@ -259,10 +266,24 @@ class Script {
       }
     }
 
-    if (this.data[row][col - 1] >>> 28 === Script.SYMBOL) {
+    let prevFormat = this.data[row][col - 1] >>> 28;
+
+    if (prevFormat === Script.SYMBOL) {
       if (! this.NOT_OPERANDS.includes(this.data[row][col - 1])) {
         return this.getVisibleVariables(row, false);
       }
+    }
+
+    if (prevFormat === Script.VARIABLE_REFERENCE) {
+      if (! this.NOT_OPERANDS.includes(this.data[row][col - 1])) {
+        return this.getVisibleVariables(row, false);
+      }
+    }
+
+    let format = this.data[row][col] >>> 28;
+
+    if (format === Script.VARIABLE_REFERENCE) {
+      return this.getVisibleVariables(row, true);
     }
 
     //TODO provide menu items for existing items
@@ -328,10 +349,6 @@ class Script {
       }
     }
 
-    // if (this.data[row][1] === this.ITEMS.VAR || this.data[row][1] === this.ITEMS.LET) {
-    //   //append additional var references
-    // }
-
     if (this.data[row][1] === this.ITEMS.FUNC) {
       let options = [];
 
@@ -341,6 +358,33 @@ class Script {
           options.push({text: c.name, style: "keyword", payload: Script.makeItemWithMeta(Script.ARGUMENT_LABEL, i, 0)});
       }
 
+      return options;
+    }
+
+    const prevItem = this.data[row][this.data[row].length - 1];
+    if (prevItem >>> 28 === Script.SYMBOL) {
+      let symbol = prevItem & 0x00FFFFFF;
+      let options = [];
+
+      if (this.BINARY_OPERATORS.includes(symbol)) {
+        for (let i = this.UNARY_OPERATORS.start; i < this.UNARY_OPERATORS.end; ++i) {
+          options.push({text: this.symbols[i], style: "", payload: Script.makeItem(Script.SYMBOL, i)});
+        }
+
+        options.push(...this.getVisibleVariables(row, false));
+      }
+      else if (this.UNARY_OPERATORS.includes(symbol)) {
+        options.push(...this.getVisibleVariables(row, false));
+      }
+      
+      return options;
+    }
+
+    if (prevItem >>> 28 === Script.VARIABLE_REFERENCE) {
+      let options = [];
+      for (let i = this.BINARY_OPERATORS.start; i < this.BINARY_OPERATORS.end; ++i) {
+        options.push({text: this.symbols[i], style: "", payload: Script.makeItem(Script.SYMBOL, i)});
+      }
       return options;
     }
 
@@ -374,7 +418,7 @@ class Script {
       case this.ITEMS.VAR: {
         let varId = this.variables.length;
         this.variables.push({name: `var${varId}`, type: 0});
-        this.data[row].push(payload, Script.makeItem(Script.VARIABLE_REFERENCE, varId), this.ITEMS.EQUALS, this.HINTS.EXPRESSION);
+        this.data[row].push(payload, Script.makeItem(Script.VARIABLE_DEFINITION, varId), this.ITEMS.EQUALS, this.HINTS.EXPRESSION);
         return 2;
       }
 
@@ -466,6 +510,9 @@ class Script {
         return 2;
       }
 
+      if (col === -1)
+        col = this.data[row].length;
+
       this.data[row][col] = payload;
       return 1;
     }
@@ -485,6 +532,14 @@ class Script {
       let type = meta;
       this.variables.push({name: `var${varId}`, type: meta});
       this.data[row].push(Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
+      return 2;
+    }
+
+    if (format === Script.SYMBOL) {
+      if (col === -1)
+        col = this.data[row].length;
+      
+      this.data[row][col] = payload;
       return 2;
     }
 
