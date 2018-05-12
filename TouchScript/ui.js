@@ -138,7 +138,7 @@ window.onscroll = function() {
     if (row.touchCaptured) {
         row.touchId = -1;
         row.firstChild.classList.add("slow-transition");
-        row.firstChild.style.width = null;
+        row.firstChild.style.width = "";
     }
     
     row.touchCapturable = false;
@@ -256,22 +256,14 @@ function createRow() {
 
 
 function insertRow(position) {
-  let pos = Math.min(script.getRowCount()|0, position|0);
+  script.insertRow(position);
 
-  do {
-    script.insertRow(pos);
-
-    let node = list.lastChild;
-    list.removeChild(node);
-    loadRow(pos, node);
-    
-    let rowIndex = pos - firstLoadedPosition;
-    list.insertBefore(node, list.childNodes[rowIndex]);
-    
-    ++pos;
-  } while (position > script.getRowCount());
-
+  let node = list.lastChild;
+  loadRow(position, node);
+  
   let rowIndex = position - firstLoadedPosition;
+  list.insertBefore(node, list.childNodes[rowIndex]);
+
   updateLineNumbers(rowIndex + 1);
   document.body.style.height = getRowCount() * rowHeight + "px";
 }
@@ -283,9 +275,8 @@ function deleteRow(position) {
 
   let rowIndex = position - firstLoadedPosition;
   let node = list.childNodes[rowIndex];
-  list.removeChild(node);
   
-  let newPosition = firstLoadedPosition + loadedCount;
+  let newPosition = firstLoadedPosition + loadedCount - 1;
   loadRow(newPosition, node);
   list.appendChild(node);
   
@@ -441,14 +432,6 @@ function menuItemClicked(payload) {
     }
   }
   else if (Array.isArray(response) && response.length > 0) {
-    //if there is only one option, select it and skip the UI
-    /*if (response.length === 1) {
-      menuItemClicked(response[0].payload);
-    } else {
-      configureModal(response, modal.row, modal.col);
-      return;
-    }*/
-
     configureModal(response, modal.row, modal.col);
     return;
   }
