@@ -534,14 +534,15 @@ function touchEndHandler(event) {
         row.firstChild.classList.add("slow-transition");
         row.firstChild.style.width = "";
         
-        if (row < script.getRowCount()) {
+        const position = row.childNodes[1].position;
+        if (position < script.getRowCount()) {
           let travel = touch.pageX - row.touchStartX;
           
           if (travel > 200) {
-            deleteRow(row.childNodes[1].position);
+            deleteRow(position);
           }
           else if (travel > 80) {
-            insertRow(row.childNodes[1].position + 1);
+            insertRow(position + 1);
           }
         }
       }
