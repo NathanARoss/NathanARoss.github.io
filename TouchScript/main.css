@@ -30,8 +30,12 @@ body {
   white-space: nowrap;
 }
 
-.outer-row:hover, div.selected {
+.outer-row:hover {
   background-color: var(--hover-color)
+}
+
+div.selected {
+  background-color: rgb(62, 74, 85);
 }
 
 button.selected {
