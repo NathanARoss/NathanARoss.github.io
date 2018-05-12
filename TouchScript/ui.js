@@ -258,13 +258,19 @@ function createRow() {
 function insertRow(position) {
   script.insertRow(position);
 
-  let node = list.lastChild;
-  loadRow(position, node);
-  
   let rowIndex = position - firstLoadedPosition;
-  list.insertBefore(node, list.childNodes[rowIndex]);
+  if (rowIndex >= 0 && rowIndex < list.childNodes.length) {
+    let node = list.lastChild;
+    loadRow(position, node);
+    list.insertBefore(node, list.childNodes[rowIndex]);
+  }
+  else if (rowIndex < 0) {
+    let node = list.lastChild;
+    loadRow(firstLoadedPosition, node);
+    list.insertBefore(node, list.firstChild);
+  }
 
-  updateLineNumbers(rowIndex + 1);
+  updateLineNumbers(Math.max(0, rowIndex + 1));
   document.body.style.height = getRowCount() * rowHeight + "px";
 }
 
@@ -331,6 +337,16 @@ function loadRow(position, rowDiv) {
   const indentation = script.getIndentation(position);
   innerRow.firstChild.style.width = 6 * indentation + "px";
   innerRow.firstChild.style.display = (indentation === 0) ? "none" : "";
+
+  if (modal.row === position) {
+    innerRow.classList.add("selected");
+
+    if (modal.col !== -1) {
+      innerRow.childNodes[1 + modal.col].classList.add("selected");
+    }
+  } else {
+    innerRow.classList.remove("selected");
+  }
 }
 
 
@@ -363,6 +379,29 @@ function configureModal(options, row, col) {
   modal.style.display = "";
 }
 
+function closeModal() {
+  modal.style.display = "none";
+
+  while (modal.hasChildNodes()) {
+    buttonPool.push(modal.lastChild);
+    modal.removeChild(modal.lastChild);
+  }
+
+  let rowIndex = modal.row - firstLoadedPosition;
+  if (rowIndex >= 0 && rowIndex < list.childNodes.length) {
+    let selectedRow = list.childNodes[rowIndex].childNodes[1];
+    selectedRow.classList.remove("selected");
+
+    if (modal.col !== -1) {
+      let button = selectedRow.childNodes[1 + modal.col];
+      button.classList.remove("selected");
+    }
+  }
+
+  modal.row = -1;
+  modal.col = -1;
+}
+
 
 
 function preventDefault(e) {
@@ -370,14 +409,9 @@ function preventDefault(e) {
 }
 
 function modalContainerClicked(event) {
-  modal.style.display = "none";
   event.stopPropagation();
   event.preventDefault();
-
-  while (modal.hasChildNodes()) {
-    buttonPool.push(modal.lastChild);
-    modal.removeChild(modal.lastChild);
-  }
+  closeModal();
 }
 
 function slideMenuClickHandler(event) {
@@ -399,6 +433,7 @@ function slideMenuClickHandler(event) {
 
 function appendClicked(event) {
   let row = event.currentTarget.parentElement.position|0;
+  event.currentTarget.parentElement.classList.add("selected");
   
   let options = script.appendClicked(row);
   configureModal(options, row, -1);
@@ -415,7 +450,9 @@ function menuItemClicked(payload) {
   if (typeof response === 'number') {
     if (response >= 2) {
       let rowIndex = modal.row - firstLoadedPosition;
-      loadRow(modal.row, list.childNodes[rowIndex]);
+      if (rowIndex >= 0 && rowIndex < list.childNodes.length) {
+        loadRow(modal.row, list.childNodes[rowIndex]);
+      }
 
       if (response === 3) {
         insertRow(modal.row + 1);
@@ -436,7 +473,7 @@ function menuItemClicked(payload) {
     return;
   }
 
-  modal.style.display = "none";
+  closeModal();
 }
 
 function itemClickHandler(event) {
@@ -453,8 +490,11 @@ function itemClickHandler(event) {
   
   let options = script.itemClicked(row, col);
   if (Array.isArray(options)) {
-    if (options.length > 0)
+    if (options.length > 0) {
       configureModal(options, row, col);
+      event.currentTarget.parentElement.classList.add("selected");
+      event.currentTarget.classList.add("selected");
+    }
   }
   else {
     button.firstChild.nodeValue = options.text;

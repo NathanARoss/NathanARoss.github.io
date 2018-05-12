@@ -30,8 +30,12 @@ body {
   white-space: nowrap;
 }
 
-.outer-row:hover {
+.outer-row:hover, div.selected {
   background-color: var(--hover-color)
+}
+
+button.selected {
+  border: solid thin #FFC66D;
 }
 
 .inner-row {
