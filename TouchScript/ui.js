@@ -440,10 +440,12 @@ function slideMenuClickHandler(event) {
 
 function appendClicked(event) {
   let row = event.currentTarget.parentElement.position|0;
-  event.currentTarget.parentElement.parentElement.classList.add("selected");
-  
   let options = script.appendClicked(row);
-  configureModal(options, row, -1);
+
+  if (options.length > 0) {
+    configureModal(options, row, -1);
+    event.currentTarget.parentElement.parentElement.classList.add("selected");
+  }
 }
 
 function menuItemClicked(payload) {
