@@ -346,7 +346,7 @@ function loadRow(position, rowDiv) {
     if (modal.col !== -1) {
       let button = innerRow.childNodes[1 + modal.col];
       button.classList.add("selected");
-      button.scrollIntoView();
+      //button.scrollIntoView();
     }
   } else {
     rowDiv.classList.remove("selected");
