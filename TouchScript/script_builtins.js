@@ -81,8 +81,8 @@ function getBuiltIns() {
     parseFunction("System.print(item:Any)", "console.log"),
     parseFunction("Canvas.drawCircle(x:Double, y:Double, r:Double, color:String)", "drawCircle"),
     parseFunction("Canvas.drawRect(x:Double, y:Double, w:Double, h:Double, color:String)", "drawRectangle"),
-    parseFunction("Math.cos(theta:Double) -> Double", "Math.cos"),
-    parseFunction("Math.sin(theta:Double) -> Double", "Math.sin"),
+    parseFunction("Math.cos(angle:Double) -> Double", "Math.cos"),
+    parseFunction("Math.sin(angle:Double) -> Double", "Math.sin"),
     parseFunction("Math.min(a:Double, b:Double) -> Double", "Math.min"),
     parseFunction("Math.max(a:Double, b:Double) -> Double", "Math.max"),
     parseFunction("Math.random() -> Double", "Math.random"),
@@ -213,21 +213,21 @@ function getBuiltIns() {
     x += vX
     y += vY
 
-    if (x > System.Screen.width - radius) {
+    if x > System.Screen.width - radius {
       x = System.Screen.width - radius
       vX = -vX * 0.9
     }
-    if (x <  radius) {
+    if x <  radius {
       x = radius
       vX = -vX * 0.9
     }
 
-    if (y > System.Screen.height - radius) {
+    if y > System.Screen.height - radius {
       y = System.Screen.height - radius
       vY = -vY * 0.9
       vX = Math.max(0, Math.abs(vX * 0.99) - 0.1) * Math.sign(vX)
     }
-    if (y <  radius) {
+    if y <  radius {
       y = radius
       vY = -vY * 0.9
       vX = Math.max(0, Math.abs(vX * 0.99) - 0.1) * Math.sign(vX)
@@ -273,20 +273,20 @@ function getBuiltIns() {
     ballX += vX
     ballY += vY
 
-    if (ballX < 0) {
+    if ballX < 0 {
       ballX = -ballX
       vX = -vX
     }
-    if (ballX > System.Screen.width - ballSize) {
+    if ballX > System.Screen.width - ballSize {
       ballX = 2 * (System.Screen.width - ballSize) - ballX
       vX = -vX
     }
 
-    if (ballY < ballSize) {
+    if ballY < ballSize {
       ballY = 2 * ballSize - ballY
       vY = -vY
     }
-    if (ballY > System.Screen.height - 2 * ballSize) {
+    if ballY > System.Screen.height - 2 * ballSize {
       ballY = 2 * (System.Screen.height - 2 * ballSize) - ballY
       vY = -vY
     }

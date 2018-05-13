@@ -47,7 +47,6 @@ class Script {
     this.ITEMS.END_BRACKET       = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get("]"));
     this.ITEMS.DOT               = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get("."));
     this.ITEMS.COMMA             = Script.makeItem(Script.SYMBOL, SYMBOL_MAP.get(","));
-    this.NOT_OPERANDS = [this.ITEMS.END_PARENTHESIS, this.ITEMS.END_BRACKET, this.ITEMS.DOT];
 
     this.HINTS = {};
     this.HINTS.ITEM = this.makeCommentItem("item");
@@ -58,17 +57,26 @@ class Script {
     this.HINTS.CONTROL_EXPRESSION = this.makeCommentItem("control expression");
 
     this.PAYLOADS = {};
-    this.PAYLOADS.MUTABLE_VARIABLES = Script.makeItem(15, 0x0FFFFFFF);
-    this.PAYLOADS.VAR_OPTIONS = Script.makeItem(15, 0x0FFFFFFE);
-    this.PAYLOADS.FUNCTION_DEFINITION = Script.makeItem(15, 0x0FFFFFFD);
-    this.PAYLOADS.FUNCTION_REFERENCE = Script.makeItem(15, 0x0FFFFFFC);
+    this.PAYLOADS.MUTABLE_VARIABLES = Script.makeItem(Script.KEYWORD, 0x0FFFFFFF);
+    this.PAYLOADS.VAR_OPTIONS = Script.makeItem(Script.KEYWORD, 0x0FFFFFFE);
+    this.PAYLOADS.FUNCTION_DEFINITION = Script.makeItem(Script.KEYWORD, 0x0FFFFFFD);
+    this.PAYLOADS.FUNCTION_REFERENCE = Script.makeItem(Script.KEYWORD, 0x0FFFFFFC);
+    this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN = Script.makeItem(Script.KEYWORD, 0x0FFFFFFB);
 
     function includes(i) {
       return i >= this.start && i < this.end;
     }
 
-    this.BINARY_OPERATORS = {start: 9, end: 27, includes};
-    this.UNARY_OPERATORS = {start: 27, end: 31, includes};
+    function getMenuItems() {
+      let options = [];
+      for (let i = this.start; i < this.end; ++i) {
+        options.push({text: SYMBOLS[i], style: "", payload: Script.makeItem(Script.SYMBOL, i)});
+      }
+      return options;
+    }
+
+    this.BINARY_OPERATORS = {start: 9, end: 27, includes, getMenuItems};
+    this.UNARY_OPERATORS = {start: 27, end: 31, includes, getMenuItems};
     
     if (SAMPLE_SCRIPT)
       this.loadScript(SAMPLE_SCRIPT);
@@ -139,9 +147,9 @@ class Script {
       else if (this.symbolMap.has(token)) {
         line.push(Script.makeItem(Script.SYMBOL, this.symbolMap.get(token)));
         let last = line.peek();
-        if (last == this.ITEMS.START_PARENTHESIS)
+        if (last === this.ITEMS.START_PARENTHESIS)
           ++parenthesisCount;
-        else if (last == this.ITEMS.END_PARENTHESIS)
+        else if (last === this.ITEMS.END_PARENTHESIS)
           --parenthesisCount;
       }
       else if (this.keywordMap.has(token)) {
@@ -251,42 +259,70 @@ class Script {
   }
 
   itemClicked(row, col) {
-    row = row | 0;
-    col = col | 0;
-    const item = this.data[row][col];
-    
-    for (let i = 0; i < this.toggles.length; ++i) {
-      if (item === this.toggles[i]) {
-        if (item === this.ITEMS.VAR && this.data[row][3] !== this.ITEMS.EQUALS)
-          break;
+    if (col < this.data[row].length) {
+      const item = this.data[row][col];
 
-        this.data[row][col] = this.toggles[i ^ 1];
-        const [text, style] = this.getItem(row, col);
-        return {text, style, payload: 0};
+      if (item !== this.ITEMS.VAR || this.data[row][3] === this.ITEMS.EQUALS) {
+        const i = this.toggles.indexOf(item);
+        if (i !== -1) {
+          this.data[row][col] = this.toggles[i ^ 1];
+          const [text, style] = this.getItem(row, col);
+          return {text, style};
+        }
+      }
+
+      if (col === 1 && item >>> 28 === Script.VARIABLE_REFERENCE) {
+        return this.getVisibleVariables(row, true);
       }
     }
 
-    let prevFormat = this.data[row][col - 1] >>> 28;
+    if (this.data[row][1] === this.ITEMS.IF
+    || this.data[row][2] === this.ITEMS.EQUALS
+    || this.data[row][3] === this.ITEMS.EQUALS) {
+      const prevItem = this.data[row][col - 1];
+      const prevFormat = prevItem >>> 28;
 
-    if (prevFormat === Script.SYMBOL) {
-      if (! this.NOT_OPERANDS.includes(this.data[row][col - 1])) {
-        return this.getVisibleVariables(row, false);
+      if (prevFormat === Script.VARIABLE_REFERENCE
+      || prevFormat === Script.NUMERIC_LITERAL
+      || prevFormat === Script.STRING_LITERAL
+      || prevItem === this.ITEMS.END_PARENTHESIS) {
+        let options = [];
+
+        let parenthesisDepth = 0;
+        for (let i = 1; i < this.data[row].length; ++i) {
+          let item = this.data[row][i];
+          if (item === this.ITEMS.START_PARENTHESIS)
+            ++parenthesisDepth;
+          else if (item === this.ITEMS.END_PARENTHESIS) {
+            --parenthesisDepth;
+          }
+        }
+
+        if (parenthesisDepth > 0)
+          options.push({text: ")", style: "", payload: this.ITEMS.END_PARENTHESIS});
+        
+        options.push(...this.BINARY_OPERATORS.getMenuItems());
+        return options;
+      }
+
+      if (prevFormat === Script.SYMBOL
+      || prevItem === this.ITEMS.IF) {
+        const symbol = prevItem & 0x00FFFFFF;
+
+        if (this.BINARY_OPERATORS.includes(symbol) || prevItem === this.ITEMS.EQUALS || prevItem == this.ITEMS.IF) {
+          let options = this.UNARY_OPERATORS.getMenuItems();
+          options.push({text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN});
+          options.push(...this.getVisibleVariables(row, false));
+          return options;
+        }
+        else if (this.UNARY_OPERATORS.includes(symbol)) {
+          let options = [{text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN}];
+          options.push(...this.getVisibleVariables(row, false));
+          return options;
+        }
       }
     }
 
-    if (prevFormat === Script.VARIABLE_REFERENCE) {
-      if (! this.NOT_OPERANDS.includes(this.data[row][col - 1])) {
-        return this.getVisibleVariables(row, false);
-      }
-    }
-
-    let format = this.data[row][col] >>> 28;
-
-    if (format === Script.VARIABLE_REFERENCE) {
-      return this.getVisibleVariables(row, true);
-    }
-
-    //TODO provide menu items for existing items
     return [];
   }
 
@@ -314,7 +350,7 @@ class Script {
       } else {
         options = [
           {text: "=", style: "", payload: this.PAYLOADS.MUTABLE_VARIABLES},
-          //{text: "f(x)", style: "function-call", payload: Script.FUNCTION_REFERENCE << 28},
+          {text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE},
           {text: "func", style: "keyword", payload: this.PAYLOADS.FUNCTION_DEFINITION},
           {text: "let", style: "keyword", payload: this.ITEMS.LET},
           {text: "var", style: "keyword", payload: this.PAYLOADS.VAR_OPTIONS},
@@ -355,40 +391,13 @@ class Script {
       for (let i = 2; i < this.classes.length; ++i) {
         const c = this.classes[i];
         if (c.size > 0)
-          options.push({text: c.name, style: "keyword", payload: Script.makeItemWithMeta(Script.ARGUMENT_LABEL, i, 0)});
+          options.push({text: c.name, style: "keyword", payload: Script.makeItemWithMeta(Script.NUMERIC_LITERAL, i, 0)});
       }
 
       return options;
     }
 
-    const prevItem = this.data[row][this.data[row].length - 1];
-    if (prevItem >>> 28 === Script.SYMBOL) {
-      let symbol = prevItem & 0x00FFFFFF;
-      let options = [];
-
-      if (this.BINARY_OPERATORS.includes(symbol)) {
-        for (let i = this.UNARY_OPERATORS.start; i < this.UNARY_OPERATORS.end; ++i) {
-          options.push({text: this.symbols[i], style: "", payload: Script.makeItem(Script.SYMBOL, i)});
-        }
-
-        options.push(...this.getVisibleVariables(row, false));
-      }
-      else if (this.UNARY_OPERATORS.includes(symbol)) {
-        options.push(...this.getVisibleVariables(row, false));
-      }
-      
-      return options;
-    }
-
-    if (prevItem >>> 28 === Script.VARIABLE_REFERENCE) {
-      let options = [];
-      for (let i = this.BINARY_OPERATORS.start; i < this.BINARY_OPERATORS.end; ++i) {
-        options.push({text: this.symbols[i], style: "", payload: Script.makeItem(Script.SYMBOL, i)});
-      }
-      return options;
-    }
-
-    return [];
+    return this.itemClicked(row, this.data[row].length);
   }
 
   //0 -> no change, 1 -> click item changed, 2-> row changed, 3 -> row(s) inserted
@@ -475,6 +484,33 @@ class Script {
         return 3;
       }
 
+      case this.PAYLOADS.FUNCTION_REFERENCE: {
+        let scopes = new Set();
+        for (const func of this.functions) {
+          scopes.add(func.scope);
+        }
+
+        let options = [];
+        for (const scope of scopes) {
+          options.push({text: this.classes[scope].name, style: "keyword", payload: Script.makeItemWithMeta(Script.STRING_LITERAL, scope, 0)});
+        }
+        return options;
+      }
+
+      case this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN: {
+        let scopes = new Set();
+        for (const func of this.functions) {
+          if (func.returnType !== 0)
+            scopes.add(func.scope);
+        }
+
+        let options = [];
+        for (const scope of scopes) {
+          options.push({text: this.classes[scope].name, style: "keyword", payload: Script.makeItemWithMeta(Script.STRING_LITERAL, scope, 0)});
+        }
+        return options;
+      }
+
       case this.ITEMS.EQUALS:
         this.data[row].push(this.ITEMS.EQUALS, this.HINTS.EXPRESSION);
         return 2;
@@ -496,6 +532,9 @@ class Script {
     let meta = (payload >>> 16) & 0x0FFF;
     let data = payload & 0xFFFF;
 
+    if (col === -1)
+      col = this.data[row].length;
+
     //if a specific variable reference is provided
     if (format === Script.VARIABLE_REFERENCE) {
       let varId = payload & 0xFFFF;
@@ -510,14 +549,11 @@ class Script {
         return 2;
       }
 
-      if (col === -1)
-        col = this.data[row].length;
-
       this.data[row][col] = payload;
       return 1;
     }
 
-    //user choose a type for a variable declaration
+    //user chose a type for a variable declaration
     if (format === Script.VARIABLE_DEFINITION) {
       let varId = this.variables.length;
       let type = meta;
@@ -527,7 +563,7 @@ class Script {
     }
 
     //appending additional parameters
-    if (format === Script.ARGUMENT_LABEL) {
+    if (format === Script.NUMERIC_LITERAL) {
       let varId = this.variables.length;
       let type = meta;
       this.variables.push({name: `var${varId}`, type: meta});
@@ -536,10 +572,39 @@ class Script {
     }
 
     if (format === Script.SYMBOL) {
-      if (col === -1)
-        col = this.data[row].length;
-      
       this.data[row][col] = payload;
+      return 2;
+    }
+
+    //user chose a scope to select a function from
+    if (format === Script.STRING_LITERAL) {
+      let type = meta;
+
+      let options = [];
+      for (let i = 0; i < this.functions.length; ++i) {
+        const func = this.functions[i];
+        if (func.scope === type) {
+          options.push({text: func.name, style: "function-call", payload: Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, func.scope, i)});
+        }
+      }
+
+      return options;
+    }
+
+    //user chose a specific function call
+    if (format === Script.FUNCTION_REFERENCE) {
+      const func = this.functions[data];
+      let replacementItems = [payload];
+
+      for (let i = 0; i < func.parameters.length; ++i) {
+        replacementItems.push(this.ITEMS.COMMA);
+        replacementItems.push(Script.makeItemWithMeta(Script.ARGUMENT_HINT, i, data));
+      }
+
+      replacementItems[1] = this.ITEMS.START_PARENTHESIS;
+      replacementItems.push(this.ITEMS.END_PARENTHESIS);
+
+      this.data[row].splice(col, 1, ...replacementItems);
       return 2;
     }
 
@@ -642,11 +707,11 @@ class Script {
           return [this.classes[meta].name + '\n' + func.name, "keyword-call"];
       }
 
-      case Script.ARGUMENT_HINT:
-        return [`argument hint`, "comment"];
-
-      case Script.ARGUMENT_LABEL:
-        return [`argument label`, "comment"];
+      case Script.ARGUMENT_HINT: {
+        const func = this.functions[value];
+        const parameter = func.parameters[meta];
+        return [parameter.name, "comment"];
+      }
 
       case Script.SYMBOL:
         return [this.symbols[data], ""];
@@ -749,9 +814,6 @@ class Script {
           case Script.ARGUMENT_HINT:
             return `/*argument hint*/ `;
 
-          case Script.ARGUMENT_LABEL:
-            return `/*argument label*/ `;
-
           case Script.SYMBOL:
             js += `${this.symbols[value]} `;
             break;
@@ -791,15 +853,16 @@ class Script {
         let nextIndentation = this.getIndentation(row + 1);
         let expectedIndentation = indentation + this.isStartingScope(row);
         if (nextIndentation < expectedIndentation) {
-          js += "}";
+          js += "}".repeat(expectedIndentation - nextIndentation);
         }
       }
 
-      if (row == this.data.length - 1 && indentation > 0)
-        js += "}".repeat(indentation);
-
       js += "\n";
     }
+
+    let lastIndentation = this.getIndentation(this.getRowCount() - 1);
+    if (lastIndentation > 0)
+      js += "}".repeat(lastIndentation);
 
     console.log(js);
 
@@ -813,9 +876,8 @@ Script.VARIABLE_REFERENCE   = 1;
 Script.FUNCTION_DEFINITION  = 2;
 Script.FUNCTION_REFERENCE   = 3;
 Script.ARGUMENT_HINT        = 4;
-Script.ARGUMENT_LABEL       = 5;
-Script.SYMBOL               = 6;
-Script.KEYWORD              = 7;
-Script.NUMERIC_LITERAL      = 8;
-Script.STRING_LITERAL       = 9;
-Script.COMMENT              = 10;
+Script.SYMBOL               = 5;
+Script.KEYWORD              = 6;
+Script.NUMERIC_LITERAL      = 7;
+Script.STRING_LITERAL       = 8;
+Script.COMMENT              = 9;
