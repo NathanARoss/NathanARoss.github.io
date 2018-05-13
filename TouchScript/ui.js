@@ -118,14 +118,16 @@ window.onscroll = function() {
   
   //keep a number of rows prepared for both direction
   while ((firstVisiblePosition - bufferCount + forwardBufferCount > firstLoadedPosition) && (firstLoadedPosition + loadedCount < getRowCount())) {
-    loadRow(firstLoadedPosition + loadedCount, list.firstChild);
-    list.appendChild(list.firstChild);
+    let rowDiv = list.firstChild;
+    list.appendChild(rowDiv);
+    loadRow(firstLoadedPosition + loadedCount, rowDiv);
     ++firstLoadedPosition;
   }
   
   while ((firstVisiblePosition - forwardBufferCount < firstLoadedPosition) && (firstLoadedPosition > 0)) {
-    loadRow(firstLoadedPosition - 1, list.lastChild);
-    list.insertBefore(list.lastChild, list.firstChild);
+    let rowDiv = list.lastChild;
+    list.insertBefore(rowDiv, list.firstChild);
+    loadRow(firstLoadedPosition - 1, rowDiv);
     --firstLoadedPosition;
   }
   
@@ -137,8 +139,8 @@ window.onscroll = function() {
   for (let row of list.childNodes) {
     if (row.touchCaptured) {
         row.touchId = -1;
-        row.firstChild.classList.add("slow-transition");
         row.firstChild.style.width = "";
+        row.firstChild.classList.add("slow-transition");
     }
     
     row.touchCapturable = false;
@@ -339,13 +341,15 @@ function loadRow(position, rowDiv) {
   innerRow.firstChild.style.display = (indentation === 0) ? "none" : "";
 
   if (modal.row === position) {
-    innerRow.classList.add("selected");
+    rowDiv.classList.add("selected");
 
     if (modal.col !== -1) {
-      innerRow.childNodes[1 + modal.col].classList.add("selected");
+      let button = innerRow.childNodes[1 + modal.col];
+      button.classList.add("selected");
+      button.scrollIntoView();
     }
   } else {
-    innerRow.classList.remove("selected");
+    rowDiv.classList.remove("selected");
   }
 }
 
@@ -377,10 +381,12 @@ function configureModal(options, row, col) {
   modal.row = row;
   modal.col = col;
   modal.style.display = "";
+  document.body.classList.add("selected");
 }
 
 function closeModal() {
   modal.style.display = "none";
+  document.body.classList.remove("selected");
 
   while (modal.hasChildNodes()) {
     buttonPool.push(modal.lastChild);
@@ -389,11 +395,12 @@ function closeModal() {
 
   let rowIndex = modal.row - firstLoadedPosition;
   if (rowIndex >= 0 && rowIndex < list.childNodes.length) {
-    let selectedRow = list.childNodes[rowIndex].childNodes[1];
-    selectedRow.classList.remove("selected");
+    let outerRow = list.childNodes[rowIndex];
+    let innerRow = outerRow.childNodes[1];
+    outerRow.classList.remove("selected");
 
     if (modal.col !== -1) {
-      let button = selectedRow.childNodes[1 + modal.col];
+      let button = innerRow.childNodes[1 + modal.col];
       button.classList.remove("selected");
     }
   }
@@ -433,7 +440,7 @@ function slideMenuClickHandler(event) {
 
 function appendClicked(event) {
   let row = event.currentTarget.parentElement.position|0;
-  event.currentTarget.parentElement.classList.add("selected");
+  event.currentTarget.parentElement.parentElement.classList.add("selected");
   
   let options = script.appendClicked(row);
   configureModal(options, row, -1);
@@ -492,7 +499,7 @@ function itemClickHandler(event) {
   if (Array.isArray(options)) {
     if (options.length > 0) {
       configureModal(options, row, col);
-      event.currentTarget.parentElement.classList.add("selected");
+      event.currentTarget.parentElement.parentElement.classList.add("selected");
       event.currentTarget.classList.add("selected");
     }
   }
