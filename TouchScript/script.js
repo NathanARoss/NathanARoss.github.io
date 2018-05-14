@@ -62,7 +62,7 @@ class Script {
     this.PAYLOADS.FUNCTION_DEFINITION = payloads--;
     this.PAYLOADS.FUNCTION_REFERENCE = payloads--;
     this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN = payloads--;
-    this.PAYLOADS.INPUT_LITERAL = payloads--;
+    this.PAYLOADS.LITERAL_INPUT = payloads--;
     this.PAYLOADS.RENAME = payloads--;
 
 
@@ -327,7 +327,6 @@ class Script {
           options.push({text: ")", style: "", payload: this.ITEMS.END_PARENTHESIS});
         
         options.push(...this.BINARY_OPERATORS.getMenuItems());
-
         return options;
       }
 
@@ -343,14 +342,13 @@ class Script {
         || prevItem === this.ITEMS.WHILE) {
           let options = this.UNARY_OPERATORS.getMenuItems();
           options.push({text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN});
-          options.push({text: "", style: "text-input", payload: this.PAYLOADS.INPUT_LITERAL});
+          options.push({text: "", style: "text-input", payload: this.PAYLOADS.LITERAL_INPUT});
           options.push(...this.getVisibleVariables(row, false));
-
           return options;
         }
         else if (this.UNARY_OPERATORS.includes(symbol)) {
           let options = [{text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN}];
-          options.push({text: "", style: "text-input", payload: this.PAYLOADS.INPUT_LITERAL});
+          options.push({text: "", style: "text-input", payload: this.PAYLOADS.LITERAL_INPUT});
           options.push(...this.getVisibleVariables(row, false));
           return options;
         }
@@ -522,7 +520,7 @@ class Script {
         return 3;
       }
 
-      case this.PAYLOADS.INPUT_LITERAL: {
+      case this.PAYLOADS.LITERAL_INPUT: {
         let input = prompt("Enter a string or a number:");
         if (input === null)
           return 0;
@@ -734,6 +732,7 @@ class Script {
     //   return options;
     // }
 
+    //user updated the type annotation of a variable or function
     if (format === Script.COMMENT) {
       this.data[row][col] = (this.data[row][col] & 0xF000FFFF) | meta << 16;
       return 1;
