@@ -58,12 +58,13 @@ class Script {
 
     let payloads = Script.makeItem(Script.KEYWORD, 0x0FFFFFFF);
     this.PAYLOADS = {};
-    this.PAYLOADS.MUTABLE_VARIABLES = payloads--;
     this.PAYLOADS.VAR_OPTIONS = payloads--;
     this.PAYLOADS.FUNCTION_DEFINITION = payloads--;
     this.PAYLOADS.FUNCTION_REFERENCE = payloads--;
     this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN = payloads--;
-    this.PAYLOADS.TEXT_INPUT = payloads--;
+    this.PAYLOADS.INPUT_LITERAL = payloads--;
+    this.PAYLOADS.RENAME = payloads--;
+
 
     function includes(i) {
       return i >= this.start && i < this.end;
@@ -262,9 +263,9 @@ class Script {
   }
 
   itemClicked(row, col) {
-    if (col < this.data[row].length) {
-      const item = this.data[row][col];
+    const item = this.data[row][col];
 
+    if (col < this.data[row].length) {
       if (item !== this.ITEMS.VAR || this.data[row][3] === this.ITEMS.EQUALS) {
         const i = this.toggles.indexOf(item);
         if (i !== -1) {
@@ -280,6 +281,21 @@ class Script {
 
       if (col === 2 && item >>> 28 === Script.SYMBOL && this.ASSIGNMENT_OPERATORS.includes(item & 0xFFFF)) {
         return this.ASSIGNMENT_OPERATORS.getMenuItems();
+      }
+
+      switch (item >>> 28) {
+        case Script.VARIABLE_DEFINITION:
+        case Script.FUNCTION_DEFINITION:
+          let options = [{text: "", style: "text-input", payload: this.PAYLOADS.RENAME}];
+          options.push({text: "auto", style: "comment", payload: Script.makeItemWithMeta(Script.COMMENT, 0, 0)});
+          
+          for (let i = 2; i < this.classes.length; ++i) {
+            const c = this.classes[i];
+            if (c.size > 0)
+              options.push({text: c.name, style: "keyword", payload: Script.makeItemWithMeta(Script.COMMENT, i, 0)});
+          }
+
+          return options;
       }
     }
 
@@ -311,6 +327,7 @@ class Script {
           options.push({text: ")", style: "", payload: this.ITEMS.END_PARENTHESIS});
         
         options.push(...this.BINARY_OPERATORS.getMenuItems());
+
         return options;
       }
 
@@ -326,13 +343,14 @@ class Script {
         || prevItem === this.ITEMS.WHILE) {
           let options = this.UNARY_OPERATORS.getMenuItems();
           options.push({text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN});
-          options.push({text: "", style: "text-input", payload: this.PAYLOADS.TEXT_INPUT});
+          options.push({text: "", style: "text-input", payload: this.PAYLOADS.INPUT_LITERAL});
           options.push(...this.getVisibleVariables(row, false));
+
           return options;
         }
         else if (this.UNARY_OPERATORS.includes(symbol)) {
           let options = [{text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN}];
-          options.push({text: "", style: "text-input", payload: this.PAYLOADS.TEXT_INPUT});
+          options.push({text: "", style: "text-input", payload: this.PAYLOADS.INPUT_LITERAL});
           options.push(...this.getVisibleVariables(row, false));
           return options;
         }
@@ -365,7 +383,6 @@ class Script {
         ];
       } else {
         options = [
-          {text: "=", style: "", payload: this.PAYLOADS.MUTABLE_VARIABLES},
           {text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE},
           {text: "func", style: "keyword", payload: this.PAYLOADS.FUNCTION_DEFINITION},
           {text: "let", style: "keyword", payload: this.ITEMS.LET},
@@ -381,6 +398,8 @@ class Script {
             {text: "return", style: "keyword", payload: this.ITEMS.RETURN}
           );
         }
+
+        options.push(...this.getVisibleVariables(Math.min(this.getRowCount(), row), true));
       }
 
       return options;
@@ -481,8 +500,8 @@ class Script {
       case this.ITEMS.RETURN: {
         let returnType = 0;
         for (let r = row - 1; r >= 0; --r) {
-          if (this.data[row][1] === this.ITEMS.FUNC) {
-            returnType = (this.data[row][1] >>> 16) & 0x0FFF;
+          if (this.data[r][1] === this.ITEMS.FUNC) {
+            returnType = (this.data[r][2] >>> 16) & 0x0FFF;
             break;
           }
         }
@@ -503,7 +522,7 @@ class Script {
         return 3;
       }
 
-      case this.PAYLOADS.TEXT_INPUT: {
+      case this.PAYLOADS.INPUT_LITERAL: {
         let input = prompt("Enter a string or a number:");
         if (input === null)
           return 0;
@@ -527,23 +546,74 @@ class Script {
         }
       }
 
-      case this.PAYLOADS.FUNCTION_REFERENCE: {
-        let options = [];
+      case this.PAYLOADS.RENAME: {
+        let input = prompt("Enter new name:");
+        if (input === null)
+          return 0;
+        
+        const data = this.data[row][col];
+        const id = data & 0xFFFF;
+        let format = data >>> 28;
 
-        let scopes = new Set();
-        for (let i = 0; i < this.functions.length; ++i) {
-          const func = this.functions[i];
+        switch (format) {
+          case Script.VARIABLE_DEFINITION:
+          case Script.VARIABLE_REFERENCE:
+            this.variables[id].name = input;
+            format = Script.VARIABLE_REFERENCE;
+            break;
 
-          if (func.scope === 0) {
-            options.push({text: func.name, style: "function-call", payload: Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, func.scope, i)});
-          }
-          else {
-            scopes.add(func.scope);
+          case Script.FUNCTION_DEFINITION:
+          case Script.FUNCTION_REFERENCE:
+            this.functions[id].name = input;
+            format = Script.FUNCTION_REFERENCE;
+            break;
+        }
+
+        //only instance of script logic and ui logic mixing
+        const itemToFind = (format << 28) | id;
+        const end = Math.min(this.data.length, loadedCount);
+        for (let r = 0; r < end; ++r) {
+          let items = list.childNodes[r].childNodes[1].childNodes;
+          
+          for (let c = 1; c < items.length; ++c) {
+            const value = this.data[firstLoadedPosition + r][c]
+
+            if ((value & 0xF000FFFF) === itemToFind) {
+              let meta = (value >>> 16) & 0xFFF;
+              if (meta === 0)
+                items[c + 1].firstChild.nodeValue = input;
+              else
+                items[c + 1].firstChild.nodeValue = this.classes[meta].name + '\n' + input;
+            }
           }
         }
         
-        for (const scope of scopes) {
-          options.push({text: this.classes[scope].name, style: "keyword", payload: Script.makeItemWithMeta(Script.STRING_LITERAL, scope, 0)});
+        return 1;
+      }
+
+      case this.PAYLOADS.FUNCTION_REFERENCE: {
+        let options = [];
+
+        // let scopes = new Set();
+        // for (let i = 0; i < this.functions.length; ++i) {
+        //   const func = this.functions[i];
+
+        //   if (func.scope === 0) {
+        //     options.push({text: func.name, style: "function-call", payload: Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, func.scope, i)});
+        //   }
+        //   else {
+        //     scopes.add(func.scope);
+        //   }
+        // }
+        
+        // for (const scope of scopes) {
+        //   options.push({text: this.classes[scope].name, style: "keyword", payload: Script.makeItemWithMeta(Script.STRING_LITERAL, scope, 0)});
+        // }
+
+        for (let i = 0; i < this.functions.length; ++i) {
+          const func = this.functions[i];
+          const scope = this.classes[func.scope];
+          options.push({text: scope.name + "\n" + func.name, style: "keyword-call", payload: Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, func.scope, i)});
         }
 
         return options;
@@ -573,10 +643,6 @@ class Script {
         this.variables.push({name: `var${varId}`, type: type});
         this.data[row].push(this.ITEMS.COMMA, Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
         return 2;
-      }
-
-      case this.PAYLOADS.MUTABLE_VARIABLES: {
-        return this.getVisibleVariables(row, true);
       }
     }
 
@@ -611,6 +677,23 @@ class Script {
       return 2;
     }
 
+    //user chose a specific function call
+    if (format === Script.FUNCTION_REFERENCE) {
+      const func = this.functions[data];
+      let replacementItems = [payload];
+
+      for (let i = 0; i < func.parameters.length; ++i) {
+        replacementItems.push(this.ITEMS.COMMA);
+        replacementItems.push(Script.makeItemWithMeta(Script.ARGUMENT_HINT, i, data));
+      }
+
+      replacementItems[1] = this.ITEMS.START_PARENTHESIS;
+      replacementItems.push(this.ITEMS.END_PARENTHESIS);
+
+      this.data[row].splice(col, 1, ...replacementItems);
+      return 2;
+    }
+
     //appending additional parameters
     if (format === Script.NUMERIC_LITERAL) {
       let varId = this.variables.length;
@@ -637,35 +720,23 @@ class Script {
     }
 
     //user chose a scope to select a function from
-    if (format === Script.STRING_LITERAL) {
-      let type = meta;
+    // if (format === Script.STRING_LITERAL) {
+    //   let type = meta;
 
-      let options = [];
-      for (let i = 0; i < this.functions.length; ++i) {
-        const func = this.functions[i];
-        if (func.scope === type) {
-          options.push({text: func.name, style: "function-call", payload: Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, func.scope, i)});
-        }
-      }
+    //   let options = [];
+    //   for (let i = 0; i < this.functions.length; ++i) {
+    //     const func = this.functions[i];
+    //     if (func.scope === type) {
+    //       options.push({text: func.name, style: "function-call", payload: Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, func.scope, i)});
+    //     }
+    //   }
 
-      return options;
-    }
+    //   return options;
+    // }
 
-    //user chose a specific function call
-    if (format === Script.FUNCTION_REFERENCE) {
-      const func = this.functions[data];
-      let replacementItems = [payload];
-
-      for (let i = 0; i < func.parameters.length; ++i) {
-        replacementItems.push(this.ITEMS.COMMA);
-        replacementItems.push(Script.makeItemWithMeta(Script.ARGUMENT_HINT, i, data));
-      }
-
-      replacementItems[1] = this.ITEMS.START_PARENTHESIS;
-      replacementItems.push(this.ITEMS.END_PARENTHESIS);
-
-      this.data[row].splice(col, 1, ...replacementItems);
-      return 2;
+    if (format === Script.COMMENT) {
+      this.data[row][col] = (this.data[row][col] & 0xF000FFFF) | meta << 16;
+      return 1;
     }
 
     return 0;
@@ -674,7 +745,8 @@ class Script {
   getVisibleVariables(row, requiresMutable) {
     let options = [];
 
-    let indentation = this.getIndentation(row);
+    let indentation = (row < this.getRowCount()) ? this.getIndentation(row) : 0;
+
     for (let r = row - 1; r >= 0; --r) {
       let lineIndentation = this.getIndentation(r);
       if (lineIndentation + this.isStartingScope(r) <= indentation && this.data[r].length > 1) {
@@ -721,9 +793,6 @@ class Script {
   }
 
   getItem(row, col) {
-    row = row | 0;
-    col = col | 0;
-
     let item = this.data[row][col];
     let format = item >>> 28; //4 bits
     let data = item & 0xFFFFFFF; //28 bits

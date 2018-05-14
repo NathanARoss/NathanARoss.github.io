@@ -269,6 +269,8 @@ canvas, #modal, #console-output {
 }
 
 #console-output {
-  box-sizing: content-box;
-  margin: 0.5em;
+  box-sizing: border-box;
+  padding: 0.5em;
+  margin: 0;
+  overflow-y: scroll;
 }

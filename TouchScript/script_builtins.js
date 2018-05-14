@@ -324,9 +324,16 @@ function getBuiltIns() {
 
   const counter =
 `var counter = 0 
-while  counter < 10 {
- System.print(counter)
- System.print("\\n")
+var a = 1 
+var b = 1 
+System.print ( "1\\n1" ) 
+
+while counter < 100 { 
+ let temp = a + b 
+ a = b 
+ b = temp 
+ 
+ System.print ( temp ) 
  counter += 1 
 }`;
   

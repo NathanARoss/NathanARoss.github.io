@@ -305,9 +305,7 @@ function updateLineNumbers(modifiedRow) {
 
 
 
-function loadRow(position, rowDiv) {
-  position = position|0;
-  
+function loadRow(position, rowDiv, movedPosition = true) {
   let innerRow = rowDiv.childNodes[1];
   innerRow.position = position;
   
@@ -321,33 +319,39 @@ function loadRow(position, rowDiv) {
 
   if (position >= script.getRowCount()) {
     innerRow.firstChild.style.display = "none";
-    return;
-  }
-  
-  let itemCount = script.getItemCount(position);
-  for (let col = 1; col < itemCount; ++col) {
-    const [text, style] = script.getItem(position, col);
-    
-    let node = getItem(text);
-    node.className = "item " + style;
-    node.position = col;
-    innerRow.appendChild(node);
-  }
-  
-  const indentation = script.getIndentation(position);
-  innerRow.firstChild.style.width = 6 * indentation + "px";
-  innerRow.firstChild.style.display = (indentation === 0) ? "none" : "";
-
-  if (modal.row === position) {
-    rowDiv.classList.add("selected");
-
-    if (modal.col !== -1) {
-      let button = innerRow.childNodes[1 + modal.col];
-      button.classList.add("selected");
-      //button.scrollIntoView();
-    }
   } else {
-    rowDiv.classList.remove("selected");
+    let itemCount = script.getItemCount(position);
+    for (let col = 1; col < itemCount; ++col) {
+      const [text, style] = script.getItem(position, col);
+      
+      let node = getItem(text);
+      node.className = "item " + style;
+      node.position = col;
+      innerRow.appendChild(node);
+    }
+    
+    const indentation = script.getIndentation(position);
+    innerRow.firstChild.style.width = 6 * indentation + "px";
+    innerRow.firstChild.style.display = (indentation === 0) ? "none" : "";
+  }
+
+  if (movedPosition) {
+    let button;
+    if (modal.col === -1) {
+      button = innerRow.childNodes[1];
+    } else if (position < script.getRowCount()) {
+        button = innerRow.childNodes[1 + modal.col];
+    }
+
+    if (modal.row === position) {
+      rowDiv.classList.add("selected");
+      button.classList.add("selected");
+      innerRow.scrollLeft = button.offsetLeft - window.innerWidth / 2;
+    } else {
+      rowDiv.classList.remove("selected");
+      if (button)
+        button.classList.remove("selected");
+    }
   }
 }
 
@@ -397,10 +401,14 @@ function closeModal() {
     let innerRow = outerRow.childNodes[1];
     outerRow.classList.remove("selected");
 
-    if (modal.col !== -1) {
-      let button = innerRow.childNodes[1 + modal.col];
-      button.classList.remove("selected");
+    let button;
+    if (modal.col === -1) {
+      button = innerRow.childNodes[1];
+    } else {
+      button = innerRow.childNodes[1 + modal.col];
     }
+
+    button.classList.remove("selected");
   }
 
   modal.row = -1;
@@ -443,6 +451,7 @@ function appendClicked(event) {
   if (options.length > 0) {
     configureModal(options, row, -1);
     event.currentTarget.parentElement.parentElement.classList.add("selected");
+    event.currentTarget.classList.add("selected");
   }
 }
 
@@ -458,7 +467,7 @@ function menuItemClicked(payload) {
     if (response >= 2) {
       let rowIndex = modal.row - firstLoadedPosition;
       if (rowIndex >= 0 && rowIndex < list.childNodes.length) {
-        loadRow(modal.row, list.childNodes[rowIndex]);
+        loadRow(modal.row, list.childNodes[rowIndex], false);
       }
 
       if (response === 3) {
@@ -472,7 +481,7 @@ function menuItemClicked(payload) {
       //menuItemClicked(response[0].payload);
       //TODO update the contents of just the modified item
       let rowIndex = modal.row - firstLoadedPosition;
-      loadRow(modal.row, list.childNodes[rowIndex]);
+      loadRow(modal.row, list.childNodes[rowIndex], false);
     }
   }
   else if (Array.isArray(response) && response.length > 0) {
@@ -625,5 +634,5 @@ function draw(timestamp) {
 }
 
 function print(output) {
-  consoleOutput.textContent += output;
+  consoleOutput.textContent += output + "\n";
 }
