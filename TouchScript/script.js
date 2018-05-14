@@ -77,6 +77,7 @@ class Script {
       return options;
     }
 
+    this.ASSIGNMENT_OPERATORS = {start: 0, end: 9, includes, getMenuItems};
     this.BINARY_OPERATORS = {start: 9, end: 27, includes, getMenuItems};
     this.UNARY_OPERATORS = {start: 27, end: 31, includes, getMenuItems};
     
@@ -276,11 +277,16 @@ class Script {
       if (col === 1 && item >>> 28 === Script.VARIABLE_REFERENCE) {
         return this.getVisibleVariables(row, true);
       }
+
+      if (col === 2 && item >>> 28 === Script.SYMBOL && this.ASSIGNMENT_OPERATORS.includes(item & 0xFFFF)) {
+        return this.ASSIGNMENT_OPERATORS.getMenuItems();
+      }
     }
 
     if (this.data[row][1] === this.ITEMS.IF
+    || this.data[row][1] === this.ITEMS.WHILE
     || this.data[row][1] >>> 28 === Script.FUNCTION_REFERENCE
-    || this.data[row][2] === this.ITEMS.EQUALS
+    || this.ASSIGNMENT_OPERATORS.includes(this.data[row][2] & 0xFFFF)
     || this.data[row][3] === this.ITEMS.EQUALS) {
       const prevItem = this.data[row][col - 1];
       const prevFormat = prevItem >>> 28;
@@ -309,10 +315,15 @@ class Script {
       }
 
       if (prevFormat === Script.SYMBOL
-      || prevItem === this.ITEMS.IF) {
+      || prevItem === this.ITEMS.IF
+      || prevItem === this.ITEMS.WHILE) {
         const symbol = prevItem & 0x00FFFFFF;
 
-        if (this.BINARY_OPERATORS.includes(symbol) || prevItem === this.ITEMS.EQUALS || prevItem == this.ITEMS.IF || prevItem == this.ITEMS.START_PARENTHESIS) {
+        if (this.BINARY_OPERATORS.includes(symbol)
+        || this.ASSIGNMENT_OPERATORS.includes(symbol)
+        || prevItem === this.ITEMS.IF
+        || prevItem === this.ITEMS.START_PARENTHESIS
+        || prevItem === this.ITEMS.WHILE) {
           let options = this.UNARY_OPERATORS.getMenuItems();
           options.push({text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN});
           options.push({text: "", style: "text-input", payload: this.PAYLOADS.TEXT_INPUT});
@@ -416,6 +427,9 @@ class Script {
     while (row >= this.data.length) {
       this.data.push([indentation]);
     }
+
+    if (col === -1)
+      col = this.data[row].length;
 
     switch (payload) {
       case this.ITEMS.CASE:
@@ -569,9 +583,6 @@ class Script {
     let format = payload >>> 28;
     let meta = (payload >>> 16) & 0x0FFF;
     let data = payload & 0xFFFF;
-
-    if (col === -1)
-      col = this.data[row].length;
 
     //if a specific variable reference is provided
     if (format === Script.VARIABLE_REFERENCE) {
@@ -909,9 +920,11 @@ class Script {
       js += "\n";
     }
 
-    let lastIndentation = this.getIndentation(this.getRowCount() - 1);
-    if (lastIndentation > 0)
-      js += "}".repeat(lastIndentation);
+    if (this.getRowCount() > 0) {
+      let lastIndentation = this.getIndentation(this.getRowCount() - 1);
+      if (lastIndentation > 0)
+        js += "}".repeat(lastIndentation);
+    }
 
     console.log(js);
 

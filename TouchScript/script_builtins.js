@@ -78,7 +78,7 @@ function getBuiltIns() {
     parseFunction("Int64.Int64(toConvert:Any) -> Int64", "Number"),
     parseFunction("UInt64.UInt64(toConvert:Any) -> UInt64", "Number"),
       
-    parseFunction("System.print(item:Any)", "console.log"),
+    parseFunction("System.print(item:Any)", "print"),
     parseFunction("Canvas.drawCircle(x:Double, y:Double, r:Double, color:String)", "drawCircle"),
     parseFunction("Canvas.drawRect(x:Double, y:Double, w:Double, h:Double, color:String)", "drawRectangle"),
     parseFunction("Math.cos(angle:Double) -> Double", "Math.cos"),
@@ -321,6 +321,14 @@ function getBuiltIns() {
       break
     }
   }`;
+
+  const counter =
+`var counter = 0 
+while  counter < 10 {
+ System.print(counter)
+ System.print("\\n")
+ counter += 1 
+}`;
   
-  return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, ""];
+  return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, counter];
 }

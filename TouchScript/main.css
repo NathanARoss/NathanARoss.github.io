@@ -243,7 +243,7 @@ button {
 
 /* I set this so the Canvas does not cause scroll bars to appear*/
 /* I still manually modify the resolution in onresize() */
-canvas, #modal {
+canvas, #modal, #console-output {
   position: fixed;
   left: 0;
   top: 0;
@@ -266,4 +266,9 @@ canvas, #modal {
   background-color: var(--primary-color);
   box-sizing: content-box;
   align-self: flex-start;
+}
+
+#console-output {
+  box-sizing: content-box;
+  margin: 0.5em;
 }

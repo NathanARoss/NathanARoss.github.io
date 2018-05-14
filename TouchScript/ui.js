@@ -12,6 +12,8 @@ const debug = document.getElementById("debug");
 const canvas = document.getElementById("canvas");
 const editor = document.getElementById("editor_div");
 const modal = document.getElementById("modal");
+const runtime = document.getElementById("runtime");
+const consoleOutput = document.getElementById("console-output");
 const context = canvas.getContext("2d", { alpha: false });
 
 let buttonPool = [];
@@ -153,7 +155,7 @@ window.onscroll();
 document.body.onhashchange = function() {
   if (window.location.hash === "") {
     editor.style.display = "";
-    canvas.style.display = "none";
+    runtime.style.display = "none";
 
     if (renderLoop !== 0) {
       window.cancelAnimationFrame(renderLoop)
@@ -170,8 +172,10 @@ document.body.onhashchange = function() {
   }
   
   else {
+    consoleOutput.textContent = "";
+
     editor.style.display = "none";
-    canvas.style.display = "";
+    runtime.style.display = "";
     
     try {
       script.getJavaScript() ();
@@ -181,13 +185,7 @@ document.body.onhashchange = function() {
       window.location.hash = "";
     }
     
-    
-    if (! (eventHandlers.ondraw)) {
-      window.location.hash = "";
-      return;
-    }
-    
-    if (renderLoop === 0)
+    if (renderLoop === 0 && eventHandlers.ondraw)
       renderLoop = window.requestAnimationFrame(draw);
     
     document.body.style.height = "auto";
@@ -613,14 +611,10 @@ function drawCircle(x, y, r, color) {
   context.fill();
 }
 
-
 function drawRectangle(x, y, w, h, color) {
   context.fillStyle = color;
   context.fillRect(x, y, w, h);
 }
-
-
-
 
 function draw(timestamp) {
   context.clearRect(0, 0, canvas.width, canvas.height);
@@ -628,4 +622,8 @@ function draw(timestamp) {
   eventHandlers.ondraw(timestamp);
   
   renderLoop = window.requestAnimationFrame(draw);
+}
+
+function print(output) {
+  consoleOutput.textContent += output;
 }
