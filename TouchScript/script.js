@@ -56,12 +56,14 @@ class Script {
     this.HINTS.EXPRESSION = this.makeCommentItem("expression");
     this.HINTS.CONTROL_EXPRESSION = this.makeCommentItem("control expression");
 
+    let payloads = Script.makeItem(Script.KEYWORD, 0x0FFFFFFF);
     this.PAYLOADS = {};
-    this.PAYLOADS.MUTABLE_VARIABLES = Script.makeItem(Script.KEYWORD, 0x0FFFFFFF);
-    this.PAYLOADS.VAR_OPTIONS = Script.makeItem(Script.KEYWORD, 0x0FFFFFFE);
-    this.PAYLOADS.FUNCTION_DEFINITION = Script.makeItem(Script.KEYWORD, 0x0FFFFFFD);
-    this.PAYLOADS.FUNCTION_REFERENCE = Script.makeItem(Script.KEYWORD, 0x0FFFFFFC);
-    this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN = Script.makeItem(Script.KEYWORD, 0x0FFFFFFB);
+    this.PAYLOADS.MUTABLE_VARIABLES = payloads--;
+    this.PAYLOADS.VAR_OPTIONS = payloads--;
+    this.PAYLOADS.FUNCTION_DEFINITION = payloads--;
+    this.PAYLOADS.FUNCTION_REFERENCE = payloads--;
+    this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN = payloads--;
+    this.PAYLOADS.TEXT_INPUT = payloads--;
 
     function includes(i) {
       return i >= this.start && i < this.end;
@@ -277,6 +279,7 @@ class Script {
     }
 
     if (this.data[row][1] === this.ITEMS.IF
+    || this.data[row][1] >>> 28 === Script.FUNCTION_REFERENCE
     || this.data[row][2] === this.ITEMS.EQUALS
     || this.data[row][3] === this.ITEMS.EQUALS) {
       const prevItem = this.data[row][col - 1];
@@ -309,14 +312,16 @@ class Script {
       || prevItem === this.ITEMS.IF) {
         const symbol = prevItem & 0x00FFFFFF;
 
-        if (this.BINARY_OPERATORS.includes(symbol) || prevItem === this.ITEMS.EQUALS || prevItem == this.ITEMS.IF) {
+        if (this.BINARY_OPERATORS.includes(symbol) || prevItem === this.ITEMS.EQUALS || prevItem == this.ITEMS.IF || prevItem == this.ITEMS.START_PARENTHESIS) {
           let options = this.UNARY_OPERATORS.getMenuItems();
           options.push({text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN});
+          options.push({text: "", style: "text-input", payload: this.PAYLOADS.TEXT_INPUT});
           options.push(...this.getVisibleVariables(row, false));
           return options;
         }
         else if (this.UNARY_OPERATORS.includes(symbol)) {
           let options = [{text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN}];
+          options.push({text: "", style: "text-input", payload: this.PAYLOADS.TEXT_INPUT});
           options.push(...this.getVisibleVariables(row, false));
           return options;
         }
@@ -403,7 +408,7 @@ class Script {
   //0 -> no change, 1 -> click item changed, 2-> row changed, 3 -> row(s) inserted
   menuItemClicked(row, col, payload) {
     let indentation;
-    if (row < this.getRowCount())
+    if (row > 0 && row < this.getRowCount())
       indentation = this.getIndentation(row - 1) + this.isStartingScope(row - 1);
     else
       indentation = 0;
@@ -477,23 +482,56 @@ class Script {
 
       case this.PAYLOADS.FUNCTION_DEFINITION: {
         let funcId = this.functions.length;
-        let newFunc = {name: `f${funcId}`, returnType: 0, parameters: []};
+        let newFunc = {name: `f${funcId}`, returnType: 0, scope: 0, parameters: []};
         this.functions.push(newFunc);
         this.data[row][0] |= 1 << 31;
         this.data[row].push(this.ITEMS.FUNC, Script.makeItemWithMeta(Script.FUNCTION_DEFINITION, newFunc.returnType, funcId));
         return 3;
       }
 
-      case this.PAYLOADS.FUNCTION_REFERENCE: {
-        let scopes = new Set();
-        for (const func of this.functions) {
-          scopes.add(func.scope);
-        }
+      case this.PAYLOADS.TEXT_INPUT: {
+        let input = prompt("Enter a string or a number:");
+        if (input === null)
+          return 0;
+        
+        if (!isNaN(input)) {
+          this.numericLiterals.set(this.nextNumericLiteral, input);
+          this.data[row][col] = Script.makeItem(Script.NUMERIC_LITERAL, this.nextNumericLiteral++);
+          return 1;
+        } else {
+          if (input.startsWith('"')) {
+            if (input.endsWith('"')) {
+              input = input.substring(1, input.length - 1);
+            } else {
+              input = input.substring(1);
+            }
+          }
 
+          this.stringLiterals.set(this.nextStringLiteral, input);
+          this.data[row][col] = Script.makeItem(Script.STRING_LITERAL, this.nextStringLiteral++);
+          return 1;
+        }
+      }
+
+      case this.PAYLOADS.FUNCTION_REFERENCE: {
         let options = [];
+
+        let scopes = new Set();
+        for (let i = 0; i < this.functions.length; ++i) {
+          const func = this.functions[i];
+
+          if (func.scope === 0) {
+            options.push({text: func.name, style: "function-call", payload: Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, func.scope, i)});
+          }
+          else {
+            scopes.add(func.scope);
+          }
+        }
+        
         for (const scope of scopes) {
           options.push({text: this.classes[scope].name, style: "keyword", payload: Script.makeItemWithMeta(Script.STRING_LITERAL, scope, 0)});
         }
+
         return options;
       }
 
@@ -566,8 +604,19 @@ class Script {
     if (format === Script.NUMERIC_LITERAL) {
       let varId = this.variables.length;
       let type = meta;
-      this.variables.push({name: `var${varId}`, type: meta});
+      const name = `var${varId}`;
+
+      this.variables.push({name, type});
       this.data[row].push(Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
+
+      const index = this.data[row].lastIndexOf(this.ITEMS.FUNC);
+      if (index <= 0) {
+        console.log(`failed to find function definition on line ${row}`);
+      } else {
+        const func = this.functions[this.data[row][index + 1] & 0xFFFF];
+        func.parameters.push({name, type})
+      }
+
       return 2;
     }
 

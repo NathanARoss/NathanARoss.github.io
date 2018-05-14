@@ -169,6 +169,10 @@ button {
   color: #A5C25C;
 }
 
+.string:before, .string:after {
+  content: '"';
+}
+
 .comment {
   color: #808080;
 }
@@ -189,6 +193,10 @@ button {
   color: red;
 }
 
+.text-input {
+  background: url(baseline-keyboard-24px.svg) no-repeat center;
+}
+
 #debug {
   left: 50%;
   bottom: 0;
@@ -199,7 +207,7 @@ button {
   white-space: pre;
 }
 
-@media only screen and (max-width: 400px) {
+@media only screen and (max-width: 450px) {
   #debug {
     display: none;
   }

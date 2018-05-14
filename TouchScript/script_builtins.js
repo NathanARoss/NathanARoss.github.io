@@ -2,7 +2,7 @@
 
 function getBuiltIns() {
   let CLASSES = [
-    {name: "Hidden", size: 0},
+    {name: "global", size: 0},
     {name: "Any", size: 0},
     {name: "Int8", size: 1},
     {name: "UInt8", size: 1},
@@ -61,7 +61,7 @@ function getBuiltIns() {
     newFunc.parameters = [];
     
     for (let i = 2; i < tokens.length - 1; i += 2) {
-      newFunc.parameters.push({"name": tokens[i], "type": CLASS_MAP.get(tokens[i + 1])});
+      newFunc.parameters.push({name: tokens[i], type: CLASS_MAP.get(tokens[i + 1])});
     }
     
     return newFunc;
@@ -322,5 +322,5 @@ function getBuiltIns() {
     }
   }`;
   
-  return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, pong];
+  return [CLASSES, CLASS_MAP, VARIABLES, FUNCTIONS, FUNCTION_MAP, SYMBOLS, SYMBOL_MAP, KEYWORDS, JS_KEYWORDS, KEYWORD_MAP, ""];
 }
