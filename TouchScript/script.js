@@ -37,6 +37,7 @@ class Script {
     this.ITEMS.FOR      = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("for"));
     this.ITEMS.IN       = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("in"));
     this.ITEMS.WHILE    = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("while"));
+    this.ITEMS.UNTIL    = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("until"));
     this.ITEMS.RETURN   = Script.makeItem(Script.KEYWORD, KEYWORD_MAP.get("return"));
     this.toggles = [this.ITEMS.VAR, this.ITEMS.LET, this.ITEMS.WHILE, this.ITEMS.UNTIL, this.ITEMS.CONTINUE, this.ITEMS.BREAK];
 
@@ -64,6 +65,8 @@ class Script {
     this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN = payloads--;
     this.PAYLOADS.LITERAL_INPUT = payloads--;
     this.PAYLOADS.RENAME = payloads--;
+    this.PAYLOADS.DELETE_ITEM = payloads--;
+    this.PAYLOADS.DELETE_LINE = payloads--;
 
 
     function includes(i) {
@@ -455,19 +458,19 @@ class Script {
       case this.ITEMS.CASE:
         this.data[row][0] |= 1 << 31;
         this.data[row].push(payload, this.HINTS.VALUE);
-        return 3;
+        return Script.RESPONSE.ROWS_INSERTED;
 
       case this.ITEMS.DEFAULT:
         this.data[row][0] |= 1 << 31;
         this.data[row].push(payload);
-        return 3;
+        return Script.RESPONSE.ROWS_INSERTED;
       
       case this.ITEMS.LET:
       case this.ITEMS.VAR: {
         let varId = this.variables.length;
         this.variables.push({name: `var${varId}`, type: 0});
         this.data[row].push(payload, Script.makeItem(Script.VARIABLE_DEFINITION, varId), this.ITEMS.EQUALS, this.HINTS.EXPRESSION);
-        return 2;
+        return Script.RESPONSE.ROW_UPDATED;
       }
 
       case this.PAYLOADS.VAR_OPTIONS: {
@@ -486,17 +489,17 @@ class Script {
       case this.ITEMS.WHILE:
         this.data[row][0] |= 1 << 31;
         this.data[row].push(payload, this.HINTS.CONDITION);
-        return 3;
+        return Script.RESPONSE.ROWS_INSERTED;
 
       case this.ITEMS.FOR:
         this.data[row][0] |= 1 << 31;
         this.data[row].push(payload, this.HINTS.ITEM, this.ITEMS.IN, this.HINTS.COLLECTION);
-        return 3;
+        return Script.RESPONSE.ROWS_INSERTED;
 
       case this.ITEMS.SWITCH:
         this.data[row][0] |= 1 << 31;
         this.data[row].push(payload, this.HINTS.CONTROL_EXPRESSION);
-        return 3;
+        return Script.RESPONSE.ROWS_INSERTED;
       
       case this.ITEMS.RETURN: {
         let returnType = 0;
@@ -511,7 +514,7 @@ class Script {
         if (returnType > 0)
           this.data[row].push(this.HINTS.EXPRESSION);
         
-        return 2;
+        return Script.RESPONSE.ROW_UPDATED;
       }
 
       case this.PAYLOADS.FUNCTION_DEFINITION: {
@@ -520,7 +523,7 @@ class Script {
         this.functions.push(newFunc);
         this.data[row][0] |= 1 << 31;
         this.data[row].push(this.ITEMS.FUNC, Script.makeItemWithMeta(Script.FUNCTION_DEFINITION, newFunc.returnType, funcId));
-        return 3;
+        return Script.RESPONSE.ROWS_INSERTED;
       }
 
       case this.PAYLOADS.LITERAL_INPUT: {
@@ -536,12 +539,11 @@ class Script {
 
         let input = prompt("Enter a string or a number:", hint);
         if (input === null)
-          return 0;
+          return Script.RESPONSE.NO_CHANGE;
         
         if (!isNaN(input)) {
           this.numericLiterals.set(this.nextNumericLiteral, input);
           this.data[row][col] = Script.makeItem(Script.NUMERIC_LITERAL, this.nextNumericLiteral++);
-          return 1;
         } else {
           if (input.startsWith('"')) {
             if (input.endsWith('"')) {
@@ -553,14 +555,15 @@ class Script {
 
           this.stringLiterals.set(this.nextStringLiteral, input);
           this.data[row][col] = Script.makeItem(Script.STRING_LITERAL, this.nextStringLiteral++);
-          return 1;
         }
+
+        return Script.RESPONSE.ROW_UPDATED;
       }
 
       case this.PAYLOADS.RENAME: {
         let input = prompt("Enter new name:");
         if (input === null)
-          return 0;
+          return Script.RESPONSE.NO_CHANGE;
         
         const data = this.data[row][col];
         const id = data & 0xFFFF;
@@ -579,27 +582,8 @@ class Script {
             format = Script.FUNCTION_REFERENCE;
             break;
         }
-
-        //only instance of script logic and ui logic mixing
-        const itemToFind = (format << 28) | id;
-        const end = Math.min(this.data.length, loadedCount);
-        for (let r = 0; r < end; ++r) {
-          let items = list.childNodes[r].childNodes[1].childNodes;
-          
-          for (let c = 1; c < items.length; ++c) {
-            const value = this.data[firstLoadedPosition + r][c]
-
-            if ((value & 0xF000FFFF) === itemToFind) {
-              let meta = (value >>> 16) & 0xFFF;
-              if (meta === 0)
-                items[c + 1].firstChild.nodeValue = input;
-              else
-                items[c + 1].firstChild.nodeValue = this.classes[meta].name + '\n' + input;
-            }
-          }
-        }
         
-        return 1;
+        return Script.RESPONSE.SCRIPT_CHANGED;
       }
 
       case this.PAYLOADS.FUNCTION_REFERENCE:
@@ -620,14 +604,14 @@ class Script {
 
       case this.ITEMS.EQUALS:
         this.data[row].push(this.ITEMS.EQUALS, this.HINTS.EXPRESSION);
-        return 2;
+        return Script.RESPONSE.ROW_UPDATED;
 
       case this.ITEMS.COMMA: {
         let varId = this.variables.length;
         let type = (this.data[row].peek() >>> 16) & 0x0FFF;
         this.variables.push({name: `var${varId}`, type: type});
         this.data[row].push(this.ITEMS.COMMA, Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
-        return 2;
+        return Script.RESPONSE.ROW_UPDATED;
       }
     }
 
@@ -646,11 +630,11 @@ class Script {
           this.ITEMS.EQUALS,
           this.HINTS.EXPRESSION
         );
-        return 2;
+        return Script.RESPONSE.ROW_UPDATED;
       }
 
       this.data[row][col] = payload;
-      return 1;
+      return Script.RESPONSE.ROW_UPDATED;
     }
 
     //user chose a type for a variable declaration
@@ -659,7 +643,7 @@ class Script {
       let type = meta;
       this.variables.push({name: `var${varId}`, type: meta});
       this.data[row].push(this.ITEMS.VAR, Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
-      return 2;
+      return Script.RESPONSE.ROW_UPDATED;
     }
 
     //user chose a specific function call
@@ -676,7 +660,7 @@ class Script {
       replacementItems.push(this.ITEMS.END_PARENTHESIS);
 
       this.data[row].splice(col, 1, ...replacementItems);
-      return 2;
+      return Script.RESPONSE.ROW_UPDATED;
     }
 
     //appending additional parameters
@@ -696,21 +680,21 @@ class Script {
         func.parameters.push({name, type})
       }
 
-      return 2;
+      return Script.RESPONSE.ROW_UPDATED;
     }
 
     if (format === Script.SYMBOL) {
       this.data[row][col] = payload;
-      return 2;
+      return Script.RESPONSE.ROW_UPDATED;
     }
 
     //user updated the type annotation of a variable or function
     if (format === Script.COMMENT) {
       this.data[row][col] = (this.data[row][col] & 0xF000FFFF) | meta << 16;
-      return 1;
+      return Script.RESPONSE.ROW_UPDATED;
     }
 
-    return 0;
+    return Script.NO_CHANGE;
   }
 
   getVisibleVariables(row, requiresMutable) {
@@ -790,28 +774,19 @@ class Script {
       }
 
       case Script.FUNCTION_DEFINITION:
-      {
-        let func = this.functions[value];
         if (meta === 0)
           return [func.name, "function-definition"];
         else
-          return [this.classes[meta].name + '\n' + func.name, "keyword-def"];
-      }
+          return [this.classes[meta].name + '\n' + this.functions[value].name, "keyword-def"];
 
       case Script.FUNCTION_REFERENCE:
-      {
-        let func = this.functions[value];
         if (meta === 0)
-          return [func.name, "function-call"];
+          return [this.functions[value].name, "function-call"];
         else
-          return [this.classes[meta].name + '\n' + func.name, "keyword-call"];
-      }
+          return [this.classes[meta].name + '\n' + this.functions[value].name, "keyword-call"];
 
-      case Script.ARGUMENT_HINT: {
-        const func = this.functions[value];
-        const parameter = func.parameters[meta];
-        return [parameter.name, "comment"];
-      }
+      case Script.ARGUMENT_HINT:
+        return [this.functions[value].parameters[meta].name, "comment"];
 
       case Script.SYMBOL:
         return [this.symbols[data], ""];
@@ -973,13 +948,22 @@ class Script {
 }
 
 /* Static constants  */
-Script.VARIABLE_DEFINITION  = 0;
-Script.VARIABLE_REFERENCE   = 1;
-Script.FUNCTION_DEFINITION  = 2;
-Script.FUNCTION_REFERENCE   = 3;
-Script.ARGUMENT_HINT        = 4;
-Script.SYMBOL               = 5;
-Script.KEYWORD              = 6;
-Script.NUMERIC_LITERAL      = 7;
-Script.STRING_LITERAL       = 8;
-Script.COMMENT              = 9;
+{
+  let i = 0;
+  Script.VARIABLE_DEFINITION  = i++;
+  Script.VARIABLE_REFERENCE   = i++;
+  Script.FUNCTION_DEFINITION  = i++;
+  Script.FUNCTION_REFERENCE   = i++;
+  Script.ARGUMENT_HINT        = i++;
+  Script.SYMBOL               = i++;
+  Script.KEYWORD              = i++;
+  Script.NUMERIC_LITERAL      = i++;
+  Script.STRING_LITERAL       = i++;
+  Script.COMMENT              = i++;
+}
+
+Script.RESPONSE = {};
+Script.RESPONSE.NO_CHANGE      = 0;
+Script.RESPONSE.ROW_UPDATED    = 1;
+Script.RESPONSE.ROWS_INSERTED  = 1|2;
+Script.RESPONSE.SCRIPT_CHANGED = 4;
