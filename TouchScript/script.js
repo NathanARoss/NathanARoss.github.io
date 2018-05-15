@@ -310,6 +310,7 @@ class Script {
       if (prevFormat === Script.VARIABLE_REFERENCE
       || prevFormat === Script.NUMERIC_LITERAL
       || prevFormat === Script.STRING_LITERAL
+      || prevFormat === Script.FUNCTION_REFERENCE
       || prevItem === this.ITEMS.END_PARENTHESIS) {
         let options = [];
 
@@ -332,14 +333,16 @@ class Script {
 
       if (prevFormat === Script.SYMBOL
       || prevItem === this.ITEMS.IF
-      || prevItem === this.ITEMS.WHILE) {
+      || prevItem === this.ITEMS.WHILE
+      || prevItem === this.ITEMS.COMMA) {
         const symbol = prevItem & 0x00FFFFFF;
 
         if (this.BINARY_OPERATORS.includes(symbol)
         || this.ASSIGNMENT_OPERATORS.includes(symbol)
         || prevItem === this.ITEMS.IF
         || prevItem === this.ITEMS.START_PARENTHESIS
-        || prevItem === this.ITEMS.WHILE) {
+        || prevItem === this.ITEMS.WHILE
+        || prevItem === this.ITEMS.COMMA) {
           let options = this.UNARY_OPERATORS.getMenuItems();
           options.push({text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN});
           options.push({text: "", style: "text-input", payload: this.PAYLOADS.LITERAL_INPUT});
@@ -424,7 +427,7 @@ class Script {
       for (let i = 2; i < this.classes.length; ++i) {
         const c = this.classes[i];
         if (c.size > 0)
-          options.push({text: c.name, style: "keyword", payload: Script.makeItemWithMeta(Script.NUMERIC_LITERAL, i, 0)});
+          options.push({text: c.name, style: "keyword", payload: Script.makeItemWithMeta(Script.ARGUMENT_HINT, i, 0)});
       }
 
       return options;
@@ -521,7 +524,17 @@ class Script {
       }
 
       case this.PAYLOADS.LITERAL_INPUT: {
-        let input = prompt("Enter a string or a number:");
+        let hint = "";
+
+        const item = this.data[row][col];
+        const format = item >>> 28;
+        if (format === Script.NUMERIC_LITERAL) {
+          hint = this.numericLiterals.get(item & 0xFFFFFFF);
+        } else if (format === Script.STRING_LITERAL) {
+          hint = '"' + this.stringLiterals.get(item & 0xFFFFFFF) + '"';
+        }
+
+        let input = prompt("Enter a string or a number:", hint);
         if (input === null)
           return 0;
         
@@ -589,45 +602,19 @@ class Script {
         return 1;
       }
 
-      case this.PAYLOADS.FUNCTION_REFERENCE: {
+      case this.PAYLOADS.FUNCTION_REFERENCE:
+      case this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN: {
+        const allowAnything = payload === this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN;
         let options = [];
-
-        // let scopes = new Set();
-        // for (let i = 0; i < this.functions.length; ++i) {
-        //   const func = this.functions[i];
-
-        //   if (func.scope === 0) {
-        //     options.push({text: func.name, style: "function-call", payload: Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, func.scope, i)});
-        //   }
-        //   else {
-        //     scopes.add(func.scope);
-        //   }
-        // }
-        
-        // for (const scope of scopes) {
-        //   options.push({text: this.classes[scope].name, style: "keyword", payload: Script.makeItemWithMeta(Script.STRING_LITERAL, scope, 0)});
-        // }
 
         for (let i = 0; i < this.functions.length; ++i) {
           const func = this.functions[i];
-          const scope = this.classes[func.scope];
-          options.push({text: scope.name + "\n" + func.name, style: "keyword-call", payload: Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, func.scope, i)});
+          if (allowAnything || func.returnType !== 0) {
+            const scope = this.classes[func.scope];
+            options.push({text: scope.name + "\n" + func.name, style: "keyword-call", payload: Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, func.scope, i)});
+          }
         }
 
-        return options;
-      }
-
-      case this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN: {
-        let scopes = new Set();
-        for (const func of this.functions) {
-          if (func.returnType !== 0)
-            scopes.add(func.scope);
-        }
-
-        let options = [];
-        for (const scope of scopes) {
-          options.push({text: this.classes[scope].name, style: "keyword", payload: Script.makeItemWithMeta(Script.STRING_LITERAL, scope, 0)});
-        }
         return options;
       }
 
@@ -693,7 +680,7 @@ class Script {
     }
 
     //appending additional parameters
-    if (format === Script.NUMERIC_LITERAL) {
+    if (format === Script.ARGUMENT_HINT) {
       let varId = this.variables.length;
       let type = meta;
       const name = `var${varId}`;
@@ -716,21 +703,6 @@ class Script {
       this.data[row][col] = payload;
       return 2;
     }
-
-    //user chose a scope to select a function from
-    // if (format === Script.STRING_LITERAL) {
-    //   let type = meta;
-
-    //   let options = [];
-    //   for (let i = 0; i < this.functions.length; ++i) {
-    //     const func = this.functions[i];
-    //     if (func.scope === type) {
-    //       options.push({text: func.name, style: "function-call", payload: Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, func.scope, i)});
-    //     }
-    //   }
-
-    //   return options;
-    // }
 
     //user updated the type annotation of a variable or function
     if (format === Script.COMMENT) {
