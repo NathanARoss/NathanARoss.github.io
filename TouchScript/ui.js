@@ -36,35 +36,35 @@ canvas.addEventListener("touchstart", function(event) {
     for (const touch of event.changedTouches)
       eventHandlers.ontouchstart(touch.pageX * window.devicePixelRatio, touch.pageY * window.devicePixelRatio, touch.identifier);
   }
-
-  event.preventDefault();
-});
+}, {passive: true});
 
 canvas.addEventListener("touchmove", function(event) {
   if (eventHandlers.ontouchmove) {
     for (const touch of event.changedTouches)
       eventHandlers.ontouchmove(touch.pageX * window.devicePixelRatio, touch.pageY * window.devicePixelRatio, touch.identifier);
   }
-});
+}, {passive: true});
 
 canvas.addEventListener("touchend", function(event) {
   if (eventHandlers.ontouchend) {
     for (const touch of event.changedTouches)
       eventHandlers.ontouchend(touch.pageX * window.devicePixelRatio, touch.pageY * window.devicePixelRatio, touch.identifier);
   }
-});
+
+  event.preventDefault();
+}, {passive: false});
 
 canvas.addEventListener("mousedown", function(event) {
   if (eventHandlers.onmousedown) {
     eventHandlers.onmousedown(event.x * window.devicePixelRatio, event.y * window.devicePixelRatio, event.button);
   }
-});
+}, {passive: true});
 
 canvas.addEventListener("mousemove", function(event) {
   if (eventHandlers.onmousemove) {
     eventHandlers.onmousemove(event.x * window.devicePixelRatio, event.y * window.devicePixelRatio, event.movementX * window.devicePixelRatio, event.movementY * window.devicePixelRatio);
   }
-});
+}, {passive: true});
 
 canvas.addEventListener("mouseup", function(event) {
   if (eventHandlers.onmouseup) {
@@ -72,7 +72,7 @@ canvas.addEventListener("mouseup", function(event) {
   }
 
   event.preventDefault;
-});
+}, {passive: false});
 
 
 
@@ -137,15 +137,14 @@ window.onscroll = function() {
 
   debug.firstChild.nodeValue = `[${firstLoadedPosition}, ${(firstLoadedPosition + loadedCount - 1)}]`;
   
-  //scrolling overrides slide-out menu
   for (let row of list.childNodes) {
     if (row.touchCaptured) {
-        row.touchId = -1;
-        row.firstChild.style.width = "";
-        row.firstChild.classList.add("slow-transition");
+      row.touchCaptured = false;
+  
+      row.touchId = -1;
+      row.firstChild.style.width = "";
+      row.firstChild.classList.add("slow-transition");
     }
-    
-    row.touchCapturable = false;
   }
 };
 window.onscroll();
@@ -247,7 +246,7 @@ function createRow() {
   outerDiv.addEventListener("touchstart", touchStartHandler);
   outerDiv.addEventListener("touchmove", touchMoveHandler);
   outerDiv.addEventListener("touchend", touchEndHandler);
-  outerDiv.addEventListener("touchcancel", touchEndHandler);
+  outerDiv.addEventListener("touchcancel", touchCancelHandler);
   
   return outerDiv;
 }
@@ -519,7 +518,10 @@ function itemClickHandler(event) {
 }
 
 
+
 function touchStartHandler(event) {
+  console.log(event.type);
+
   let row = event.currentTarget;
   
   if (row.touchId === -1) {
@@ -529,7 +531,6 @@ function touchStartHandler(event) {
     row.touchId = touch.identifier;
     row.touchStartX = touch.pageX;
     row.touchCaptured = false;
-    row.touchCapturable = true;
     
     row.firstChild.classList.remove("slow-transition");
     row.firstChild.style.width = null;
@@ -541,11 +542,9 @@ function touchStartHandler(event) {
 
 
 function touchMoveHandler(event) {
+  console.log(event.type);
+
   let row = event.currentTarget;
-  
-  if (!row.touchCapturable) {
-    return;
-  }
   
   let touches = event.changedTouches;
   for (let touch of touches) {
@@ -579,6 +578,8 @@ function touchMoveHandler(event) {
 
 
 function touchEndHandler(event) {
+  console.log(event.type);
+
   let row = event.currentTarget;
   
   let touches = event.changedTouches;
@@ -605,6 +606,23 @@ function touchEndHandler(event) {
       
       row.touchCaptured = false;
       break;
+    }
+  }
+}
+
+
+function touchCancelHandler(event) {
+  console.log(event.type);
+
+  let row = event.currentTarget;
+  
+  let touches = event.changedTouches;
+  for (let touch of touches) {
+    if (touch.identifier === row.touchId) {
+      row.touchId = -1;
+      row.firstChild.style.width = "";
+      row.firstChild.classList.add("slow-transition");
+      row.touchCaptured = false;
     }
   }
 }
