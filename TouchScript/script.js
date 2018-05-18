@@ -66,7 +66,8 @@ class Script {
     this.PAYLOADS.LITERAL_INPUT = payloads--;
     this.PAYLOADS.RENAME = payloads--;
     this.PAYLOADS.DELETE_ITEM = payloads--;
-    this.PAYLOADS.DELETE_LINE = payloads--;
+    this.PAYLOADS.DELETE_ROW = payloads--;
+    this.PAYLOADS.INSERT_ROW = payloads--;
 
 
     function includes(i) {
@@ -267,6 +268,7 @@ class Script {
 
   itemClicked(row, col) {
     const item = this.data[row][col];
+    let options = [];
 
     if (col < this.data[row].length) {
       if (item !== this.ITEMS.VAR || this.data[row][3] === this.ITEMS.EQUALS) {
@@ -301,6 +303,8 @@ class Script {
           return options;
       }
     }
+
+
 
     if (this.data[row][1] === this.ITEMS.IF
     || this.data[row][1] === this.ITEMS.WHILE
@@ -368,10 +372,18 @@ class Script {
     const rowCount = this.getRowCount();
     const itemCount = (row < rowCount) ? this.getItemCount(row) : 1;
 
-    if (itemCount === 1) {
-      let options;
+    let options = [];
 
+    if (row < rowCount) {
+      options.push( {text: "", style: "delete", payload: this.PAYLOADS.DELETE_ROW} );
+
+      if (row < rowCount - 1 || this.isStartingScope(row))
+        options.push( {text: "", style: "insert", payload: this.PAYLOADS.INSERT_ROW} );
+    }
+
+    if (itemCount === 1) {
       const indentation = (row < rowCount) ? this.getIndentation(row) : 0;
+
       let enclosingScopeType = 0;
       for (let r = Math.min(rowCount, row) - 1; r >= 0; --r) {
         if (this.getIndentation(r) === indentation - 1) {
@@ -381,12 +393,12 @@ class Script {
       }
 
       if (enclosingScopeType === this.ITEMS.SWITCH) {
-        options = [
+        options = [...options,
           {text: "case", style: "keyword", payload: this.ITEMS.CASE}, 
           {text: "default", style: "keyword", payload: this.ITEMS.DEFAULT}
         ];
       } else {
-        options = [
+        options = [...options,
           {text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE},
           {text: "func", style: "keyword", payload: this.PAYLOADS.FUNCTION_DEFINITION},
           {text: "let", style: "keyword", payload: this.ITEMS.LET},
@@ -394,14 +406,9 @@ class Script {
           {text: "if", style: "keyword", payload: this.ITEMS.IF},
           {text: "for", style: "keyword", payload: this.ITEMS.FOR},
           {text: "while", style: "keyword", payload: this.ITEMS.WHILE},
-          {text: "switch", style: "keyword", payload: this.ITEMS.SWITCH}
+          {text: "switch", style: "keyword", payload: this.ITEMS.SWITCH},
+          {text: "return", style: "keyword", payload: this.ITEMS.RETURN}
         ];
-
-        if (enclosingScopeType !== 0) {
-          options.push(
-            {text: "return", style: "keyword", payload: this.ITEMS.RETURN}
-          );
-        }
 
         options.push(...this.getVisibleVariables(Math.min(this.getRowCount(), row), true));
       }
@@ -411,22 +418,20 @@ class Script {
 
     if (this.data[row][1] === this.ITEMS.VAR) {
       if (itemCount === 3) {
-        return [
+        return [...options,
           {text: "=", style: "", payload: this.ITEMS.EQUALS},
           {text: ",", style: "", payload: this.ITEMS.COMMA}
         ];
       }
 
       if (this.data[row][3] === this.ITEMS.COMMA) {
-        return [
+        return [...options,
           {text: ",", style: "", payload: this.ITEMS.COMMA}
         ];
       }
     }
 
     if (this.data[row][1] === this.ITEMS.FUNC) {
-      let options = [];
-
       for (let i = 2; i < this.classes.length; ++i) {
         const c = this.classes[i];
         if (c.size > 0)
@@ -458,12 +463,12 @@ class Script {
       case this.ITEMS.CASE:
         this.data[row][0] |= 1 << 31;
         this.data[row].push(payload, this.HINTS.VALUE);
-        return Script.RESPONSE.ROWS_INSERTED;
+        return Script.RESPONSE.ROW_UPDATED | Script.RESPONSE.ROWS_INSERTED;
 
       case this.ITEMS.DEFAULT:
         this.data[row][0] |= 1 << 31;
         this.data[row].push(payload);
-        return Script.RESPONSE.ROWS_INSERTED;
+        return Script.RESPONSE.ROW_UPDATED | Script.RESPONSE.ROWS_INSERTED;
       
       case this.ITEMS.LET:
       case this.ITEMS.VAR: {
@@ -489,17 +494,17 @@ class Script {
       case this.ITEMS.WHILE:
         this.data[row][0] |= 1 << 31;
         this.data[row].push(payload, this.HINTS.CONDITION);
-        return Script.RESPONSE.ROWS_INSERTED;
+        return Script.RESPONSE.ROW_UPDATED | Script.RESPONSE.ROWS_INSERTED;
 
       case this.ITEMS.FOR:
         this.data[row][0] |= 1 << 31;
         this.data[row].push(payload, this.HINTS.ITEM, this.ITEMS.IN, this.HINTS.COLLECTION);
-        return Script.RESPONSE.ROWS_INSERTED;
+        return Script.RESPONSE.ROW_UPDATED | Script.RESPONSE.ROWS_INSERTED;
 
       case this.ITEMS.SWITCH:
         this.data[row][0] |= 1 << 31;
         this.data[row].push(payload, this.HINTS.CONTROL_EXPRESSION);
-        return Script.RESPONSE.ROWS_INSERTED;
+        return Script.RESPONSE.ROW_UPDATED | Script.RESPONSE.ROWS_INSERTED;
       
       case this.ITEMS.RETURN: {
         let returnType = 0;
@@ -523,7 +528,7 @@ class Script {
         this.functions.push(newFunc);
         this.data[row][0] |= 1 << 31;
         this.data[row].push(this.ITEMS.FUNC, Script.makeItemWithMeta(Script.FUNCTION_DEFINITION, newFunc.returnType, funcId));
-        return Script.RESPONSE.ROWS_INSERTED;
+        return Script.RESPONSE.ROW_UPDATED | Script.RESPONSE.ROWS_INSERTED;
       }
 
       case this.PAYLOADS.LITERAL_INPUT: {
@@ -585,6 +590,14 @@ class Script {
         
         return Script.RESPONSE.SCRIPT_CHANGED;
       }
+
+      case this.PAYLOADS.DELETE_ROW:
+        console.log(`delete_row`);
+        return Script.RESPONSE.ROW_DELETED;
+      
+      case this.PAYLOADS.INSERT_ROW:
+        console.log(`insert_row`);
+        return Script.RESPONSE.ROWS_INSERTED;
 
       case this.PAYLOADS.FUNCTION_REFERENCE:
       case this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN: {
@@ -965,5 +978,6 @@ class Script {
 Script.RESPONSE = {};
 Script.RESPONSE.NO_CHANGE      = 0;
 Script.RESPONSE.ROW_UPDATED    = 1;
-Script.RESPONSE.ROWS_INSERTED  = 1|2;
-Script.RESPONSE.SCRIPT_CHANGED = 4;
+Script.RESPONSE.ROW_DELETED    = 2;
+Script.RESPONSE.ROWS_INSERTED  = 4;
+Script.RESPONSE.SCRIPT_CHANGED = 8;

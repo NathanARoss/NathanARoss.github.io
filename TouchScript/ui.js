@@ -443,8 +443,6 @@ function menuItemClicked(payload) {
   let response = script.menuItemClicked(modal.row, modal.col, payload);
 
   if (typeof response === 'number') {
-    console.log(response);
-
     if ((response & Script.RESPONSE.ROW_UPDATED) !== 0) {
       let outerRow = list.childNodes[modal.row - firstLoadedPosition];
       if (outerRow) {
@@ -455,8 +453,12 @@ function menuItemClicked(payload) {
       }
     }
 
-    if (response === Script.RESPONSE.ROWS_INSERTED) {
+    if ((response & Script.RESPONSE.ROWS_INSERTED) !== 0) {
       insertRow(modal.row + 1);
+    }
+
+    if (response === Script.RESPONSE.ROW_DELETED) {
+      deleteRow(modal.row);
     }
 
     if (response === Script.RESPONSE.SCRIPT_CHANGED) {
