@@ -268,7 +268,6 @@ class Script {
 
   itemClicked(row, col) {
     const item = this.data[row][col];
-    let options = [];
 
     if (col < this.data[row].length) {
       if (item !== this.ITEMS.VAR || this.data[row][3] === this.ITEMS.EQUALS) {
@@ -303,8 +302,6 @@ class Script {
           return options;
       }
     }
-
-
 
     if (this.data[row][1] === this.ITEMS.IF
     || this.data[row][1] === this.ITEMS.WHILE
@@ -592,11 +589,9 @@ class Script {
       }
 
       case this.PAYLOADS.DELETE_ROW:
-        console.log(`delete_row`);
         return Script.RESPONSE.ROW_DELETED;
       
       case this.PAYLOADS.INSERT_ROW:
-        console.log(`insert_row`);
         return Script.RESPONSE.ROWS_INSERTED;
 
       case this.PAYLOADS.FUNCTION_REFERENCE:
