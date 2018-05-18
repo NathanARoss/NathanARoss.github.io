@@ -120,16 +120,16 @@ window.onscroll = function() {
   
   //keep a number of rows prepared for both direction
   while ((firstVisiblePosition - bufferCount + forwardBufferCount > firstLoadedPosition) && (firstLoadedPosition + loadedCount < getRowCount())) {
-    let rowDiv = list.firstChild;
-    list.appendChild(rowDiv);
-    loadRow(firstLoadedPosition + loadedCount, rowDiv);
+    let outerDiv = list.firstChild;
+    list.appendChild(outerDiv);
+    loadRow(firstLoadedPosition + loadedCount, outerDiv);
     ++firstLoadedPosition;
   }
   
   while ((firstVisiblePosition - forwardBufferCount < firstLoadedPosition) && (firstLoadedPosition > 0)) {
-    let rowDiv = list.lastChild;
-    list.insertBefore(rowDiv, list.firstChild);
-    loadRow(firstLoadedPosition - 1, rowDiv);
+    let outerDiv = list.lastChild;
+    list.insertBefore(outerDiv, list.firstChild);
+    loadRow(firstLoadedPosition - 1, outerDiv);
     --firstLoadedPosition;
   }
   
@@ -225,8 +225,8 @@ function createRow() {
   
   let innerDiv = document.createElement("div");
   innerDiv.classList.add("inner-row");
-  innerDiv.appendChild(indentation);
   innerDiv.appendChild(append);
+  innerDiv.appendChild(indentation);
   
   let outerDiv = document.createElement("div");
   outerDiv.classList.add("outer-row");
@@ -285,11 +285,11 @@ function deleteRow(position) {
 function updateLineNumbers(modifiedRow) {
   let count = list.childNodes.length;
   for (let i = modifiedRow; i < count; ++i) {
-    let row = list.childNodes[i];
+    let outerRow = list.childNodes[i];
     let position = i + firstLoadedPosition;
     
-    row.firstChild.firstChild.firstChild.nodeValue = String(position).padStart(4);
-    row.childNodes[1].position = position;
+    outerRow.firstChild.firstChild.firstChild.nodeValue = String(position).padStart(4);
+    outerRow.childNodes[1].position = position;
   }
 }
 
@@ -308,7 +308,7 @@ function loadRow(position, rowDiv, movedPosition = true) {
   }
 
   if (position >= script.getRowCount()) {
-    innerRow.firstChild.style.display = "none";
+    innerRow.childNodes[1].style.display = "none";
   } else {
     let itemCount = script.getItemCount(position);
     for (let col = 1; col < itemCount; ++col) {
@@ -321,17 +321,12 @@ function loadRow(position, rowDiv, movedPosition = true) {
     }
     
     const indentation = script.getIndentation(position);
-    innerRow.firstChild.style.width = 6 * indentation + "px";
-    innerRow.firstChild.style.display = (indentation === 0) ? "none" : "";
+    innerRow.childNodes[1].style.width = 6 * indentation + "px";
+    innerRow.childNodes[1].style.display = (indentation === 0) ? "none" : "";
   }
 
   if (movedPosition) {
-    let button;
-    if (modal.col === -1) {
-      button = innerRow.childNodes[1];
-    } else if (position < script.getRowCount()) {
-        button = innerRow.childNodes[1 + modal.col];
-    }
+    let button = innerRow.childNodes[1 + modal.col];
 
     if (modal.row === position) {
       rowDiv.classList.add("selected");
@@ -391,13 +386,7 @@ function closeModal() {
     let innerRow = outerRow.childNodes[1];
     outerRow.classList.remove("selected");
 
-    let button;
-    if (modal.col === -1) {
-      button = innerRow.childNodes[1];
-    } else {
-      button = innerRow.childNodes[1 + modal.col];
-    }
-
+    let button = innerRow.childNodes[1 + modal.col];
     button.classList.remove("selected");
   }
 
@@ -454,25 +443,29 @@ function menuItemClicked(payload) {
   let response = script.menuItemClicked(modal.row, modal.col, payload);
 
   if (typeof response === 'number') {
-    if (response >= 2) {
-      let rowIndex = modal.row - firstLoadedPosition;
-      if (rowIndex >= 0 && rowIndex < list.childNodes.length) {
-        loadRow(modal.row, list.childNodes[rowIndex], false);
-      }
+    console.log(response);
 
-      if (response === 3) {
-        insertRow(modal.row + 1);
-        insertRow(modal.row + 2);
+    if ((response & Script.RESPONSE.ROW_UPDATED) !== 0) {
+      let outerRow = list.childNodes[modal.row - firstLoadedPosition];
+      if (outerRow) {
+        loadRow(modal.row, outerRow, false);
+        if (modal.col === -1) {
+          outerRow.childNodes[1].scrollLeft = 1e10;
+        }
       }
-
-      //configuring a row out of bounds inserts additional rows
-      document.body.style.height = getRowCount() * rowHeight + "px";
-    } else if (response === 1) {
-      //menuItemClicked(response[0].payload);
-      //TODO update the contents of just the modified item
-      let rowIndex = modal.row - firstLoadedPosition;
-      loadRow(modal.row, list.childNodes[rowIndex], false);
     }
+
+    if (response === Script.RESPONSE.ROWS_INSERTED) {
+      insertRow(modal.row + 1);
+    }
+
+    if (response === Script.RESPONSE.SCRIPT_CHANGED) {
+      for (const outerRow of list.childNodes) {
+        loadRow(outerRow.childNodes[1].position, outerRow, false);
+      }
+    }
+
+    document.body.style.height = getRowCount() * rowHeight + "px";
   }
   else if (Array.isArray(response) && response.length > 0) {
     configureModal(response, modal.row, modal.col);
@@ -511,22 +504,21 @@ function itemClickHandler(event) {
 
 
 function touchStartHandler(event) {
-  console.log(event.type);
 
-  let row = event.currentTarget;
+  let outerRow = event.currentTarget;
   
-  if (row.touchId === -1) {
-    row.sliding = false;
+  if (outerRow.touchId === -1) {
+    outerRow.sliding = false;
     
     let touch = event.changedTouches[0];
-    row.touchId = touch.identifier;
-    row.touchStartX = touch.pageX;
-    row.touchCaptured = false;
+    outerRow.touchId = touch.identifier;
+    outerRow.touchStartX = touch.pageX;
+    outerRow.touchCaptured = false;
     
-    row.firstChild.classList.remove("slow-transition");
-    row.firstChild.style.width = null;
+    outerRow.firstChild.classList.remove("slow-transition");
+    outerRow.firstChild.style.width = "";
     
-    row.slideMenuStartWidth = row.firstChild.offsetWidth;
+    outerRow.slideMenuStartWidth = outerRow.firstChild.offsetWidth;
     
   }
 }
@@ -553,8 +545,6 @@ function existingTouchHandler(event) {
           touchCanceled(row);
         break;
       }
-      
-      break;
     }
   }
 }
@@ -585,8 +575,6 @@ function touchMoved(row, touch) {
 
 
 function touchEnded(row, touch) {
-  row.touchId = -1;
-  
   if (row.touchCaptured) {
     row.firstChild.classList.add("slow-transition");
     row.firstChild.style.width = "";
@@ -604,6 +592,7 @@ function touchEnded(row, touch) {
     }
   }
   
+  row.touchId = -1;
   row.touchCaptured = false;
 }
 
@@ -641,4 +630,5 @@ function draw(timestamp) {
 
 function print(output) {
   consoleOutput.textContent += output + "\n";
+  consoleOutput.scrollTop = consoleOutput.scrollHeight;
 }

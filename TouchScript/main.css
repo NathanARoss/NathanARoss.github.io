@@ -51,9 +51,9 @@ button.selected {
   display: inline-flex;
   height: var(--line-height);
   width: 100%;
-  overflow-x: scroll;
   overflow-y: hidden;
   vertical-align: top;
+  -ms-overflow-style: none;
 }
 
 .slide-menu {
@@ -111,7 +111,7 @@ button.selected {
 
 /* Desktop Firefox, mobile Firefox (not Firefox Focus), Samsung Browser (oddly) */
 @-moz-document url-prefix() {
-  .inner-row, .slide-menu {
+  .inner-row {
     height: calc(30px + var(--line-height));
   }
 }
