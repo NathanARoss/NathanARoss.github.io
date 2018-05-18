@@ -504,45 +504,37 @@ function itemClickHandler(event) {
 
 
 function touchStartHandler(event) {
-
   let outerRow = event.currentTarget;
+  let touch = event.changedTouches[0];
   
   if (outerRow.touchId === -1) {
-    outerRow.sliding = false;
-    
-    let touch = event.changedTouches[0];
     outerRow.touchId = touch.identifier;
-    outerRow.touchStartX = touch.pageX;
-    outerRow.touchCaptured = false;
+    outerRow.touchStartX = touch.pageX + outerRow.childNodes[1].scrollLeft;
     
     outerRow.firstChild.classList.remove("slow-transition");
-    outerRow.firstChild.style.width = "";
-    
     outerRow.slideMenuStartWidth = outerRow.firstChild.offsetWidth;
-    
   }
 }
 
 
 function existingTouchHandler(event) {
-  console.log(event.type);
+  const outerRow = event.currentTarget;
 
-  let row = event.currentTarget;
-  
-  let touches = event.changedTouches;
-  for (let touch of touches) {
-    if (touch.identifier === row.touchId) {
+  for (const touch of event.changedTouches) {
+    if (touch.identifier === outerRow.touchId) {
       switch (event.type) {
         case "touchmove":
-          touchMoved(row, touch);
+          touchMoved(outerRow, touch);
+          if (outerRow.touchCaptured)
+            event.preventDefault();
         break;
 
         case "touchend":
-          touchEnded(row, touch);
+          touchEnded(outerRow, touch);
         break;
 
         case "touchcancel":
-          touchCanceled(row);
+          touchCanceled(outerRow);
         break;
       }
     }
@@ -550,58 +542,51 @@ function existingTouchHandler(event) {
 }
 
 
-function touchMoved(row, touch) {
-  let travel = touch.pageX - row.touchStartX;
-  let scrollX = row.childNodes[1].scrollLeft;
+function touchMoved(outerRow, touch) {
+  let travel = touch.pageX - outerRow.touchStartX;
   
-  if (scrollX > 0) {
-    row.touchStartX = touch.pageX + scrollX;
-  }
-  else if (!row.touchCaptured && travel > 10) {
-    row.touchCaptured = true;
-    row.touchStartX += 10;
+  if (!outerRow.touchCaptured && travel > 10) {
+    outerRow.touchCaptured = true;
+    outerRow.touchStartX += 10;
     travel -= 10;
   }
   
-  if (row.touchCaptured) {
-    if (travel < -10) {
-      row.touchCaptured = false;
-      row.firstChild.style.width = "";
-    } else {
-      row.firstChild.style.width = row.slideMenuStartWidth + Math.max(0, travel) + "px";
+  if (outerRow.touchCaptured) {
+    if (travel < 0) {
+      outerRow.touchStartX = touch.pageX;
+      travel = 0;
     }
+
+    outerRow.firstChild.style.width = outerRow.slideMenuStartWidth + travel + "px";
   }
 }
 
 
-function touchEnded(row, touch) {
-  if (row.touchCaptured) {
-    row.firstChild.classList.add("slow-transition");
-    row.firstChild.style.width = "";
-    
-    const position = row.childNodes[1].position;
+function touchEnded(outerRow, touch) {
+  if (outerRow.touchCaptured) {
+    const position = outerRow.childNodes[1].position;
     if (position < script.getRowCount()) {
-      let travel = touch.pageX - row.touchStartX;
+      let travel = touch.pageX - outerRow.touchStartX;
       
       if (travel > 200) {
         deleteRow(position);
-      }
-      else if (travel > 80) {
+      } else if (travel > 80) {
         insertRow(position + 1);
       }
     }
+
+    touchCanceled(outerRow);
   }
   
-  row.touchId = -1;
-  row.touchCaptured = false;
+  outerRow.touchId = -1;
 }
 
 
-function touchCanceled(row) {
-  row.touchId = -1;
-  row.firstChild.style.width = "";
-  row.firstChild.classList.add("slow-transition");
-  row.touchCaptured = false;
+function touchCanceled(outerRow) {
+  outerRow.touchId = -1;
+  outerRow.firstChild.classList.add("slow-transition");
+  outerRow.firstChild.style.width = "";
+  outerRow.touchCaptured = false;
 }
 
 
