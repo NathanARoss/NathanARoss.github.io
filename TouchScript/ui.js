@@ -234,10 +234,10 @@ function createRow() {
   outerDiv.appendChild(innerDiv);
   
   outerDiv.touchId = -1;
-  outerDiv.addEventListener("touchstart", touchStartHandler);
-  outerDiv.addEventListener("touchmove", existingTouchHandler);
-  outerDiv.addEventListener("touchend", existingTouchHandler);
-  outerDiv.addEventListener("touchcancel", existingTouchHandler);
+  outerDiv.addEventListener("touchstart", touchStartHandler, {passive: true});
+  outerDiv.addEventListener("touchmove", existingTouchHandler, {passive: true});
+  outerDiv.addEventListener("touchend", existingTouchHandler, {passive: true});
+  outerDiv.addEventListener("touchcancel", existingTouchHandler, {passive: true});
   
   return outerDiv;
 }
@@ -512,9 +512,6 @@ function touchStartHandler(event) {
   if (outerRow.touchId === -1) {
     outerRow.touchId = touch.identifier;
     outerRow.touchStartX = touch.pageX + outerRow.childNodes[1].scrollLeft;
-    
-    outerRow.firstChild.classList.remove("slow-transition");
-    outerRow.slideMenuStartWidth = outerRow.firstChild.offsetWidth;
   }
 }
 
@@ -527,8 +524,6 @@ function existingTouchHandler(event) {
       switch (event.type) {
         case "touchmove":
           touchMoved(outerRow, touch);
-          if (outerRow.touchCaptured)
-            event.preventDefault();
         break;
 
         case "touchend":
@@ -549,17 +544,15 @@ function touchMoved(outerRow, touch) {
   
   if (!outerRow.touchCaptured && travel > 10) {
     outerRow.touchCaptured = true;
+    outerRow.firstChild.classList.remove("slow-transition");
+    outerRow.childNodes[1].style.overflowX = "hidden";
+    outerRow.slideMenuStartWidth = outerRow.firstChild.offsetWidth;
     outerRow.touchStartX += 10;
     travel -= 10;
   }
   
   if (outerRow.touchCaptured) {
-    if (travel < 0) {
-      outerRow.touchStartX = touch.pageX;
-      travel = 0;
-    }
-
-    outerRow.firstChild.style.width = outerRow.slideMenuStartWidth + travel + "px";
+    outerRow.firstChild.style.width = outerRow.slideMenuStartWidth + Math.max(travel, 0) + "px";
   }
 }
 
@@ -576,19 +569,20 @@ function touchEnded(outerRow, touch) {
         insertRow(position + 1);
       }
     }
-
-    touchCanceled(outerRow);
   }
   
-  outerRow.touchId = -1;
+  touchCanceled(outerRow);
 }
 
 
 function touchCanceled(outerRow) {
   outerRow.touchId = -1;
-  outerRow.firstChild.classList.add("slow-transition");
-  outerRow.firstChild.style.width = "";
-  outerRow.touchCaptured = false;
+  if (outerRow.touchCaptured) {
+    outerRow.touchCaptured = false;
+    outerRow.firstChild.classList.add("slow-transition");
+    outerRow.childNodes[1].style.overflowX = "";
+    outerRow.firstChild.style.width = "";
+  }
 }
 
 
