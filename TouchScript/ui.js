@@ -221,7 +221,7 @@ function createRow() {
 
   let append = document.createElement("button");
   append.classList.add("append");
-  append.onclick = appendClicked;
+  append.addEventListener("click", appendClicked);
   
   let innerDiv = document.createElement("div");
   innerDiv.classList.add("inner-row");
@@ -350,7 +350,7 @@ function getItem(text) {
   } else {
     let node = document.createElement("button");
     node.appendChild(document.createTextNode(text));
-    node.onclick = itemClickHandler;
+    node.addEventListener("click",  itemClickHandler);
     return node;
   }
 }
@@ -479,13 +479,12 @@ function menuItemClicked(payload) {
 
 function itemClickHandler(event) {
   event.stopPropagation();
-  let button = event.target;
 
-  let row = button.parentElement.position|0;
-  let col = button.position|0;
+  let row = this.parentElement.position|0;
+  let col = this.position|0;
 
-  if (button.parentElement === modal) {
-    menuItemClicked(button.position);
+  if (this.parentElement === modal) {
+    menuItemClicked(this.position);
     return;
   }
   
@@ -493,47 +492,44 @@ function itemClickHandler(event) {
   if (Array.isArray(options)) {
     if (options.length > 0) {
       configureModal(options, row, col);
-      event.currentTarget.parentElement.parentElement.classList.add("selected");
-      event.currentTarget.classList.add("selected");
+      this.parentElement.parentElement.classList.add("selected");
+      this.classList.add("selected");
     }
   }
   else {
-    button.firstChild.nodeValue = options.text;
-    button.className = "item " + options.style;
+    this.firstChild.nodeValue = options.text;
+    this.className = "item " + options.style;
   }
 }
 
 
 
 function touchStartHandler(event) {
-  let outerRow = event.currentTarget;
   let touch = event.changedTouches[0];
   
-  if (outerRow.touchId === -1) {
-    outerRow.touchId = touch.identifier;
-    outerRow.touchStartX = touch.pageX + outerRow.childNodes[1].scrollLeft;
+  if (this.touchId === -1) {
+    this.touchId = touch.identifier;
+    this.touchStartX = touch.pageX + this.childNodes[1].scrollLeft;
   }
 }
 
 
 function existingTouchHandler(event) {
-  const outerRow = event.currentTarget;
-
   for (const touch of event.changedTouches) {
-    if (touch.identifier === outerRow.touchId) {
+    if (touch.identifier === this.touchId) {
       switch (event.type) {
         case "touchmove":
-          touchMoved(outerRow, touch);
-          if (outerRow.touchCaptured)
+          touchMoved(this, touch);
+          if (this.touchCaptured)
             event.preventDefault();
         break;
 
         case "touchend":
-          touchEnded(outerRow, touch);
+          touchEnded(this, touch);
         break;
 
         case "touchcancel":
-          touchCanceled(outerRow);
+          touchCanceled(this);
         break;
       }
     }
