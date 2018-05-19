@@ -64,6 +64,7 @@ class Script {
     this.PAYLOADS.FUNCTION_REFERENCE = payloads--;
     this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN = payloads--;
     this.PAYLOADS.LITERAL_INPUT = payloads--;
+    this.PAYLOADS.PARENTHESIS_PAIR = payloads--;
     this.PAYLOADS.RENAME = payloads--;
     this.PAYLOADS.DELETE_ITEM = payloads--;
 
@@ -82,7 +83,7 @@ class Script {
 
     this.ASSIGNMENT_OPERATORS = {start: 0, end: 9, includes, getMenuItems};
     this.BINARY_OPERATORS = {start: 9, end: 27, includes, getMenuItems};
-    this.UNARY_OPERATORS = {start: 27, end: 31, includes, getMenuItems};
+    this.UNARY_OPERATORS = {start: 27, end: 30, includes, getMenuItems};
     
     if (SAMPLE_SCRIPT)
       this.loadScript(SAMPLE_SCRIPT);
@@ -273,102 +274,75 @@ class Script {
       col = this.data[row].length;
     }
 
-    const item = this.data[row][col];
+    let options = [];
+    const item = this.data[row][col] || 0xFFFFFFFF;
+    const format = item >>> 28;
+    const data = item & 0xFFFFFFF;
+    const meta = data >>> 16;
+    const value = item & 0xFFFF;
+    
 
-    if (col < this.data[row].length) {
+    if (format === Script.KEYWORD) {
       if (item !== this.ITEMS.VAR || this.data[row][3] === this.ITEMS.EQUALS) {
         const i = this.toggles.indexOf(item);
         if (i !== -1) {
           this.data[row][col] = this.toggles[i ^ 1];
-          const [text, style] = this.getItem(row, col);
-          return {text, style};
+          let newKeyword = this.keywords[this.data[row][col] & 0xFFFFFF];
+          return {text: newKeyword, style: "keyword"};
         }
-      }
-
-      if (col === 1 && item >>> 28 === Script.VARIABLE_REFERENCE) {
-        return this.getVisibleVariables(row, true);
-      }
-
-      if (col === 2 && item >>> 28 === Script.SYMBOL && this.ASSIGNMENT_OPERATORS.includes(item & 0xFFFF)) {
-        return this.ASSIGNMENT_OPERATORS.getMenuItems();
-      }
-
-      switch (item >>> 28) {
-        case Script.VARIABLE_DEFINITION:
-        case Script.FUNCTION_DEFINITION:
-          let options = [{text: "", style: "text-input", payload: this.PAYLOADS.RENAME}];
-          options.push({text: "auto", style: "comment", payload: Script.makeItemWithMeta(Script.COMMENT, 0, 0)});
-          
-          for (let i = 2; i < this.classes.length; ++i) {
-            const c = this.classes[i];
-            if (c.size > 0)
-              options.push({text: c.name, style: "keyword", payload: Script.makeItemWithMeta(Script.COMMENT, i, 0)});
-          }
-
-          return options;
       }
     }
 
-    if (this.data[row][1] === this.ITEMS.IF
-    || this.data[row][1] === this.ITEMS.WHILE
-    || this.data[row][1] >>> 28 === Script.FUNCTION_REFERENCE
-    || this.ASSIGNMENT_OPERATORS.includes(this.data[row][2] & 0xFFFF)
-    || this.data[row][3] === this.ITEMS.EQUALS) {
+    if (format === Script.SYMBOL && this.ASSIGNMENT_OPERATORS.includes(data)) {
+      return this.ASSIGNMENT_OPERATORS.getMenuItems();
+    }
+
+    if (col === 1) {
+      if (format === Script.VARIABLE_REFERENCE)
+        options.push(...this.getVisibleVariables(row, true));
+      else if (format === Script.FUNCTION_REFERENCE) {
+        options.push(...this.getFunctionList(true));
+      }
+    } else {
       const prevItem = this.data[row][col - 1];
       const prevFormat = prevItem >>> 28;
+      const prevData = prevItem & 0xFFFFFFF;
+      const prevMeta = prevData >>> 16;
+      const prevValue = prevItem & 0xFFFF;
 
-      if (prevFormat === Script.VARIABLE_REFERENCE
-      || prevFormat === Script.NUMERIC_LITERAL
-      || prevFormat === Script.STRING_LITERAL
-      || prevFormat === Script.FUNCTION_REFERENCE
-      || prevItem === this.ITEMS.END_PARENTHESIS) {
-        let options = [];
+      if (format === Script.VARIABLE_DEFINITION || format === Script.FUNCTION_DEFINITION) {
+        options.push({text: "", style: "text-input", payload: this.PAYLOADS.RENAME});
 
-        let parenthesisDepth = 0;
-        for (let i = 1; i < this.data[row].length; ++i) {
-          let item = this.data[row][i];
-          if (item === this.ITEMS.START_PARENTHESIS)
-            ++parenthesisDepth;
-          else if (item === this.ITEMS.END_PARENTHESIS) {
-            --parenthesisDepth;
-          }
+        let option = {text: "", style: "comment", payload: Script.makeItemWithMeta(Script.COMMENT, 0, 0)};
+        option.text = (format === Script.FUNCTION_DEFINITION) ? "none" : "auto";
+        options.push(option);
+            
+        for (let i = 2; i < this.classes.length; ++i) {
+          const c = this.classes[i];
+          if (c.size > 0)
+            options.push({text: c.name, style: "keyword", payload: Script.makeItemWithMeta(Script.COMMENT, i, 0)});
         }
-
-        if (parenthesisDepth > 0)
-          options.push({text: ")", style: "", payload: this.ITEMS.END_PARENTHESIS});
-        
-        options.push(...this.BINARY_OPERATORS.getMenuItems());
-        return options;
       }
 
-      if (prevFormat === Script.SYMBOL
-      || prevItem === this.ITEMS.IF
-      || prevItem === this.ITEMS.WHILE
-      || prevItem === this.ITEMS.COMMA) {
-        const symbol = prevItem & 0x00FFFFFF;
+      if (prevFormat === Script.SYMBOL && (this.BINARY_OPERATORS.includes(prevData) || this.ASSIGNMENT_OPERATORS.includes(prevData))
+      || prevItem === this.ITEMS.WHILE || prevItem === this.ITEMS.IF || prevItem === this.ITEMS.START_PARENTHESIS || prevItem === this.ITEMS.COMMA) {
+        options.push( {text: "( )", style: "", payload: this.PAYLOADS.PARENTHESIS_PAIR} );
+        options.push(...this.UNARY_OPERATORS.getMenuItems());
+      }
 
-        if (this.BINARY_OPERATORS.includes(symbol)
-        || this.ASSIGNMENT_OPERATORS.includes(symbol)
-        || prevItem === this.ITEMS.IF
-        || prevItem === this.ITEMS.START_PARENTHESIS
-        || prevItem === this.ITEMS.WHILE
-        || prevItem === this.ITEMS.COMMA) {
-          let options = this.UNARY_OPERATORS.getMenuItems();
-          options.push({text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN});
-          options.push({text: "", style: "text-input", payload: this.PAYLOADS.LITERAL_INPUT});
-          options.push(...this.getVisibleVariables(row, false));
-          return options;
-        }
-        else if (this.UNARY_OPERATORS.includes(symbol)) {
-          let options = [{text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN}];
-          options.push({text: "", style: "text-input", payload: this.PAYLOADS.LITERAL_INPUT});
-          options.push(...this.getVisibleVariables(row, false));
-          return options;
-        }
+      if (prevFormat === Script.VARIABLE_REFERENCE || prevFormat === Script.NUMERIC_LITERAL || prevFormat === Script.STRING_LITERAL) {
+        options.push(...this.BINARY_OPERATORS.getMenuItems());
+      }
+
+      if (prevFormat === Script.SYMBOL && (this.BINARY_OPERATORS.includes(prevData) || this.UNARY_OPERATORS.includes(prevData) || this.ASSIGNMENT_OPERATORS.includes(prevData))
+      || prevItem === this.ITEMS.WHILE || prevItem === this.ITEMS.IF || prevItem === this.ITEMS.START_PARENTHESIS || prevItem === this.ITEMS.COMMA) {
+        options.push( {text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN} );
+        options.push( {text: "", style: "text-input", payload: this.PAYLOADS.LITERAL_INPUT} );
+        options.push(...this.getVisibleVariables(row, false));
       }
     }
 
-    return [];
+    return options;
   }
 
   appendClicked(row) {
@@ -427,6 +401,8 @@ class Script {
     }
 
     if (this.data[row][1] === this.ITEMS.FUNC) {
+      let options = [];
+
       for (let i = 2; i < this.classes.length; ++i) {
         const c = this.classes[i];
         if (c.size > 0)
@@ -588,18 +564,8 @@ class Script {
 
       case this.PAYLOADS.FUNCTION_REFERENCE:
       case this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN: {
-        const allowAnything = payload === this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN;
-        let options = [];
-
-        for (let i = 0; i < this.functions.length; ++i) {
-          const func = this.functions[i];
-          if (allowAnything || func.returnType !== 0) {
-            const scope = this.classes[func.scope];
-            options.push({text: scope.name + "\n" + func.name, style: "keyword-call", payload: Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, func.scope, i)});
-          }
-        }
-
-        return options;
+        const requireReturn = payload === this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN;
+        return this.getFunctionList(requireReturn);
       }
 
       case this.ITEMS.EQUALS:
@@ -611,6 +577,11 @@ class Script {
         let type = (this.data[row].peek() >>> 16) & 0x0FFF;
         this.variables.push({name: `var${varId}`, type: type});
         this.data[row].push(this.ITEMS.COMMA, Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
+        return Script.RESPONSE.ROW_UPDATED;
+      }
+
+      case this.PAYLOADS.PARENTHESIS_PAIR: {
+        this.data[row].splice(col, 1, this.ITEMS.START_PARENTHESIS, this.data[row][col], this.ITEMS.END_PARENTHESIS);
         return Script.RESPONSE.ROW_UPDATED;
       }
     }
@@ -722,6 +693,20 @@ class Script {
     return options;
   }
 
+  getFunctionList(requireReturn) {
+    let options = [];
+
+    for (let i = 0; i < this.functions.length; ++i) {
+      const func = this.functions[i];
+      if (!requireReturn || func.returnType !== 0) {
+        const scope = this.classes[func.scope];
+        options.push({text: scope.name + "\n" + func.name, style: "keyword-call", payload: Script.makeItemWithMeta(Script.FUNCTION_REFERENCE, func.scope, i)});
+      }
+    }
+
+    return options;
+  }
+
   insertRow(row) {
     let line = [this.getIndentation(row - 1) + this.isStartingScope(row - 1)];
     this.data.splice(row, 0, line);
@@ -748,11 +733,11 @@ class Script {
   }
 
   getItem(row, col) {
-    let item = this.data[row][col];
-    let format = item >>> 28; //4 bits
-    let data = item & 0xFFFFFFF; //28 bits
-    let meta = data >>> 16; //12 bits
-    let value = item & 0xFFFF; //16 bits
+    const item = this.data[row][col];
+    const format = item >>> 28; //4 bits
+    const data = item & 0xFFFFFFF; //28 bits
+    const meta = data >>> 16; //12 bits
+    const value = item & 0xFFFF; //16 bits
 
     switch (format) {
       case Script.VARIABLE_DEFINITION:
@@ -775,7 +760,7 @@ class Script {
 
       case Script.FUNCTION_DEFINITION:
         if (meta === 0)
-          return [func.name, "function-definition"];
+          return [this.functions[value].name, "function-definition"];
         else
           return [this.classes[meta].name + '\n' + this.functions[value].name, "keyword-def"];
 
