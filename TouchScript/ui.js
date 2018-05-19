@@ -410,10 +410,6 @@ function menuItemClicked(payload) {
       insertRow(modal.row + 1);
     }
 
-    if (response === Script.RESPONSE.ROW_DELETED) {
-      deleteRow(modal.row);
-    }
-
     if (response === Script.RESPONSE.SCRIPT_CHANGED) {
       for (const outerRow of list.childNodes) {
         loadRow(outerRow.childNodes[1].position, outerRow, false);

@@ -66,8 +66,6 @@ class Script {
     this.PAYLOADS.LITERAL_INPUT = payloads--;
     this.PAYLOADS.RENAME = payloads--;
     this.PAYLOADS.DELETE_ITEM = payloads--;
-    this.PAYLOADS.DELETE_ROW = payloads--;
-    this.PAYLOADS.INSERT_ROW = payloads--;
 
 
     function includes(i) {
@@ -588,12 +586,6 @@ class Script {
         return Script.RESPONSE.SCRIPT_CHANGED;
       }
 
-      case this.PAYLOADS.DELETE_ROW:
-        return Script.RESPONSE.ROW_DELETED;
-      
-      case this.PAYLOADS.INSERT_ROW:
-        return Script.RESPONSE.ROWS_INSERTED;
-
       case this.PAYLOADS.FUNCTION_REFERENCE:
       case this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN: {
         const allowAnything = payload === this.PAYLOADS.FUNCTION_REFERENCE_WITH_RETURN;
@@ -973,6 +965,5 @@ class Script {
 Script.RESPONSE = {};
 Script.RESPONSE.NO_CHANGE      = 0;
 Script.RESPONSE.ROW_UPDATED    = 1;
-Script.RESPONSE.ROW_DELETED    = 2;
-Script.RESPONSE.ROWS_INSERTED  = 4;
-Script.RESPONSE.SCRIPT_CHANGED = 8;
+Script.RESPONSE.ROWS_INSERTED  = 2;
+Script.RESPONSE.SCRIPT_CHANGED = 4;
