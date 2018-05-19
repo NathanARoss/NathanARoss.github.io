@@ -235,7 +235,7 @@ function createRow() {
   
   outerDiv.touchId = -1;
   outerDiv.addEventListener("touchstart", touchStartHandler, {passive: true});
-  outerDiv.addEventListener("touchmove", existingTouchHandler, {passive: true});
+  outerDiv.addEventListener("touchmove", existingTouchHandler, {passive: false});
   outerDiv.addEventListener("touchend", existingTouchHandler, {passive: true});
   outerDiv.addEventListener("touchcancel", existingTouchHandler, {passive: true});
   
