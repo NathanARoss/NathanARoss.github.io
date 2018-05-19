@@ -267,6 +267,14 @@ class Script {
   }
 
   itemClicked(row, col) {
+    if (col === -1) {
+      let options = this.appendClicked(row);
+      if (options)
+        return options;
+      
+      col = this.data[row].length;
+    }
+
     const item = this.data[row][col];
 
     if (col < this.data[row].length) {
@@ -369,17 +377,9 @@ class Script {
     const rowCount = this.getRowCount();
     const itemCount = (row < rowCount) ? this.getItemCount(row) : 1;
 
-    let options = [];
-
-    if (row < rowCount) {
-      options.push( {text: "", style: "delete", payload: this.PAYLOADS.DELETE_ROW} );
-
-      if (row < rowCount - 1 || this.isStartingScope(row))
-        options.push( {text: "", style: "insert", payload: this.PAYLOADS.INSERT_ROW} );
-    }
-
     if (itemCount === 1) {
       const indentation = (row < rowCount) ? this.getIndentation(row) : 0;
+      let options = [];
 
       let enclosingScopeType = 0;
       for (let r = Math.min(rowCount, row) - 1; r >= 0; --r) {
@@ -390,12 +390,12 @@ class Script {
       }
 
       if (enclosingScopeType === this.ITEMS.SWITCH) {
-        options = [...options,
+        options = [
           {text: "case", style: "keyword", payload: this.ITEMS.CASE}, 
           {text: "default", style: "keyword", payload: this.ITEMS.DEFAULT}
         ];
       } else {
-        options = [...options,
+        options = [
           {text: "f(x)", style: "function-call", payload: this.PAYLOADS.FUNCTION_REFERENCE},
           {text: "func", style: "keyword", payload: this.PAYLOADS.FUNCTION_DEFINITION},
           {text: "let", style: "keyword", payload: this.ITEMS.LET},
@@ -415,14 +415,14 @@ class Script {
 
     if (this.data[row][1] === this.ITEMS.VAR) {
       if (itemCount === 3) {
-        return [...options,
+        return [
           {text: "=", style: "", payload: this.ITEMS.EQUALS},
           {text: ",", style: "", payload: this.ITEMS.COMMA}
         ];
       }
 
       if (this.data[row][3] === this.ITEMS.COMMA) {
-        return [...options,
+        return [
           {text: ",", style: "", payload: this.ITEMS.COMMA}
         ];
       }
@@ -438,7 +438,7 @@ class Script {
       return options;
     }
 
-    return this.itemClicked(row, this.data[row].length);
+    return null;
   }
 
   //0 -> no change, 1 -> click item changed, 2-> row changed, 3 -> row(s) inserted

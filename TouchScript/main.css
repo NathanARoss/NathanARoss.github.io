@@ -186,9 +186,6 @@ button {
 .text-input {
   background: url(baseline-keyboard-24px.svg) no-repeat center;
 }
-.insert {
-  background: url(ic_subdirectory_arrow_left_white_24px.svg) no-repeat center;
-}
 .delete {
   background: url(ic_delete_white_24px.svg) no-repeat center;
 }
@@ -248,11 +245,15 @@ canvas, #modal, #console-output {
 }
 
 #modal {
-  display: flex;
+  display: none;
   justify-content: center;
   align-content: flex-start;
   flex-wrap: wrap-reverse;
   z-index: 2
+}
+
+.selected #modal {
+  display: flex;
 }
 
 .modal-item {

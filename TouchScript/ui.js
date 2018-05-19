@@ -26,8 +26,7 @@ const script = new Script();
 
 
 
-modal.style.display = "none";
-modal.onclick = modalContainerClicked;
+modal.addEventListener("click", modalContainerClicked);
 
 canvas.addEventListener("contextmenu", preventDefault);
 
@@ -215,16 +214,18 @@ function createRow() {
   slideMenu.addEventListener("mousedown", slideMenuClickHandler);
   slideMenu.addEventListener("contextmenu", preventDefault);
   slideMenu.addEventListener("touchstart", preventDefault);
-  
-  let indentation = document.createElement("button");
-  indentation.classList.add("indentation");
 
   let append = document.createElement("button");
   append.classList.add("append");
-  append.addEventListener("click", appendClicked);
+  append.position = -1;
+  
+  let indentation = document.createElement("button");
+  indentation.classList.add("indentation");
+  indentation.position = 0;
   
   let innerDiv = document.createElement("div");
   innerDiv.classList.add("inner-row");
+  innerDiv.addEventListener("click", rowClickHandler, {passive: true});
   innerDiv.appendChild(append);
   innerDiv.appendChild(indentation);
   
@@ -350,99 +351,51 @@ function getItem(text) {
   } else {
     let node = document.createElement("button");
     node.appendChild(document.createTextNode(text));
-    node.addEventListener("click",  itemClickHandler);
     return node;
   }
 }
 
 
 
-function configureModal(options, row, col) {
+function configureModal(options) {
+  while (modal.hasChildNodes()) {
+    buttonPool.push(modal.lastChild);
+    modal.removeChild(modal.lastChild);
+  }
+
   for (const option of options) {
     let button = getItem(option.text);
     button.className = "item modal-item " + option.style;
     button.position = option.payload;
     modal.appendChild(button);
   }
-
-  modal.row = row;
-  modal.col = col;
-  modal.style.display = "";
-  document.body.classList.add("selected");
 }
 
 function closeModal() {
-  modal.style.display = "none";
-  document.body.classList.remove("selected");
-
   while (modal.hasChildNodes()) {
     buttonPool.push(modal.lastChild);
     modal.removeChild(modal.lastChild);
   }
 
-  let rowIndex = modal.row - firstLoadedPosition;
-  if (rowIndex >= 0 && rowIndex < list.childNodes.length) {
-    let outerRow = list.childNodes[rowIndex];
-    let innerRow = outerRow.childNodes[1];
+  let outerRow = list.childNodes[modal.row - firstLoadedPosition];
+  if (outerRow) {
     outerRow.classList.remove("selected");
 
-    let button = innerRow.childNodes[1 + modal.col];
+    let button = outerRow.childNodes[1].childNodes[1 + modal.col];
     button.classList.remove("selected");
   }
 
   modal.row = -1;
-  modal.col = -1;
-}
-
-
-
-function preventDefault(e) {
-  e.preventDefault();
-}
-
-function modalContainerClicked(event) {
-  event.stopPropagation();
-  event.preventDefault();
-  closeModal();
-}
-
-function slideMenuClickHandler(event) {
-  let slideMenu = event.currentTarget;
-  let position = slideMenu.nextSibling.position;
-
-  if (position < script.getRowCount()) {
-    switch (event.button) {
-      case 0:
-        insertRow(position + 1);
-        break;
-      
-      case 2:
-        deleteRow(position);
-        break;
-    }
-  }
-}
-
-function appendClicked(event) {
-  let row = event.currentTarget.parentElement.position|0;
-  let options = script.appendClicked(row);
-
-  if (options.length > 0) {
-    configureModal(options, row, -1);
-    event.currentTarget.parentElement.parentElement.classList.add("selected");
-    event.currentTarget.classList.add("selected");
-  }
+  document.body.classList.remove("selected");
 }
 
 function menuItemClicked(payload) {
-  while (modal.hasChildNodes()) {
-    buttonPool.push(modal.lastChild);
-    modal.removeChild(modal.lastChild);
-  }
-
   let response = script.menuItemClicked(modal.row, modal.col, payload);
 
-  if (typeof response === 'number') {
+  if (Array.isArray(response) && response.length > 0) {
+    configureModal(response);
+    return;
+  } else if (typeof response === 'number') {
     if ((response & Script.RESPONSE.ROW_UPDATED) !== 0) {
       let outerRow = list.childNodes[modal.row - firstLoadedPosition];
       if (outerRow) {
@@ -469,36 +422,57 @@ function menuItemClicked(payload) {
 
     document.body.style.height = getRowCount() * rowHeight + "px";
   }
-  else if (Array.isArray(response) && response.length > 0) {
-    configureModal(response, modal.row, modal.col);
-    return;
-  }
 
   closeModal();
 }
 
-function itemClickHandler(event) {
-  event.stopPropagation();
 
-  let row = this.parentElement.position|0;
-  let col = this.position|0;
 
-  if (this.parentElement === modal) {
-    menuItemClicked(this.position);
-    return;
+function preventDefault(event) {
+  event.preventDefault();
+}
+
+function modalContainerClicked(event) {
+  if (event.target !== this) {
+    menuItemClicked(event.target.position);
+  } else {
+    closeModal();
   }
-  
+}
+
+function slideMenuClickHandler(event) {
+  let position = this.nextSibling.position;
+  if (position < script.getRowCount()) {
+    switch (event.button) {
+      case 0:
+        insertRow(position + 1);
+        break;
+      
+      case 2:
+        deleteRow(position);
+        break;
+    }
+  }
+}
+
+function rowClickHandler(event) {
+  let row = this.position|0;
+  let col = event.target.position|0;
   let options = script.itemClicked(row, col);
+
   if (Array.isArray(options)) {
     if (options.length > 0) {
-      configureModal(options, row, col);
-      this.parentElement.parentElement.classList.add("selected");
-      this.classList.add("selected");
+      modal.row = row;
+      modal.col = col;
+      configureModal(options);
+      document.body.classList.add("selected");
+      this.parentElement.classList.add("selected");
+      event.target.classList.add("selected");
     }
   }
   else {
-    this.firstChild.nodeValue = options.text;
-    this.className = "item " + options.style;
+    event.target.firstChild.nodeValue = options.text;
+    event.target.className = "item " + options.style;
   }
 }
 
@@ -512,7 +486,6 @@ function touchStartHandler(event) {
     this.touchStartX = touch.pageX + this.childNodes[1].scrollLeft;
   }
 }
-
 
 function existingTouchHandler(event) {
   for (const touch of event.changedTouches) {
@@ -536,7 +509,6 @@ function existingTouchHandler(event) {
   }
 }
 
-
 function touchMoved(outerRow, touch) {
   let travel = touch.pageX - outerRow.touchStartX;
   
@@ -552,7 +524,6 @@ function touchMoved(outerRow, touch) {
     outerRow.firstChild.style.width = outerRow.slideMenuStartWidth + Math.max(travel, 0) + "px";
   }
 }
-
 
 function touchEnded(outerRow, touch) {
   if (outerRow.touchCaptured) {
@@ -570,7 +541,6 @@ function touchEnded(outerRow, touch) {
   
   touchCanceled(outerRow);
 }
-
 
 function touchCanceled(outerRow) {
   outerRow.touchId = -1;
