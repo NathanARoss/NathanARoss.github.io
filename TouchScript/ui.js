@@ -524,6 +524,8 @@ function existingTouchHandler(event) {
       switch (event.type) {
         case "touchmove":
           touchMoved(outerRow, touch);
+          if (outerRow.touchCaptured)
+            event.preventDefault();
         break;
 
         case "touchend":
@@ -545,7 +547,6 @@ function touchMoved(outerRow, touch) {
   if (!outerRow.touchCaptured && travel > 10) {
     outerRow.touchCaptured = true;
     outerRow.firstChild.classList.remove("slow-transition");
-    outerRow.childNodes[1].style.overflowX = "hidden";
     outerRow.slideMenuStartWidth = outerRow.firstChild.offsetWidth;
     outerRow.touchStartX += 10;
     travel -= 10;
@@ -580,7 +581,6 @@ function touchCanceled(outerRow) {
   if (outerRow.touchCaptured) {
     outerRow.touchCaptured = false;
     outerRow.firstChild.classList.add("slow-transition");
-    outerRow.childNodes[1].style.overflowX = "";
     outerRow.firstChild.style.width = "";
   }
 }
