@@ -297,6 +297,10 @@ class Script {
       return this.ASSIGNMENT_OPERATORS.getMenuItems();
     }
 
+    if (format === Script.VARIABLE_REFERENCE || format === Script.FUNCTION_REFERENCE) {
+      options.push({text: "", style: "rename", payload: this.PAYLOADS.RENAME});
+    }
+
     if (col === 1) {
       if (format === Script.VARIABLE_REFERENCE)
         options.push(...this.getVisibleVariables(row, true));
@@ -311,7 +315,7 @@ class Script {
       const prevValue = prevItem & 0xFFFF;
 
       if (format === Script.VARIABLE_DEFINITION || format === Script.FUNCTION_DEFINITION) {
-        options.push({text: "", style: "text-input", payload: this.PAYLOADS.RENAME});
+        options.push({text: "", style: "rename", payload: this.PAYLOADS.RENAME});
 
         let option = {text: "", style: "comment", payload: Script.makeItemWithMeta(Script.COMMENT, 0, 0)};
         option.text = (format === Script.FUNCTION_DEFINITION) ? "none" : "auto";
