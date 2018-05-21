@@ -408,6 +408,7 @@ function menuItemClicked(payload) {
 
     if ((response & Script.RESPONSE.ROWS_INSERTED) !== 0) {
       insertRow(modal.row + 1);
+      insertRow(modal.row + 2);
     }
 
     if (response === Script.RESPONSE.SCRIPT_CHANGED) {
@@ -457,7 +458,11 @@ function rowClickHandler(event) {
   let options = script.itemClicked(row, col);
 
   if (Array.isArray(options)) {
-    if (options.length > 0) {
+    if (options.length === 1) {
+      modal.row = row;
+      modal.col = col;
+      menuItemClicked(options[0].payload);
+    } else if (options.length > 1) {
       modal.row = row;
       modal.col = col;
       configureModal(options);
@@ -475,9 +480,8 @@ function rowClickHandler(event) {
 
 
 function touchStartHandler(event) {
-  let touch = event.changedTouches[0];
-  
   if (this.touchId === -1) {
+    const touch = event.changedTouches[0];
     this.touchId = touch.identifier;
     this.touchStartX = touch.pageX + this.childNodes[1].scrollLeft;
   }

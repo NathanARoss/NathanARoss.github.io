@@ -318,9 +318,8 @@ class Script {
         options.push(option);
             
         for (let i = 2; i < this.classes.length; ++i) {
-          const c = this.classes[i];
-          if (c.size > 0)
-            options.push({text: c.name, style: "keyword", payload: Script.makeItemWithMeta(Script.COMMENT, i, 0)});
+          if (this.classes[i].size > 0)
+            options.push({text: this.classes[i].name, style: "keyword", payload: Script.makeItemWithMeta(Script.COMMENT, i, 0)});
         }
       }
 
@@ -400,7 +399,8 @@ class Script {
       }
     }
 
-    if (this.data[row][1] === this.ITEMS.FUNC) {
+    const index = this.data[row].lastIndexOf(this.ITEMS.FUNC);
+    if (index > 0) {
       let options = [];
 
       for (let i = 2; i < this.classes.length; ++i) {
@@ -443,10 +443,15 @@ class Script {
       
       case this.ITEMS.LET:
       case this.ITEMS.VAR: {
-        let varId = this.variables.length;
-        this.variables.push({name: `var${varId}`, type: 0});
-        this.data[row].push(payload, Script.makeItem(Script.VARIABLE_DEFINITION, varId), this.ITEMS.EQUALS, this.HINTS.EXPRESSION);
-        return Script.RESPONSE.ROW_UPDATED;
+        const varId = this.variables.length;
+        const name = prompt("Enter variable name:", `var${varId}`);
+        if (name) {
+          this.variables.push({name, type: 0, scope: 0});
+          this.data[row].push(payload, Script.makeItem(Script.VARIABLE_DEFINITION, varId), this.ITEMS.EQUALS, this.HINTS.EXPRESSION);
+          return Script.RESPONSE.ROW_UPDATED;
+        } else {
+          return Script.RESPONSE.NO_CHANGE;
+        }
       }
 
       case this.PAYLOADS.VAR_OPTIONS: {
@@ -494,12 +499,14 @@ class Script {
       }
 
       case this.PAYLOADS.FUNCTION_DEFINITION: {
-        let funcId = this.functions.length;
-        let newFunc = {name: `f${funcId}`, returnType: 0, scope: 0, parameters: []};
-        this.functions.push(newFunc);
-        this.data[row][0] |= 1 << 31;
-        this.data[row].push(this.ITEMS.FUNC, Script.makeItemWithMeta(Script.FUNCTION_DEFINITION, newFunc.returnType, funcId));
-        return Script.RESPONSE.ROW_UPDATED | Script.RESPONSE.ROWS_INSERTED;
+        let options = [{text: "none", style: "comment", payload: Script.makeItemWithMeta(Script.NUMERIC_LITERAL, 0, 0)}];
+            
+        for (let i = 2; i < this.classes.length; ++i) {
+          if (this.classes[i].size > 0)
+            options.push({text: this.classes[i].name, style: "keyword", payload: Script.makeItemWithMeta(Script.NUMERIC_LITERAL, i, 0)});
+        }
+
+        return options;
       }
 
       case this.PAYLOADS.LITERAL_INPUT: {
@@ -537,29 +544,32 @@ class Script {
       }
 
       case this.PAYLOADS.RENAME: {
-        let input = prompt("Enter new name:");
-        if (input === null)
-          return Script.RESPONSE.NO_CHANGE;
-        
         const data = this.data[row][col];
         const id = data & 0xFFFF;
         let format = data >>> 28;
 
+        let obj;
+
         switch (format) {
           case Script.VARIABLE_DEFINITION:
           case Script.VARIABLE_REFERENCE:
-            this.variables[id].name = input;
-            format = Script.VARIABLE_REFERENCE;
+            obj = this.variables[id];
             break;
 
           case Script.FUNCTION_DEFINITION:
           case Script.FUNCTION_REFERENCE:
-            this.functions[id].name = input;
-            format = Script.FUNCTION_REFERENCE;
+            obj = this.functions[id];
             break;
         }
-        
-        return Script.RESPONSE.SCRIPT_CHANGED;
+
+        let input = prompt("Enter new name:", obj.name);
+
+        if (input === null)
+          return Script.RESPONSE.NO_CHANGE;
+        else {
+          obj.name = input;
+          return Script.RESPONSE.SCRIPT_CHANGED;
+        }
       }
 
       case this.PAYLOADS.FUNCTION_REFERENCE:
@@ -574,10 +584,15 @@ class Script {
 
       case this.ITEMS.COMMA: {
         let varId = this.variables.length;
-        let type = (this.data[row].peek() >>> 16) & 0x0FFF;
-        this.variables.push({name: `var${varId}`, type: type});
-        this.data[row].push(this.ITEMS.COMMA, Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
-        return Script.RESPONSE.ROW_UPDATED;
+        const name = prompt("Enter variable name:", `var${varId}`);
+        if (name) {
+          let type = (this.data[row].peek() >>> 16) & 0x0FFF;
+          this.variables.push({name, type, scope: 0});
+          this.data[row].push(this.ITEMS.COMMA, Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
+          return Script.RESPONSE.ROW_UPDATED;
+        } else {
+          return Script.RESPONSE.NO_CHANGE;
+        }
       }
 
       case this.PAYLOADS.PARENTHESIS_PAIR: {
@@ -610,11 +625,32 @@ class Script {
 
     //user chose a type for a variable declaration
     if (format === Script.VARIABLE_DEFINITION) {
-      let varId = this.variables.length;
-      let type = meta;
-      this.variables.push({name: `var${varId}`, type: meta});
-      this.data[row].push(this.ITEMS.VAR, Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
-      return Script.RESPONSE.ROW_UPDATED;
+      const varId = this.variables.length;
+      const name = prompt("Enter variable name:", `var${varId}`);
+      if (name) {
+        const type = meta;
+        this.variables.push({name, type, scope: 0});
+        this.data[row].push(this.ITEMS.VAR, Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
+        return Script.RESPONSE.ROW_UPDATED;
+      } else {
+        return Script.RESPONSE.NO_CHANGE;
+      }
+    }
+
+    //user chose a type for a function declaration
+    if (format === Script.NUMERIC_LITERAL) {
+      let funcId = this.functions.length;
+      const returnType = meta;
+      const name = prompt(`Enter function name`, `f${funcId}`);
+        if (name) {
+        let newFunc = {name, returnType, scope: 0, parameters: []};
+        this.functions.push(newFunc);
+        this.data[row][0] |= 1 << 31;
+        this.data[row].push(this.ITEMS.FUNC, Script.makeItemWithMeta(Script.FUNCTION_DEFINITION, returnType, funcId));
+        return Script.RESPONSE.ROW_UPDATED | Script.RESPONSE.ROWS_INSERTED;
+      } else {
+        return Script.RESPONSE.NO_CHANGE;
+      }
     }
 
     //user chose a specific function call
@@ -638,20 +674,20 @@ class Script {
     if (format === Script.ARGUMENT_HINT) {
       let varId = this.variables.length;
       let type = meta;
-      const name = `var${varId}`;
+      const name = prompt(`Enter name for ${this.classes[type].name} parameter:`, `var${varId}`);
 
-      this.variables.push({name, type});
-      this.data[row].push(Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
+      if (name) {
+        this.variables.push({name, type, scope: 0});
+        this.data[row].push(Script.makeItemWithMeta(Script.VARIABLE_DEFINITION, type, varId));
 
-      const index = this.data[row].lastIndexOf(this.ITEMS.FUNC);
-      if (index <= 0) {
-        console.log(`failed to find function definition on line ${row}`);
-      } else {
+        const index = this.data[row].lastIndexOf(this.ITEMS.FUNC);
         const func = this.functions[this.data[row][index + 1] & 0xFFFF];
         func.parameters.push({name, type})
-      }
 
-      return Script.RESPONSE.ROW_UPDATED;
+        return Script.RESPONSE.ROW_UPDATED;
+      } else {
+        return Script.RESPONSE.NO_CHANGE;
+      }
     }
 
     if (format === Script.SYMBOL) {
@@ -665,7 +701,7 @@ class Script {
       return Script.RESPONSE.ROW_UPDATED;
     }
 
-    return Script.NO_CHANGE;
+    return Script.RESPONSE.NO_CHANGE;
   }
 
   getVisibleVariables(row, requiresMutable) {
