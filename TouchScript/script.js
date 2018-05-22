@@ -297,7 +297,10 @@ class Script {
       return this.ASSIGNMENT_OPERATORS.getMenuItems();
     }
 
-    if (format === Script.VARIABLE_REFERENCE || format === Script.FUNCTION_REFERENCE) {
+    if (format === Script.VARIABLE_REFERENCE
+    || format === Script.VARIABLE_DEFINITION
+    || format === Script.FUNCTION_REFERENCE
+    || format === Script.FUNCTION_DEFINITION) {
       options.push({text: "", style: "rename", payload: this.PAYLOADS.RENAME});
     }
 
@@ -305,7 +308,7 @@ class Script {
       if (format === Script.VARIABLE_REFERENCE)
         options.push(...this.getVisibleVariables(row, true));
       else if (format === Script.FUNCTION_REFERENCE) {
-        options.push(...this.getFunctionList(true));
+        options.push(...this.getFunctionList(false));
       }
     } else {
       const prevItem = this.data[row][col - 1];
@@ -315,8 +318,6 @@ class Script {
       const prevValue = prevItem & 0xFFFF;
 
       if (format === Script.VARIABLE_DEFINITION || format === Script.FUNCTION_DEFINITION) {
-        options.push({text: "", style: "rename", payload: this.PAYLOADS.RENAME});
-
         let option = {text: "", style: "comment", payload: Script.makeItemWithMeta(Script.COMMENT, 0, 0)};
         option.text = (format === Script.FUNCTION_DEFINITION) ? "none" : "auto";
         options.push(option);

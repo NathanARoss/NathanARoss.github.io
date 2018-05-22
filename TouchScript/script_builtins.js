@@ -45,7 +45,7 @@ function getBuiltIns() {
   
   function parseFunction(source, js) {
     if (!source.includes("->")) {
-      source += "->Hidden";
+      source += "->global";
     }
     
     let tokens = source.match(/[\w]+/g);
