@@ -1,14 +1,14 @@
-var canvas = document.getElementById("myCanvas");
-var context = canvas.getContext("2d");
-let callInterval = 16;
+let canvas = document.getElementById("myCanvas");
+let context = canvas.getContext("2d");
+const callInterval = 16;
 
-var theta = 0.0;
-var centerX, centerY;
-var time = 0.0;
+let theta = 0.0;
+let centerX, centerY;
+let time = 0.0;
 
-var objects = [];
+let objects = [];
 
-function resize_canvas() {	
+function resize_canvas() {
 	context.canvas.width = window.innerWidth;
 	context.canvas.height = window.innerHeight;
 	centerX = canvas.width / 2.0;
@@ -25,15 +25,14 @@ function resize_canvas() {
 
 function draw() {
 	//clear canvas
-	//context.beginPath();
 	//context.clearRect(0, 0, canvas.width, canvas.height);
 	
-	for (var i = 0; i < objects.length; ++i) {
-		var ball = objects[i];
+	for (let i = 0; i < objects.length; ++i) {
+		let ball = objects[i];
 		ball.x += ball.vx;
 		ball.y += ball.vy;
 		
-		let radius2 = (ball.x - centerX) ** 2 + (ball.y - centerY) ** 2;
+		const radius2 = (ball.x - centerX) ** 2 + (ball.y - centerY) ** 2;
 		ball.vx -= (ball.x - centerX) / radius2;
 		ball.vy -= (ball.y - centerY) / radius2;
 		
@@ -46,13 +45,15 @@ function draw() {
 		ball.px = ball.x;
 		ball.py = ball.y;
 	}
+	
+	requestAnimationFrame(draw);
 }
 
 function getRandomColor() {
-	var letters = '0123456789ABCDEF';
-	var color = '#';
-	for (var i = 0; i < 6; i++) {
-		color += letters[Math.floor(Math.random() * 16)];
+	let constters = '0123456789ABCDEF';
+	let color = '#';
+	for (let i = 0; i < 6; i++) {
+		color += constters[Math.floor(Math.random() * 16)];
 	}
 	return color;
 }
@@ -60,12 +61,12 @@ function getRandomColor() {
 function generateObjects() {
 	objects = [];
 	
-	for (var i = 0; i < 200; ++i) {
-		var ball = new Object();
+	for (let i = 0; i < 200; ++i) {
+		let ball = new Object();
 		ball.x = Math.random() * canvas.width;
 		ball.y = Math.random() * canvas.height;
 		
-		let radius = ((ball.x - centerX) ** 2 + (ball.y - centerY) ** 2) ** 0.55;
+		const radius = ((ball.x - centerX) ** 2 + (ball.y - centerY) ** 2) ** 0.55;
 		
 		ball.px = ball.x;
 		ball.py = ball.y;
@@ -77,4 +78,4 @@ function generateObjects() {
 }
 
 resize_canvas();
-setInterval(draw, callInterval);
+requestAnimationFrame(draw);
