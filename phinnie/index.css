@@ -77,7 +77,8 @@ main {
 
 .center {
     display: block;
-    height: 15em;
+    max-height: 15em;
+    max-width: 100%;
     margin: 0 auto;
     background-size: contain;
     background-position: center;
@@ -91,6 +92,7 @@ main {
 }
 
 .center-contents img {
-    height: 15em;
+    max-height: 15em;
+    max-width: 100%;
     margin: 0.5em;
 }
