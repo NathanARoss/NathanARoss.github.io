@@ -43,7 +43,6 @@ main {
         display: none;
     }
 
-    .menu-invoker:hover + .menu,
     .menu-invoker:focus + .menu,
     .menu:hover,
     .menu:focus {
