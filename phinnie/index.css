@@ -25,6 +25,9 @@ main {
 }
 
 .menu-invoker {
+    position: fixed;
+    width: 100%;
+    top: 0;
     background-image: url("baseline-menu-24px.svg");
     background-repeat: no-repeat;
     background-size: contain;
@@ -50,6 +53,7 @@ main {
     }
 
     main {
+        margin-top: 2em;
         margin-left: 0;
     }
 }
@@ -69,7 +73,6 @@ main {
 .menu a.active {
     background-color: var(--phinnie-pink);
 }
-
 
 .active {
     background-color: var(--phinnie-pink);
