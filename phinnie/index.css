@@ -25,14 +25,12 @@ main {
 }
 
 .menu-invoker {
-    width: 100%;
     background-image: url("baseline-menu-24px.svg");
     background-repeat: no-repeat;
     background-size: contain;
     background-position: left;
     background-color: var(--secondary-purple);
     height: 2em;
-    display: block;
 }
 
 @media screen and (max-width: 2400px) {
@@ -62,7 +60,6 @@ main {
     }
 
     main {
-        margin-top: 2em;
         margin-left: 0;
     }
 }
