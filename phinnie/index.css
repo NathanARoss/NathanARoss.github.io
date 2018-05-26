@@ -52,6 +52,11 @@ main {
         display: block;
     }
 
+    /* DEBUG */
+    .menu-invoker:focus {
+        background-color: green;
+    }
+
     main {
         margin-top: 2em;
         margin-left: 0;
