@@ -53,8 +53,14 @@ main {
     }
 
     /* DEBUG */
-    .menu-invoker:focus {
+    .menu-invoker:focus, {
         background-color: green;
+    }
+    .menu-invoker:active, {
+        background-color: blue;
+    }
+    .menu-invoker:hover, {
+        background-color: orange;
     }
 
     main {
