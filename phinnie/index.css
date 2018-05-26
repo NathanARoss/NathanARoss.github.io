@@ -42,6 +42,7 @@ main {
         display: none;
     }
 
+    .menu-invoker:hover + .menu,
     .menu-invoker:focus + .menu,
     .menu:hover,
     .menu:focus {
@@ -49,13 +50,13 @@ main {
     }
 
     /* DEBUG */
-    .menu-invoker:focus, {
+    a:focus, {
         background-color: green;
     }
-    .menu-invoker:active, {
+    a:active, {
         background-color: blue;
     }
-    .menu-invoker:hover, {
+    a:hover, {
         background-color: orange;
     }
 
@@ -77,10 +78,6 @@ main {
 }
 
 .menu a.active {
-    background-color: var(--phinnie-pink);
-}
-
-.active {
     background-color: var(--phinnie-pink);
 }
 
