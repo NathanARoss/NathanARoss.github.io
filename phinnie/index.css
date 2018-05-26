@@ -31,36 +31,31 @@ main {
     background-position: left;
     background-color: var(--secondary-purple);
     height: 2em;
+    display: none;
+    position: fixed;
+    top: 0;
+    width: 100%;
 }
 
-@media screen and (max-width: 2400px) {
+@media screen and (max-width: 600px) {
     .menu-invoker  {
         display: block;
     }
 
     .menu {
-        display: none;
+        left: -15em;
+        transition: left 0.5s;
     }
 
     .menu-invoker:hover + .menu,
     .menu-invoker:focus + .menu,
     .menu:hover,
     .menu:focus {
-        display: block;
-    }
-
-    /* DEBUG */
-    a:focus, {
-        background-color: green;
-    }
-    a:active, {
-        background-color: blue;
-    }
-    a:hover, {
-        background-color: orange;
+        left: 0;
     }
 
     main {
+        margin-top: 2em;
         margin-left: 0;
     }
 }
