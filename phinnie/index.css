@@ -25,7 +25,6 @@ main {
 }
 
 .menu-invoker {
-    position: fixed;
     width: 100%;
     top: 0;
     background-image: url("baseline-menu-24px.svg");
