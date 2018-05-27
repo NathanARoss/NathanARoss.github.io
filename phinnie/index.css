@@ -12,12 +12,12 @@ body {
 
 main {
     padding: 1em;
-    margin-left: 15em;
+    margin-left: 13em;
 }
 
 .menu {
     position: fixed;
-    width: 15em;
+    width: 13em;
     height: 100%;
     background-color: var(--background-purple);
     overflow: auto;
@@ -43,7 +43,7 @@ main {
     }
 
     .menu {
-        left: -15em;
+        left: -13em;
         transition: left 0.5s;
     }
 
@@ -76,13 +76,17 @@ main {
     background-color: var(--phinnie-pink);
 }
 
-.center {
+img.center, video.center, audio.center {
     display: block;
     max-height: 15em;
     max-width: 100%;
     margin: 0 auto;
     background-size: contain;
     background-position: center;
+}
+
+p.center {
+    text-align: center;
 }
 
 .center-contents {
