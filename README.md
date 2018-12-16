@@ -1,3 +1,3 @@
-# NathanAnthonyRoss19.github.io
+# NathanARoss.github.io
 
 Hosting for NathanRoss.me
