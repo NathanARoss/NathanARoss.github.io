@@ -1,22 +1,102 @@
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <title>Nathan's Page</title>
-    <meta name="description" content="My home page.  This page contains links to my projects.">
-    <meta name="author" content="Nathan Ross">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  </head>
-  <body>
-    <div class="github-widget" data-username="NathanAnthonyRoss19"></div>
-    <script src="https://unpkg.com/github-card@1.2.1/dist/widget.js"></script>
 
-    <div>
-      <h1>My projects</h1>
-      <p>TouchScript is a simplified development environment designed for ease of prototyping software while using a smartphone or tablet.</p>
-      <a href="./TouchScript/">TouchScript</a>
+<head>
+  <meta charset="UTF-8">
+  <title>Nathan's Page</title>
+  <meta name="description" content="My home page.  This page contains links to my projects.">
+  <meta name="author" content="Nathan Ross">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="main.css">
+</head>
 
-      <p>Flinger is a 2D physics game involving flinging a bouncy fish out of water at the same velocity as your cursor or finger.</p>
-      <a href="./Flinger/">Flinger</a>
+<body>
+  <h1>Hackathons</h1>
+  <div id="attended-hackathons">
+    <div class="centered-vertical-layout">
+      <p>H2O Hackathon 2019</p>
+      <p>March 17, 2019</p>
+      <a href="https://twitter.com/H2OHackathon/status/1107334821578104832">
+        <img height=100 src="h2o-hackathon-2019.jpg">
+      </a>
+      <p>1st Place</p>
+      <a href="https://encodereli.github.io/">Partner: Elijah Branner</a>
     </div>
-  </body>
+    <div class="centered-vertical-layout">
+      <p>Stockton 8-Hour Hack 2019</p>
+      <p>March 23, 2019</p>
+      <a href="#">
+        <img height=100 src="valley-hackathon-stockton-8-hour-hack-2019.png">
+      </a>
+      <p>1st Place</p>
+      <a href="https://alisson.me/">Partner: Alisson Leiva Salazar</a>
+    </div>
+  </div>
+
+  <h1>Contact Info</h1>
+  <p>Email: <a href="mailto:NathanAnthonyRoss19@gmail.com">NathanAnthonyRoss19@gmail.com</a></p>
+  <p>GitHub: <a href="https://github.com/NathanARoss/">NathanARoss</a></p>
+
+  <h1>Projects</h1>
+  <h2>Web Apps</h2>
+  <div class="project-listing">
+    <a href="./TouchScript/">
+      <div class="touch-script-logo logo">TS</div>
+    </a>
+    <p>TouchScript is a simplified development environment designed for ease of prototyping software while using a
+      smartphone or tablet.</p>
+  </div>
+  <div class="project-listing">
+    <a href="./Nathematica/">
+      <img class="logo" src="nathematica-icon.svg">
+    </a>
+    <p>Nathematica attempts to provide a simple interface for entering math equations, an easy to read step-by-step
+      solution guide, and interactive graphs.</p>
+  </div>
+  <div class="project-listing">
+    <a href="./small-wasm-disassembler/">
+      <div class="swd-logo logo">swd</div>
+    </a>
+    <p>small-wasm-disassembler provides a JavaScript module that takes a WebAssembly binary and returns a string
+      commenting the purpose of each byte. This tool is used to analyze the size and byte structure of WebAssembly
+      binaries.</p>
+  </div>
+  <div class="project-listing">
+    <a href="./Flinger/">
+      <div class="flinger-logo logo">Flinger</div>
+    </a>
+    <p>Flinger is a 2D physics game involving flinging a bouncy fish out of water at the same velocity as your cursor or
+      finger.</p>
+  </div>
+  <div class="project-listing">
+    <a href="./guessing-game/">
+      <div class="guessing-game-logo logo">100</div>
+    </a>
+    <p>Guessing Game is my first ever web app. Guess a random number between 1 and 100 with hints of higher or lower.
+    </p>
+  </div>
+
+  <h2>Client Apps</h2>
+  <div class="project-listing">
+    <a href="https://github.com/NathanARoss/small-wasm-trimmer">
+      <div class="swd-logo logo">swt</div>
+    </a>
+    <p>small-wasm-trimmer is a C Linux utility that can remove specific WebAssembly exports by name and specific
+      sections by ID. It
+      is designed as a preprocessor to <a href="https://github.com/WebAssembly/binaryen">wasm-opt</a>.</p>
+  </div>
+  <div class="project-listing">
+    <a href="https://github.com/NathanARoss/num-to-string">
+      <div class="swd-logo logo">nts</div>
+    </a>
+    <p>num-to-string is a minimal implementation of a double to char[] written in C++. I wrote it with the intent to
+      implement it in WebAssembly by hand, but I went another route for that.</p>
+  </div>
+  <div class="project-listing">
+    <a href="https://github.com/NathanARoss/Java">
+      <div class="java-homework-logo logo">Java</div>
+    </a>
+    <p>I uploaded a year's worth of Java homework to GitHub for future reference.</p>
+  </div>
+</body>
+
 </html>
