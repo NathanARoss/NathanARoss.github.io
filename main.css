@@ -19,6 +19,8 @@
     height: 100px;
     line-height: 100px;
     text-align: center;
+    float: left;
+    margin-right: 8px;
 }
 
 .touch-script-logo {
@@ -57,9 +59,7 @@
 }
 
 .project-listing {
-    display: flex;
     margin: 8px 0;
-    align-items: center;
 }
 
 .project-listing>a {
@@ -72,4 +72,5 @@
     background-color: #cccccc;
     flex-grow: 1;
     align-self: stretch;
+    min-height: 84px;
 }
